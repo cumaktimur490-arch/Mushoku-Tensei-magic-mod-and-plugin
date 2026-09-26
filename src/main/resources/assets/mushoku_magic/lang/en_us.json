@@ -1,0 +1,20 @@
+{
+  "item.mushoku_magic.wand": "Magic Wand",
+  "item.mushoku_magic.migurd_staff": "Migurd Staff",
+  "item.mushoku_magic.aqua_hartia_staff": "Aqua Hartia Staff",
+  "item.mushoku_magic.mana_crystal": "Mana Crystal",
+  "item.mushoku_magic.migurd_crystal": "Migurd Crystal",
+  "item.mushoku_magic.aqua_crystal": "Aqua Crystal",
+
+  "tooltip.mushoku_magic.magic_multiplier": "Magic Multiplier: x%s",
+  "tooltip.mushoku_magic.staff.wand": "Basic wand for beginners",
+  "tooltip.mushoku_magic.staff.migurd_staff": "Staff of the Migurd tribe, greatly enhances magic",
+  "tooltip.mushoku_magic.staff.aqua_hartia_staff": "Legendary staff of Roxy Migurdia and Rudeus Greyrat",
+  "tooltip.mushoku_magic.wand_desc": "A simple wand. Suitable for learning magic.",
+  "tooltip.mushoku_magic.migurd_desc": "Made from Migurd sacred wood. x15 magic power.",
+  "tooltip.mushoku_magic.aqua_hartia_desc": "The ultimate staff. Contains the power of the Aqua Hartia. x50 magic power.",
+
+  "message.mushoku_magic.cast": "Cast with %s (x%s) -> Damage: %.1f",
+
+  "creativetab.mushoku_magic_tab": "Mushoku Magic"
+}

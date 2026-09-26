@@ -1,0 +1,20 @@
+{
+  "item.mushoku_magic.wand": "Волшебная палочка",
+  "item.mushoku_magic.migurd_staff": "Посох Мигурда",
+  "item.mushoku_magic.aqua_hartia_staff": "Посох Аква Хартия",
+  "item.mushoku_magic.mana_crystal": "Кристалл маны",
+  "item.mushoku_magic.migurd_crystal": "Кристалл Мигурда",
+  "item.mushoku_magic.aqua_crystal": "Кристалл Аква",
+
+  "tooltip.mushoku_magic.magic_multiplier": "Множитель магии: x%s",
+  "tooltip.mushoku_magic.staff.wand": "Базовая палочка для новичков",
+  "tooltip.mushoku_magic.staff.migurd_staff": "Посох племени мигурдов, сильно усиливает магию",
+  "tooltip.mushoku_magic.staff.aqua_hartia_staff": "Легендарный посох Рокси Мигурдии и Рудэуса Грейрата",
+  "tooltip.mushoku_magic.wand_desc": "Простая палочка. Подходит для изучения магии.",
+  "tooltip.mushoku_magic.migurd_desc": "Сделан из священного дерева мигурдов. Сила магии x15.",
+  "tooltip.mushoku_magic.aqua_hartia_desc": "Величайший посох. Содержит силу Аква Хартии. Сила магии x50.",
+
+  "message.mushoku_magic.cast": "Каст с %s (x%s) -> Урон: %.1f",
+
+  "creativetab.mushoku_magic_tab": "Магия Mushoku"
+}

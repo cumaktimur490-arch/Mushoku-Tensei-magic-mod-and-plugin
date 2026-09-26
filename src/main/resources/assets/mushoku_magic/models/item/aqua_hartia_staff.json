@@ -1,0 +1,6 @@
+{
+  "parent": "item/handheld",
+  "textures": {
+    "layer0": "mushoku_magic:item/aqua_hartia_staff"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " CC",
+    " SC",
+    "S  "
+  ],
+  "key": {
+    "C": {
+      "item": "mushoku_magic:aqua_crystal"
+    },
+    "S": {
+      "item": "mushoku_magic:migurd_staff"
+    }
+  },
+  "result": {
+    "item": "mushoku_magic:aqua_hartia_staff"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "parent": "item/generated",
+  "textures": {
+    "layer0": "mushoku_magic:item/migurd_crystal"
+  }
+}

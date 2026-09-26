@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "  C",
+    " S ",
+    "S  "
+  ],
+  "key": {
+    "C": {
+      "item": "mushoku_magic:migurd_crystal"
+    },
+    "S": {
+      "item": "mushoku_magic:wand"
+    }
+  },
+  "result": {
+    "item": "mushoku_magic:migurd_staff"
+  }
+}
