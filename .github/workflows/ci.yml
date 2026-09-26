@@ -14,19 +14,39 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Java 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '21'
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Run tests and build the mod
-        run: ./gradlew --no-daemon clean build
+        shell: bash
+        run: |
+          set -o pipefail
+          ./gradlew --no-daemon clean build --stacktrace 2>&1 | tee "$RUNNER_TEMP/gradle-build.log"
+
+      - name: Surface Gradle failure details
+        if: failure()
+        shell: bash
+        run: |
+          log_file="$RUNNER_TEMP/gradle-build.log"
+          [[ -f "$log_file" ]] || exit 0
+          grep -E 'FAILURE:|What went wrong:|Exception is:|Execution failed for task|Could not find|Could not resolve|No matching variant|error:|cannot find symbol|symbol:|location:|Caused by:' "$log_file" | tail -n 12 > "$RUNNER_TEMP/gradle-errors.log" || true
+          if [[ ! -s "$RUNNER_TEMP/gradle-errors.log" ]]; then
+            tail -n 12 "$log_file" > "$RUNNER_TEMP/gradle-errors.log"
+          fi
+          while IFS= read -r line || [[ -n "$line" ]]; do
+            line="${line:0:900}"
+            line="${line//'%'/'%25'}"
+            line="${line//$'\r'/'%0D'}"
+            echo "::error title=Gradle diagnostic::$line"
+          done < "$RUNNER_TEMP/gradle-errors.log"
 
       - name: Upload the mod jar
         uses: actions/upload-artifact@v4
