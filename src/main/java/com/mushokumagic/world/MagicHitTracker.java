@@ -17,21 +17,21 @@ public final class MagicHitTracker {
     }
 
     public static void mark(class_1309 entity, class_3222 player, long tick) {
-        HITS.put((Object)entity.method_5667(), (Object)new Hit(player.method_5667(), tick));
+        HITS.put(entity.method_5667(), new Hit(player.method_5667(), tick));
     }
 
     public static Hit get(class_1309 entity) {
-        return (Hit)((Object)HITS.get((Object)entity.method_5667()));
+        return (Hit)(HITS.get(entity.method_5667()));
     }
 
     public static void clear(class_1309 entity) {
-        HITS.remove((Object)entity.method_5667());
+        HITS.remove(entity.method_5667());
     }
 
     public static void prune(long now) {
         Iterator iterator = HITS.entrySet().iterator();
         while (iterator.hasNext()) {
-            if (now - ((Hit)((Object)((Map.Entry)iterator.next()).getValue())).tick() <= 600L) continue;
+            if (now - ((Hit)(((Map.Entry)iterator.next()).getValue())).tick() <= 600L) continue;
             iterator.remove();
         }
     }

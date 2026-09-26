@@ -114,7 +114,7 @@ public final class MagicEvents {
             return;
         }
         MagicHitTracker.Hit hit = MagicHitTracker.get(entity);
-        if (hit == null || hit.player() == null || !hit.player().equals((Object)killer.method_5667())) {
+        if (hit == null || hit.player() == null || !hit.player().equals(killer.method_5667())) {
             return;
         }
         if (level.method_75260() - hit.tick() > 200L) {

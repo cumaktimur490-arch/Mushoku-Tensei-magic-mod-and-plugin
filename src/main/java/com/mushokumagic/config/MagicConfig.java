@@ -36,7 +36,7 @@ public final class MagicConfig {
     public double learnMaxManaBonus = 15.0;
     public double xpThresholdBase = 100.0;
     public double xpThresholdPerMaxMana = 2.0;
-    public List<String> bosses = new ArrayList((Collection)List.of((Object)"minecraft:ender_dragon", (Object)"minecraft:wither", (Object)"minecraft:warden"));
+    public List<String> bosses = new ArrayList((Collection)List.of("minecraft:ender_dragon", "minecraft:wither", "minecraft:warden"));
     public double wordBonusPerWord = 0.1;
     public double maxWordBonus = 1.0;
     public Map<String, KeywordDef> keywords = MagicConfig.defaultKeywords();
@@ -57,34 +57,34 @@ public final class MagicConfig {
 
     private static Map<String, KeywordDef> defaultKeywords() {
         LinkedHashMap map = new LinkedHashMap();
-        map.put((Object)"explosion", (Object)new KeywordDef("explosion", (List<String>)List.of((Object)"\u0432\u0437\u0440\u044b\u0432", (Object)"\u0432\u0437\u0440\u044b\u0432\u043d\u043e\u0439", (Object)"\u0432\u0437\u043e\u0440\u0432\u0438\u0441\u044c", (Object)"explosion", (Object)"explosive"), 1.5, 1.25, 1.0, true, false));
-        map.put((Object)"fast", (Object)new KeywordDef("fast", (List<String>)List.of((Object)"\u0431\u044b\u0441\u0442\u0440\u044b\u0439", (Object)"\u0431\u044b\u0441\u0442\u0440\u043e", (Object)"\u0443\u0441\u043a\u043e\u0440\u044c", (Object)"fast", (Object)"quick"), 1.0, 1.0, 0.5, false, false));
-        map.put((Object)"silent", (Object)new KeywordDef("silent", (List<String>)List.of((Object)"\u0442\u0438\u0445\u0438\u0439", (Object)"\u0442\u0438\u0445\u043e", (Object)"\u0431\u0435\u0437\u0437\u0432\u0443\u0447\u043d\u043e", (Object)"silent", (Object)"quiet"), 1.0, 1.0, 1.0, false, true));
+        map.put("explosion", new KeywordDef("explosion", (List<String>)List.of("\u0432\u0437\u0440\u044b\u0432", "\u0432\u0437\u0440\u044b\u0432\u043d\u043e\u0439", "\u0432\u0437\u043e\u0440\u0432\u0438\u0441\u044c", "explosion", "explosive"), 1.5, 1.25, 1.0, true, false));
+        map.put("fast", new KeywordDef("fast", (List<String>)List.of("\u0431\u044b\u0441\u0442\u0440\u044b\u0439", "\u0431\u044b\u0441\u0442\u0440\u043e", "\u0443\u0441\u043a\u043e\u0440\u044c", "fast", "quick"), 1.0, 1.0, 0.5, false, false));
+        map.put("silent", new KeywordDef("silent", (List<String>)List.of("\u0442\u0438\u0445\u0438\u0439", "\u0442\u0438\u0445\u043e", "\u0431\u0435\u0437\u0437\u0432\u0443\u0447\u043d\u043e", "silent", "quiet"), 1.0, 1.0, 1.0, false, true));
         return map;
     }
 
     private static List<RankDef> defaultRanks() {
-        return new ArrayList((Collection)List.of((Object)new RankDef("beginner", 40.0, 209.0, 1.0), (Object)new RankDef("average", 210.0, 329.0, 1.1), (Object)new RankDef("advanced", 330.0, 499.0, 1.2), (Object)new RankDef("saint", 500.0, 739.0, 1.35), (Object)new RankDef("royal", 740.0, 989.0, 1.5), (Object)new RankDef("imperial", 990.0, 1499.0, 1.7), (Object)new RankDef("divine", 1500.0, -1.0, 2.0)));
+        return new ArrayList((Collection)List.of(new RankDef("beginner", 40.0, 209.0, 1.0), new RankDef("average", 210.0, 329.0, 1.1), new RankDef("advanced", 330.0, 499.0, 1.2), new RankDef("saint", 500.0, 739.0, 1.35), new RankDef("royal", 740.0, 989.0, 1.5), new RankDef("imperial", 990.0, 1499.0, 1.7), new RankDef("divine", 1500.0, -1.0, 2.0)));
     }
 
     private static List<SpellDef> defaultSpells() {
         ArrayList list = new ArrayList();
-        list.add((Object)new SpellDef("fire_bolt", "fire", 50.0, 40, 4.0, 2.5, (List<String>)List.of((Object)"\u043e\u0433\u043e\u043d\u044c \u043f\u043e\u0440\u0430\u0437\u0438 \u0446\u0435\u043b\u044c", (Object)"\u043e\u0433\u043d\u0435\u043d\u043d\u044b\u0439 \u0441\u043d\u0430\u0440\u044f\u0434", (Object)"\u043e\u0433\u043d\u0435\u043d\u043d\u044b\u0439 \u0448\u0430\u0440", (Object)"\u0444\u0430\u0435\u0440\u0431\u043e\u043b", (Object)"fire bolt", (Object)"fireball")));
-        list.add((Object)new SpellDef("light", "fire", 20.0, 0, 1.0, 0.0, (List<String>)List.of((Object)"\u0441\u0432\u0435\u0442 \u043e\u0441\u0432\u0435\u0442\u0438 \u043c\u043e\u0439 \u043f\u0443\u0442\u044c", (Object)"\u043e\u0433\u043e\u043d\u0451\u043a", (Object)"\u043e\u0433\u043e\u043d\u0435\u043a", (Object)"\u0441\u0432\u0435\u0442", (Object)"light")));
-        list.add((Object)new SpellDef("explosive_fireball", "fire", 160.0, 40, 6.0, 4.0, (List<String>)List.of((Object)"\u043f\u043b\u0430\u043c\u044f \u0432\u0437\u043e\u0440\u0432\u0438\u0441\u044c \u0441\u0438\u043b\u043e\u0439", (Object)"\u0432\u0437\u0440\u044b\u0432\u043d\u043e\u0439 \u0444\u0430\u0435\u0440\u0431\u043e\u043b", (Object)"\u043e\u0433\u043d\u0435\u043d\u043d\u044b\u0439 \u0432\u0437\u0440\u044b\u0432", (Object)"explosive fireball", (Object)"fire blast")));
-        list.add((Object)new SpellDef("water_ball", "water", 10.0, 10, 0.0, 3.0, (List<String>)List.of((Object)"\u0432\u043e\u0434\u0430 \u043e\u0431\u0440\u0443\u0448\u044c\u0441\u044f", (Object)"\u0432\u043e\u0434\u044f\u043d\u043e\u0439 \u0448\u0430\u0440", (Object)"\u0432\u043e\u0442\u0435\u0440\u0431\u043e\u043b", (Object)"water ball")));
-        list.add((Object)new SpellDef("ice_needle", "water", 50.0, 15, 2.0, 1.0, (List<String>)List.of((Object)"\u0432\u043e\u0434\u0430 \u0437\u0430\u0441\u0442\u044b\u043d\u044c \u0438\u0433\u043b\u043e\u0439", (Object)"\u043b\u0435\u0434\u044f\u043d\u0430\u044f \u0438\u0433\u043b\u0430", (Object)"\u043b\u0435\u0434\u044f\u043d\u0430\u044f \u0441\u043f\u0438\u0446\u0430", (Object)"ice needle")));
-        list.add((Object)new SpellDef("water_wall", "water", 90.0, 40, 1.0, 0.0, (List<String>)List.of((Object)"\u0432\u043e\u0434\u0430 \u0432\u0441\u0442\u0430\u043d\u044c \u0441\u0442\u0435\u043d\u043e\u0439", (Object)"\u0432\u043e\u0434\u044f\u043d\u0430\u044f \u0441\u0442\u0435\u043d\u0430", (Object)"water wall")));
-        list.add((Object)new SpellDef("stone_ball", "earth", 25.0, 15, 1.0, 1.0, (List<String>)List.of((Object)"\u0437\u0435\u043c\u043b\u044f \u0441\u043e\u0436\u043c\u0438\u0441\u044c \u0432 \u043a\u0430\u043c\u0435\u043d\u044c", (Object)"\u043a\u0430\u043c\u0435\u043d\u043d\u044b\u0439 \u0448\u0430\u0440", (Object)"\u043a\u0430\u043c\u0435\u043d\u044c \u0448\u0430\u0440", (Object)"stone ball")));
-        list.add((Object)new SpellDef("stone_wall", "earth", 160.0, 40, 1.0, 0.0, (List<String>)List.of((Object)"\u0437\u0435\u043c\u043b\u044f \u0432\u0441\u0442\u0430\u043d\u044c \u043f\u0440\u0435\u0434\u043e \u043c\u043d\u043e\u0439", (Object)"\u043a\u0430\u043c\u0435\u043d\u043d\u0430\u044f \u0441\u0442\u0435\u043d\u0430", (Object)"stone wall")));
-        list.add((Object)new SpellDef("swamp", "earth", 200.0, 60, 1.0, 10.0, (List<String>)List.of((Object)"\u0437\u0435\u043c\u043b\u044f \u0440\u0430\u0437\u0432\u0435\u0440\u0437\u043d\u0438\u0441\u044c \u0442\u043e\u043f\u044c\u044e", (Object)"\u0431\u043e\u043b\u043e\u0442\u043e", (Object)"\u0442\u043e\u043f\u044c", (Object)"swamp")));
-        list.add((Object)new SpellDef("gust", "wind", 45.0, 10, 1.0, 5.0, (List<String>)List.of((Object)"\u0432\u0435\u0442\u0435\u0440 \u043e\u0442\u0442\u043e\u043b\u043a\u043d\u0438 \u0432\u0440\u0430\u0433\u043e\u0432", (Object)"\u043f\u043e\u0440\u044b\u0432 \u0432\u0435\u0442\u0440\u0430", (Object)"\u0432\u0435\u0442\u0435\u0440", (Object)"gust", (Object)"gust of wind")));
-        list.add((Object)new SpellDef("updraft", "wind", 45.0, 10, 1.0, 0.0, (List<String>)List.of((Object)"\u0432\u0435\u0442\u0435\u0440 \u043f\u043e\u0434\u043d\u0438\u043c\u0438 \u043c\u0435\u043d\u044f", (Object)"\u0432\u043e\u0441\u0445\u043e\u0434\u044f\u0449\u0438\u0439 \u043f\u043e\u0442\u043e\u043a", (Object)"updraft")));
-        list.add((Object)new SpellDef("haste", "wind", 50.0, 0, 1.0, 0.0, (List<String>)List.of((Object)"\u0432\u0435\u0442\u0435\u0440 \u0434\u0430\u0439 \u043c\u043d\u0435 \u0441\u043a\u043e\u0440\u043e\u0441\u0442\u044c", (Object)"\u0443\u0441\u043a\u043e\u0440\u0435\u043d\u0438\u0435", (Object)"haste")));
-        list.add((Object)new SpellDef("heal_basic", "healing", 35.0, 20, 1.0, 0.0, (List<String>)List.of((Object)"\u0434\u0443\u0445\u0438 \u0438\u0441\u0446\u0435\u043b\u0438\u0442\u0435 \u043c\u043e\u0438 \u0440\u0430\u043d\u044b", (Object)"\u0431\u0430\u0437\u043e\u0432\u043e\u0435 \u043b\u0435\u0447\u0435\u043d\u0438\u0435", (Object)"\u043b\u0435\u0447\u0435\u043d\u0438\u0435", (Object)"\u0438\u0441\u0446\u0435\u043b\u0435\u043d\u0438\u0435", (Object)"basic healing")));
-        list.add((Object)new SpellDef("heal_strong", "healing", 90.0, 40, 1.0, 0.0, (List<String>)List.of((Object)"\u0434\u0443\u0445\u0438 \u0437\u0430\u0449\u0438\u0442\u0438\u0442\u0435 \u043c\u043e\u0451 \u0442\u0435\u043b\u043e", (Object)"\u0443\u043a\u0440\u0435\u043f\u043b\u044f\u044e\u0449\u0435\u0435 \u043b\u0435\u0447\u0435\u043d\u0438\u0435", (Object)"strong healing")));
-        list.add((Object)new SpellDef("heal_full", "healing", 130.0, 60, 1.0, 0.0, (List<String>)List.of((Object)"\u0434\u0443\u0445\u0438 \u0432\u043e\u0441\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u0435 \u043c\u043e\u044e \u043f\u043b\u043e\u0442\u044c", (Object)"\u043f\u043e\u043b\u043d\u043e\u0435 \u0432\u043e\u0441\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435", (Object)"full healing")));
-        list.add((Object)new SpellDef("repair_item", "repair", 100.0, 60, 0.5, 0.0, (List<String>)List.of((Object)"\u0434\u0443\u0445\u0438 \u0432\u043e\u0441\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u0435 \u043f\u0440\u0435\u0434\u043c\u0435\u0442", (Object)"\u043f\u043e\u0447\u0438\u043d\u043a\u0430", (Object)"\u0440\u0435\u043c\u043e\u043d\u0442", (Object)"repair item")));
+        list.add(new SpellDef("fire_bolt", "fire", 50.0, 40, 4.0, 2.5, (List<String>)List.of("\u043e\u0433\u043e\u043d\u044c \u043f\u043e\u0440\u0430\u0437\u0438 \u0446\u0435\u043b\u044c", "\u043e\u0433\u043d\u0435\u043d\u043d\u044b\u0439 \u0441\u043d\u0430\u0440\u044f\u0434", "\u043e\u0433\u043d\u0435\u043d\u043d\u044b\u0439 \u0448\u0430\u0440", "\u0444\u0430\u0435\u0440\u0431\u043e\u043b", "fire bolt", "fireball")));
+        list.add(new SpellDef("light", "fire", 20.0, 0, 1.0, 0.0, (List<String>)List.of("\u0441\u0432\u0435\u0442 \u043e\u0441\u0432\u0435\u0442\u0438 \u043c\u043e\u0439 \u043f\u0443\u0442\u044c", "\u043e\u0433\u043e\u043d\u0451\u043a", "\u043e\u0433\u043e\u043d\u0435\u043a", "\u0441\u0432\u0435\u0442", "light")));
+        list.add(new SpellDef("explosive_fireball", "fire", 160.0, 40, 6.0, 4.0, (List<String>)List.of("\u043f\u043b\u0430\u043c\u044f \u0432\u0437\u043e\u0440\u0432\u0438\u0441\u044c \u0441\u0438\u043b\u043e\u0439", "\u0432\u0437\u0440\u044b\u0432\u043d\u043e\u0439 \u0444\u0430\u0435\u0440\u0431\u043e\u043b", "\u043e\u0433\u043d\u0435\u043d\u043d\u044b\u0439 \u0432\u0437\u0440\u044b\u0432", "explosive fireball", "fire blast")));
+        list.add(new SpellDef("water_ball", "water", 10.0, 10, 0.0, 3.0, (List<String>)List.of("\u0432\u043e\u0434\u0430 \u043e\u0431\u0440\u0443\u0448\u044c\u0441\u044f", "\u0432\u043e\u0434\u044f\u043d\u043e\u0439 \u0448\u0430\u0440", "\u0432\u043e\u0442\u0435\u0440\u0431\u043e\u043b", "water ball")));
+        list.add(new SpellDef("ice_needle", "water", 50.0, 15, 2.0, 1.0, (List<String>)List.of("\u0432\u043e\u0434\u0430 \u0437\u0430\u0441\u0442\u044b\u043d\u044c \u0438\u0433\u043b\u043e\u0439", "\u043b\u0435\u0434\u044f\u043d\u0430\u044f \u0438\u0433\u043b\u0430", "\u043b\u0435\u0434\u044f\u043d\u0430\u044f \u0441\u043f\u0438\u0446\u0430", "ice needle")));
+        list.add(new SpellDef("water_wall", "water", 90.0, 40, 1.0, 0.0, (List<String>)List.of("\u0432\u043e\u0434\u0430 \u0432\u0441\u0442\u0430\u043d\u044c \u0441\u0442\u0435\u043d\u043e\u0439", "\u0432\u043e\u0434\u044f\u043d\u0430\u044f \u0441\u0442\u0435\u043d\u0430", "water wall")));
+        list.add(new SpellDef("stone_ball", "earth", 25.0, 15, 1.0, 1.0, (List<String>)List.of("\u0437\u0435\u043c\u043b\u044f \u0441\u043e\u0436\u043c\u0438\u0441\u044c \u0432 \u043a\u0430\u043c\u0435\u043d\u044c", "\u043a\u0430\u043c\u0435\u043d\u043d\u044b\u0439 \u0448\u0430\u0440", "\u043a\u0430\u043c\u0435\u043d\u044c \u0448\u0430\u0440", "stone ball")));
+        list.add(new SpellDef("stone_wall", "earth", 160.0, 40, 1.0, 0.0, (List<String>)List.of("\u0437\u0435\u043c\u043b\u044f \u0432\u0441\u0442\u0430\u043d\u044c \u043f\u0440\u0435\u0434\u043e \u043c\u043d\u043e\u0439", "\u043a\u0430\u043c\u0435\u043d\u043d\u0430\u044f \u0441\u0442\u0435\u043d\u0430", "stone wall")));
+        list.add(new SpellDef("swamp", "earth", 200.0, 60, 1.0, 10.0, (List<String>)List.of("\u0437\u0435\u043c\u043b\u044f \u0440\u0430\u0437\u0432\u0435\u0440\u0437\u043d\u0438\u0441\u044c \u0442\u043e\u043f\u044c\u044e", "\u0431\u043e\u043b\u043e\u0442\u043e", "\u0442\u043e\u043f\u044c", "swamp")));
+        list.add(new SpellDef("gust", "wind", 45.0, 10, 1.0, 5.0, (List<String>)List.of("\u0432\u0435\u0442\u0435\u0440 \u043e\u0442\u0442\u043e\u043b\u043a\u043d\u0438 \u0432\u0440\u0430\u0433\u043e\u0432", "\u043f\u043e\u0440\u044b\u0432 \u0432\u0435\u0442\u0440\u0430", "\u0432\u0435\u0442\u0435\u0440", "gust", "gust of wind")));
+        list.add(new SpellDef("updraft", "wind", 45.0, 10, 1.0, 0.0, (List<String>)List.of("\u0432\u0435\u0442\u0435\u0440 \u043f\u043e\u0434\u043d\u0438\u043c\u0438 \u043c\u0435\u043d\u044f", "\u0432\u043e\u0441\u0445\u043e\u0434\u044f\u0449\u0438\u0439 \u043f\u043e\u0442\u043e\u043a", "updraft")));
+        list.add(new SpellDef("haste", "wind", 50.0, 0, 1.0, 0.0, (List<String>)List.of("\u0432\u0435\u0442\u0435\u0440 \u0434\u0430\u0439 \u043c\u043d\u0435 \u0441\u043a\u043e\u0440\u043e\u0441\u0442\u044c", "\u0443\u0441\u043a\u043e\u0440\u0435\u043d\u0438\u0435", "haste")));
+        list.add(new SpellDef("heal_basic", "healing", 35.0, 20, 1.0, 0.0, (List<String>)List.of("\u0434\u0443\u0445\u0438 \u0438\u0441\u0446\u0435\u043b\u0438\u0442\u0435 \u043c\u043e\u0438 \u0440\u0430\u043d\u044b", "\u0431\u0430\u0437\u043e\u0432\u043e\u0435 \u043b\u0435\u0447\u0435\u043d\u0438\u0435", "\u043b\u0435\u0447\u0435\u043d\u0438\u0435", "\u0438\u0441\u0446\u0435\u043b\u0435\u043d\u0438\u0435", "basic healing")));
+        list.add(new SpellDef("heal_strong", "healing", 90.0, 40, 1.0, 0.0, (List<String>)List.of("\u0434\u0443\u0445\u0438 \u0437\u0430\u0449\u0438\u0442\u0438\u0442\u0435 \u043c\u043e\u0451 \u0442\u0435\u043b\u043e", "\u0443\u043a\u0440\u0435\u043f\u043b\u044f\u044e\u0449\u0435\u0435 \u043b\u0435\u0447\u0435\u043d\u0438\u0435", "strong healing")));
+        list.add(new SpellDef("heal_full", "healing", 130.0, 60, 1.0, 0.0, (List<String>)List.of("\u0434\u0443\u0445\u0438 \u0432\u043e\u0441\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u0435 \u043c\u043e\u044e \u043f\u043b\u043e\u0442\u044c", "\u043f\u043e\u043b\u043d\u043e\u0435 \u0432\u043e\u0441\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435", "full healing")));
+        list.add(new SpellDef("repair_item", "repair", 100.0, 60, 0.5, 0.0, (List<String>)List.of("\u0434\u0443\u0445\u0438 \u0432\u043e\u0441\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u0435 \u043f\u0440\u0435\u0434\u043c\u0435\u0442", "\u043f\u043e\u0447\u0438\u043d\u043a\u0430", "\u0440\u0435\u043c\u043e\u043d\u0442", "repair item")));
         return list;
     }
 
@@ -124,7 +124,7 @@ public final class MagicConfig {
         try {
             Path path = MagicConfig.configPath();
             Files.createDirectories((Path)path.getParent(), (FileAttribute[])new FileAttribute[0]);
-            Files.writeString((Path)path, (CharSequence)GSON.toJson((Object)instance), (Charset)StandardCharsets.UTF_8, (OpenOption[])new OpenOption[0]);
+            Files.writeString((Path)path, (CharSequence)GSON.toJson(instance), (Charset)StandardCharsets.UTF_8, (OpenOption[])new OpenOption[0]);
         }
         catch (Exception e) {
             MushokuMagic.LOGGER.error("\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0441\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c \u043a\u043e\u043d\u0444\u0438\u0433", (Throwable)e);
@@ -164,7 +164,7 @@ public final class MagicConfig {
             this.wandMultipliers.putIfAbsent("3", defaultWandMultipliers.get("3"));
         }
         if (this.bosses == null) {
-            this.bosses = new ArrayList((Collection)List.of((Object)"minecraft:ender_dragon", (Object)"minecraft:wither", (Object)"minecraft:warden"));
+            this.bosses = new ArrayList((Collection)List.of("minecraft:ender_dragon", "minecraft:wither", "minecraft:warden"));
         }
         if (this.spells == null || this.spells.isEmpty()) {
             this.spells = MagicConfig.defaultSpells();
@@ -174,12 +174,12 @@ public final class MagicConfig {
                 spell.phrases = new ArrayList();
             }
             if (!spell.phrases.isEmpty()) continue;
-            spell.phrases.add((Object)spell.id.replace('_', ' '));
+            spell.phrases.add(spell.id.replace('_', ' '));
         }
     }
 
     public double wandMultiplier(int tier) {
-        Double value = (Double)this.wandMultipliers.get((Object)String.valueOf((int)tier));
+        Double value = (Double)this.wandMultipliers.get(String.valueOf((int)tier));
         return value == null ? 1.0 : value;
     }
 

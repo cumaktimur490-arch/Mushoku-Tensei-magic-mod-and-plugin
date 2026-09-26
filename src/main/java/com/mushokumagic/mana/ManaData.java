@@ -112,11 +112,11 @@ public final class ManaData {
     }
 
     public int getAttempts(String spellId) {
-        return (Integer)this.attempts.getOrDefault((Object)spellId, (Object)0);
+        return (Integer)this.attempts.getOrDefault(spellId, 0);
     }
 
     public void addAttempt(String spellId) {
-        this.attempts.put((Object)spellId, (Object)(this.getAttempts(spellId) + 1));
+        this.attempts.put(spellId, (this.getAttempts(spellId) + 1));
     }
 
     public List<String> getLearned() {
@@ -124,7 +124,7 @@ public final class ManaData {
     }
 
     public boolean hasLearned(String spellId) {
-        return this.adminMode || this.learned.contains((Object)spellId);
+        return this.adminMode || this.learned.contains(spellId);
     }
 
     public boolean isAdminMode() {
@@ -136,12 +136,21 @@ public final class ManaData {
     }
 
     public void learn(String spellId) {
-        if (!this.learned.contains((Object)spellId)) {
-            this.learned.add((Object)spellId);
+        if (!this.learned.contains(spellId)) {
+            this.learned.add(spellId);
         }
     }
 
     static {
-        CODEC = RecordCodecBuilder.create(instance -> instance.group((App)Codec.DOUBLE.optionalFieldOf("mana", (Object)0.0).forGetter(ManaData::getMana), (App)Codec.DOUBLE.optionalFieldOf("max_mana", (Object)40.0).forGetter(ManaData::getMaxMana), (App)Codec.DOUBLE.optionalFieldOf("xp", (Object)0.0).forGetter(ManaData::getXp), (App)Codec.INT.optionalFieldOf("overload", (Object)0).forGetter(ManaData::getOverloadTicks), (App)Codec.STRING.optionalFieldOf("last_spell", (Object)"").forGetter(ManaData::getLastSpell), (App)Codec.unboundedMap((Codec)Codec.STRING, (Codec)Codec.INT).optionalFieldOf("attempts", (Object)Map.of()).forGetter(ManaData::getAttempts), (App)Codec.STRING.listOf().optionalFieldOf("learned", (Object)List.of()).forGetter(ManaData::getLearned), (App)Codec.BOOL.optionalFieldOf("admin_mode", (Object)false).forGetter(ManaData::isAdminMode)).apply((Applicative)instance, ManaData::new));
+        CODEC = RecordCodecBuilder.create(instance -> instance.group(
+                Codec.DOUBLE.optionalFieldOf("mana", 0.0).forGetter(ManaData::getMana),
+                Codec.DOUBLE.optionalFieldOf("max_mana", 40.0).forGetter(ManaData::getMaxMana),
+                Codec.DOUBLE.optionalFieldOf("xp", 0.0).forGetter(ManaData::getXp),
+                Codec.INT.optionalFieldOf("overload", 0).forGetter(ManaData::getOverloadTicks),
+                Codec.STRING.optionalFieldOf("last_spell", "").forGetter(ManaData::getLastSpell),
+                Codec.unboundedMap(Codec.STRING, Codec.INT).optionalFieldOf("attempts", Map.of()).forGetter(ManaData::getAttempts),
+                Codec.STRING.listOf().optionalFieldOf("learned", List.of()).forGetter(ManaData::getLearned),
+                Codec.BOOL.optionalFieldOf("admin_mode", false).forGetter(ManaData::isAdminMode)
+        ).apply(instance, ManaData::new));
     }
 }

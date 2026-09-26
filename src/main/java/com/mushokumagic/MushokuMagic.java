@@ -31,6 +31,6 @@ implements ModInitializer {
         MagicItems.init();
         MagicEvents.init();
         MagicCommands.init();
-        LOGGER.info("Mushoku Tensei: Magic \u0437\u0430\u0433\u0440\u0443\u0436\u0435\u043d. \u0417\u0430\u043a\u043b\u0438\u043d\u0430\u043d\u0438\u0439 \u0432 \u043a\u043e\u043d\u0444\u0438\u0433\u0435: {}", (Object)SpellRegistry.spells().size());
+        LOGGER.info("Mushoku Tensei: Magic \u0437\u0430\u0433\u0440\u0443\u0436\u0435\u043d. \u0417\u0430\u043a\u043b\u0438\u043d\u0430\u043d\u0438\u0439 \u0432 \u043a\u043e\u043d\u0444\u0438\u0433\u0435: {}", SpellRegistry.spells().size());
     }
 }

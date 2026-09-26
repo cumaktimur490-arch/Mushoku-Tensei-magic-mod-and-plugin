@@ -73,7 +73,7 @@ public final class CastManager {
             CastManager.finish(player, spell, params);
             return;
         }
-        PENDING.put((Object)player.method_5667(), (Object)new PendingCast(spell, params, ticks, ticks));
+        PENDING.put(player.method_5667(), new PendingCast(spell, params, ticks, ticks));
         SpellCasting.announceCast(player, spell, params);
     }
 
@@ -85,11 +85,11 @@ public final class CastManager {
     }
 
     public static void cancel(class_3222 player) {
-        PENDING.remove((Object)player.method_5667());
+        PENDING.remove(player.method_5667());
     }
 
     public static boolean isCasting(class_3222 player) {
-        return PENDING.containsKey((Object)player.method_5667());
+        return PENDING.containsKey(player.method_5667());
     }
 
     public static boolean castLast(class_3222 player) {
@@ -102,7 +102,7 @@ public final class CastManager {
             }
         }
         if (spell == null && data.isAdminMode() && !SpellRegistry.spells().isEmpty()) {
-            spell = (Spell)((Object)SpellRegistry.spells().get(0));
+            spell = (Spell)(SpellRegistry.spells().get(0));
         }
         if (spell == null) {
             Msg.actionBar(player, (class_2561)Msg.t("mushoku_magic.msg.no_last_spell", new Object[0]));
@@ -123,7 +123,7 @@ public final class CastManager {
         while (iterator.hasNext()) {
             Map.Entry entry = (Map.Entry)iterator.next();
             class_3222 player = server.method_3760().method_14602((UUID)entry.getKey());
-            PendingCast cast = (PendingCast)((Object)entry.getValue());
+            PendingCast cast = (PendingCast)(entry.getValue());
             if (player == null || !player.method_5805()) {
                 iterator.remove();
                 continue;
@@ -131,7 +131,7 @@ public final class CastManager {
             int ticksLeft = cast.ticksLeft() - 1;
             SpellCasting.drawTrail(player, cast.spell(), cast.params(), 1.0 - (double)ticksLeft / (double)cast.totalTicks());
             if (ticksLeft > 0) {
-                entry.setValue((Object)new PendingCast(cast.spell(), cast.params(), ticksLeft, cast.totalTicks()));
+                entry.setValue(new PendingCast(cast.spell(), cast.params(), ticksLeft, cast.totalTicks()));
                 if (ticksLeft % 5 != 0) continue;
                 Msg.actionBar(player, (class_2561)Msg.t("mushoku_magic.msg.casting", Msg.spellName(cast.spell().id()), SpellCasting.progressText(ticksLeft)));
                 continue;
@@ -150,7 +150,7 @@ public final class CastManager {
         for (String id : data.getLearned()) {
             Spell spell = SpellRegistry.byId(id);
             if (spell == null) continue;
-            list.add((Object)spell);
+            list.add(spell);
         }
         return list;
     }

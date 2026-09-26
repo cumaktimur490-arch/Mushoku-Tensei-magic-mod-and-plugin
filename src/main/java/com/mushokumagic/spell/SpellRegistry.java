@@ -19,7 +19,7 @@ public final class SpellRegistry {
     public static void rebuild(List<MagicConfig.SpellDef> definitions) {
         ArrayList built = new ArrayList();
         for (MagicConfig.SpellDef definition : definitions) {
-            built.add((Object)new Spell(definition.id, definition.element, definition.cost, Math.max((int)0, (int)definition.castTicks), definition.power, definition.radius, (List<String>)List.copyOf(definition.phrases)));
+            built.add(new Spell(definition.id, definition.element, definition.cost, Math.max((int)0, (int)definition.castTicks), definition.power, definition.radius, (List<String>)List.copyOf(definition.phrases)));
         }
         spells = List.copyOf((Collection)built);
         PhraseParser.rebuild(spells);
@@ -31,7 +31,7 @@ public final class SpellRegistry {
 
     public static Spell byId(String id) {
         for (Spell spell : spells) {
-            if (!spell.id().equals((Object)id)) continue;
+            if (!spell.id().equals(id)) continue;
             return spell;
         }
         return null;

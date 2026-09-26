@@ -55,82 +55,82 @@ public final class SpellEffects {
         int n = -1;
         switch (string.hashCode()) {
             case -286757122: {
-                if (!string.equals((Object)"fire_bolt")) break;
+                if (!string.equals("fire_bolt")) break;
                 n = 0;
                 break;
             }
             case 102970646: {
-                if (!string.equals((Object)"light")) break;
+                if (!string.equals("light")) break;
                 n = 1;
                 break;
             }
             case 396918863: {
-                if (!string.equals((Object)"explosive_fireball")) break;
+                if (!string.equals("explosive_fireball")) break;
                 n = 2;
                 break;
             }
             case 1960874023: {
-                if (!string.equals((Object)"water_ball")) break;
+                if (!string.equals("water_ball")) break;
                 n = 3;
                 break;
             }
             case -414135101: {
-                if (!string.equals((Object)"ice_needle")) break;
+                if (!string.equals("ice_needle")) break;
                 n = 4;
                 break;
             }
             case 1961499634: {
-                if (!string.equals((Object)"water_wall")) break;
+                if (!string.equals("water_wall")) break;
                 n = 5;
                 break;
             }
             case 1666334105: {
-                if (!string.equals((Object)"stone_ball")) break;
+                if (!string.equals("stone_ball")) break;
                 n = 6;
                 break;
             }
             case 1666959716: {
-                if (!string.equals((Object)"stone_wall")) break;
+                if (!string.equals("stone_wall")) break;
                 n = 7;
                 break;
             }
             case 109846752: {
-                if (!string.equals((Object)"swamp")) break;
+                if (!string.equals("swamp")) break;
                 n = 8;
                 break;
             }
             case 3184591: {
-                if (!string.equals((Object)"gust")) break;
+                if (!string.equals("gust")) break;
                 n = 9;
                 break;
             }
             case -233942042: {
-                if (!string.equals((Object)"updraft")) break;
+                if (!string.equals("updraft")) break;
                 n = 10;
                 break;
             }
             case 99050123: {
-                if (!string.equals((Object)"haste")) break;
+                if (!string.equals("haste")) break;
                 n = 11;
                 break;
             }
             case 0x11F7F717: {
-                if (!string.equals((Object)"heal_basic")) break;
+                if (!string.equals("heal_basic")) break;
                 n = 12;
                 break;
             }
             case 1259647182: {
-                if (!string.equals((Object)"heal_strong")) break;
+                if (!string.equals("heal_strong")) break;
                 n = 13;
                 break;
             }
             case 9862790: {
-                if (!string.equals((Object)"heal_full")) break;
+                if (!string.equals("heal_full")) break;
                 n = 14;
                 break;
             }
             case 1668727941: {
-                if (!string.equals((Object)"repair_item")) break;
+                if (!string.equals("repair_item")) break;
                 n = 15;
             }
         }
@@ -200,7 +200,7 @@ public final class SpellEffects {
                 break;
             }
             default: {
-                MushokuMagic.LOGGER.warn("\u041d\u0435\u0442 \u0440\u0435\u0430\u043b\u0438\u0437\u0430\u0446\u0438\u0438 \u0434\u043b\u044f \u0437\u0430\u043a\u043b\u0438\u043d\u0430\u043d\u0438\u044f {}", (Object)spell.id());
+                MushokuMagic.LOGGER.warn("\u041d\u0435\u0442 \u0440\u0435\u0430\u043b\u0438\u0437\u0430\u0446\u0438\u0438 \u0434\u043b\u044f \u0437\u0430\u043a\u043b\u0438\u043d\u0430\u043d\u0438\u044f {}", spell.id());
             }
         }
     }

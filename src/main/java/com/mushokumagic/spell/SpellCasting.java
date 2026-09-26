@@ -33,7 +33,7 @@ public final class SpellCasting {
         boolean silent = false;
         for (String word : extraWords) {
             for (MagicConfig.KeywordDef keyword : config.keywords.values()) {
-                if (!keyword.words.contains((Object)word)) continue;
+                if (!keyword.words.contains(word)) continue;
                 radius *= keyword.radiusMultiplier;
                 damage *= keyword.damageMultiplier;
                 castTime *= keyword.castTimeMultiplier;
@@ -49,27 +49,27 @@ public final class SpellCasting {
         int n = -1;
         switch (string.hashCode()) {
             case 112903447: {
-                if (!string.equals((Object)"water")) break;
+                if (!string.equals("water")) break;
                 n = 0;
                 break;
             }
             case 96278602: {
-                if (!string.equals((Object)"earth")) break;
+                if (!string.equals("earth")) break;
                 n = 1;
                 break;
             }
             case 3649544: {
-                if (!string.equals((Object)"wind")) break;
+                if (!string.equals("wind")) break;
                 n = 2;
                 break;
             }
             case 795549946: {
-                if (!string.equals((Object)"healing")) break;
+                if (!string.equals("healing")) break;
                 n = 3;
                 break;
             }
             case -934535283: {
-                if (!string.equals((Object)"repair")) break;
+                if (!string.equals("repair")) break;
                 n = 4;
             }
         }

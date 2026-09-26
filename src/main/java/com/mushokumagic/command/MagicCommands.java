@@ -107,7 +107,7 @@ public final class MagicCommands {
     private static double nextRankMultiplier(MagicConfig.RankDef current) {
         MagicConfig config = MagicConfig.get();
         for (int i = 0; i < config.ranks.size(); ++i) {
-            if (!((MagicConfig.RankDef)config.ranks.get((int)i)).id.equals((Object)current.id) || i + 1 >= config.ranks.size()) continue;
+            if (!((MagicConfig.RankDef)config.ranks.get((int)i)).id.equals(current.id) || i + 1 >= config.ranks.size()) continue;
             return ((MagicConfig.RankDef)config.ranks.get((int)(i + 1))).multiplier;
         }
         return 0.0;
@@ -240,7 +240,7 @@ public final class MagicCommands {
             ((class_2168)context.getSource()).method_9226(() -> Msg.t("mushoku_magic.msg.admin_off", learned), true);
         }
         class_3222 executor = ((class_2168)context.getSource()).method_44023();
-        if (executor == null || !executor.method_5667().equals((Object)receiver.method_5667())) {
+        if (executor == null || !executor.method_5667().equals(receiver.method_5667())) {
             Msg.chat(receiver, (class_2561)Msg.t(enabled ? "mushoku_magic.msg.admin_on_target" : "mushoku_magic.msg.admin_off_target", new Object[0]));
         }
         return 1;

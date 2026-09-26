@@ -119,8 +119,8 @@ public final class ManaManager {
     }
 
     public static boolean isBoss(class_1309 entity) {
-        class_2960 id = class_7923.field_41177.method_10221((Object)entity.method_5864());
-        return id != null && MagicConfig.get().bosses.contains((Object)id.toString());
+        class_2960 id = class_7923.field_41177.method_10221(entity.method_5864());
+        return id != null && MagicConfig.get().bosses.contains(id.toString());
     }
 
     public static void onSpellLearned(class_3222 player, String spellId) {

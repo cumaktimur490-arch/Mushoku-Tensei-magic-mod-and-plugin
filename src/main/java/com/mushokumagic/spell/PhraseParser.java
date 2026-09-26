@@ -22,7 +22,7 @@ public final class PhraseParser {
             for (String phrase : spell.phrases()) {
                 String normalized = PhraseParser.normalize(phrase);
                 if (normalized.isEmpty()) continue;
-                PHRASES.put((Object)normalized, (Object)spell);
+                PHRASES.put(normalized, spell);
             }
         }
     }
@@ -56,10 +56,10 @@ public final class PhraseParser {
         String bestPhrase = null;
         for (Map.Entry entry : PHRASES.entrySet()) {
             String phrase = (String)entry.getKey();
-            boolean matches = text.equals((Object)phrase) || text.startsWith(phrase + " ");
+            boolean matches = text.equals(phrase) || text.startsWith(phrase + " ");
             if (!matches || bestPhrase != null && phrase.length() <= bestPhrase.length()) continue;
             bestPhrase = phrase;
-            bestSpell = (Spell)((Object)entry.getValue());
+            bestSpell = (Spell)(entry.getValue());
         }
         if (bestSpell == null || bestPhrase == null) {
             return null;
@@ -68,7 +68,7 @@ public final class PhraseParser {
         if (text.length() > bestPhrase.length() && !(rest = text.substring(bestPhrase.length() + 1).trim()).isEmpty()) {
             for (String word : rest.split(" ")) {
                 if (word.isBlank()) continue;
-                extraWords.add((Object)word);
+                extraWords.add(word);
             }
         }
         return new Result(bestSpell, (List<String>)extraWords);

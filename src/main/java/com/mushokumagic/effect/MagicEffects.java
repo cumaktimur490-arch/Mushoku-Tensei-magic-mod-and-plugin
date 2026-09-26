@@ -18,6 +18,6 @@ public final class MagicEffects {
     }
 
     public static void init() {
-        MANA_OVERLOAD = class_2378.method_47985((class_2378)class_7923.field_41174, (class_2960)MushokuMagic.id("mana_overload"), (Object)((Object)new ManaOverloadEffect()));
+        MANA_OVERLOAD = class_2378.method_47985((class_2378)class_7923.field_41174, (class_2960)MushokuMagic.id("mana_overload"), (new ManaOverloadEffect()));
     }
 }
