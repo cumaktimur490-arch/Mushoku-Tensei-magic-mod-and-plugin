@@ -213,7 +213,7 @@ public final class SpellEffects {
     private static void explosiveFireball(class_3222 caster, class_3218 level, Spell spell, CastParams params, double power) {
         class_243 point = SpellCasting.aimPoint(caster, 48.0);
         double radius = spell.radius() * params.radiusMultiplier();
-        List targets = level.method_18467(class_1309.class, SpellEffects.boxAround(point, radius));
+        List<class_1309> targets = level.method_18467(class_1309.class, SpellEffects.boxAround(point, radius));
         for (class_1309 target : targets) {
             if (target == caster) continue;
             MagicHitTracker.mark(target, caster, level.method_75260());
@@ -294,7 +294,7 @@ public final class SpellEffects {
     private static void stoneBall(class_3222 caster, class_3218 level, Spell spell, CastParams params, double power) {
         class_243 point = SpellCasting.aimPoint(caster, 32.0);
         double radius = Math.max((double)1.0, (double)(spell.radius() * params.radiusMultiplier()));
-        List targets = level.method_18467(class_1309.class, SpellEffects.boxAround(point, radius));
+        List<class_1309> targets = level.method_18467(class_1309.class, SpellEffects.boxAround(point, radius));
         for (class_1309 target : targets) {
             if (target == caster) continue;
             SpellEffects.magicDamage(caster, level, target, spell.power() * power, 0.0);
@@ -458,7 +458,7 @@ public final class SpellEffects {
 
     private static void impact(class_3222 caster, class_3218 level, class_243 point, double radius, double damage, double fireSeconds, CastParams params) {
         double finalRadius = radius * params.radiusMultiplier();
-        List targets = level.method_18467(class_1309.class, SpellEffects.boxAround(point, finalRadius));
+        List<class_1309> targets = level.method_18467(class_1309.class, SpellEffects.boxAround(point, finalRadius));
         if (params.explosion()) {
             for (class_1309 target : targets) {
                 if (target == caster) continue;

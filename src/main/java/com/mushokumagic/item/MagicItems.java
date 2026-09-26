@@ -35,7 +35,7 @@ public final class MagicItems {
     }
 
     public static void init() {
-        ItemGroupEvents.modifyEntriesEvent((class_5321)class_7706.field_41062).register(entries -> {
+        ItemGroupEvents.modifyEntriesEvent((class_5321)class_7706.field_41062).register((ItemGroupEvents.ModifyEntries) entries -> {
             entries.method_45421((class_1935)MAGIC_STONE_1);
             entries.method_45421((class_1935)MAGIC_STONE_2);
             entries.method_45421((class_1935)MAGIC_STONE_3);

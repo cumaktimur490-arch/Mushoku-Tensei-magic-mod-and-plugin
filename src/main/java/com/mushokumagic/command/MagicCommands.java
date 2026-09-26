@@ -146,7 +146,7 @@ public final class MagicCommands {
             ((class_2168)context.getSource()).method_9213((class_2561)Msg.t("mushoku_magic.msg.not_learned", Msg.spellName(spell.id())));
             return 0;
         }
-        CastManager.attempt(player, spell, (List<String>)List.of());
+        CastManager.attempt(player, spell, List.<String>of());
         return 1;
     }
 

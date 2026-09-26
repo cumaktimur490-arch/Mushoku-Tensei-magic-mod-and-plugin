@@ -111,7 +111,7 @@ public final class CastManager {
         if (CastManager.isCasting(player)) {
             return false;
         }
-        CastManager.attempt(player, spell, (List<String>)List.of());
+        CastManager.attempt(player, spell, List.<String>of());
         return true;
     }
 

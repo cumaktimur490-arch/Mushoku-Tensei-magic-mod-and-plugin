@@ -30,7 +30,7 @@ public final class ManaData {
     public static final Codec<ManaData> CODEC;
 
     public ManaData() {
-        this(0.0, 40.0, 0.0, 0, "", (Map<String, Integer>)Map.of(), (List<String>)List.of(), false);
+        this(0.0, 40.0, 0.0, 0, "", Map.<String, Integer>of(), List.<String>of(), false);
     }
 
     public ManaData(double mana, double maxMana, double xp, int overloadTicks, String lastSpell, Map<String, Integer> attempts, List<String> learned, boolean adminMode) {
