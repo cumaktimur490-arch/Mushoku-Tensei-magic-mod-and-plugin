@@ -20,4 +20,4 @@ Building requires JDK 25 because the recovered Fabric Loom version runs on Java 
 ./gradlew clean build
 ```
 
-The mod jar is produced at `build/libs/mushoku-magic-1.0.0.jar`. The test suite checks the staff defaults and legacy-config migration. GitHub Actions runs the same build and tests on pushes and pull requests.
+Version 2.0.0 is built as `build/libs/mushoku-magic-2.0.0.jar`; its Fabric metadata version is generated from `mod_version` in `gradle.properties`. The test suite checks the staff defaults and legacy-config migration. GitHub Actions runs the same build and tests on pushes and pull requests. Download the release jar from the repository's [Releases](https://github.com/cumaktimur490-arch/Mushoku-Tensei-magic-mod-and-plugin/releases) page.

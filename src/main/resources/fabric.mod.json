@@ -1,7 +1,7 @@
 {
 	"schemaVersion": 1,
 	"id": "mushoku_magic",
-	"version": "1.0.0",
+	"version": "${version}",
 	"name": "Mushoku Tensei: Magic",
 	"description": "Магическая система в духе Mushoku Tensei: мана, ранги, перегрузка, изучение заклинаний через чат, посохи и крафт.",
 	"authors": [
