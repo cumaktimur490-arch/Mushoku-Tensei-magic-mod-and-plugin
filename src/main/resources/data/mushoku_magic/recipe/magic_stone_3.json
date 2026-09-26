@@ -1,0 +1,13 @@
+{
+	"type": "minecraft:crafting_shapeless",
+	"category": "misc",
+	"group": "mushoku_magic",
+	"ingredients": [
+		{ "item": "mushoku_magic:magic_stone_2" },
+		{ "item": "mushoku_magic:magic_stone_2" },
+		{ "item": "mushoku_magic:magic_stone_2" },
+		{ "item": "mushoku_magic:magic_stone_2" },
+		{ "item": "minecraft:nether_star" }
+	],
+	"result": { "id": "mushoku_magic:magic_stone_3", "count": 1 }
+}

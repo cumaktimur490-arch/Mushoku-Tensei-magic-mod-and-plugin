@@ -1,0 +1,6 @@
+{
+	"parent": "minecraft:item/generated",
+	"textures": {
+		"layer0": "mushoku_magic:item/enchanted_stick_3"
+	}
+}

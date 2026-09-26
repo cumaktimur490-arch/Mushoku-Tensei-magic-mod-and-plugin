@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and test (Java 21)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run tests and build the mod
+        run: ./gradlew --no-daemon clean build
+
+      - name: Upload the mod jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: mushoku-magic-${{ github.sha }}
+          path: build/libs/mushoku-magic-1.0.0.jar
+          if-no-files-found: error

@@ -1,0 +1,13 @@
+{
+	"type": "minecraft:crafting_shapeless",
+	"category": "misc",
+	"group": "mushoku_magic",
+	"ingredients": [
+		{ "item": "minecraft:diamond" },
+		{ "item": "minecraft:redstone" },
+		{ "item": "minecraft:redstone" },
+		{ "item": "minecraft:redstone" },
+		{ "item": "minecraft:redstone" }
+	],
+	"result": { "id": "mushoku_magic:magic_stone_1", "count": 1 }
+}
