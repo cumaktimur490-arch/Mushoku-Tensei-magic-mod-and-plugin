@@ -14,7 +14,7 @@ These are the defaults written to `config/mushoku_magic.json`. An existing confi
 
 ## Build
 
-Requires JDK 21. The Gradle wrapper downloads the pinned Gradle version.
+Building requires JDK 25 because the recovered Fabric Loom version runs on Java 25. The project compiles with `--release 21`, so the resulting mod remains compatible with Minecraft's Java 21 minimum. The Gradle wrapper downloads the pinned Gradle version.
 
 ```sh
 ./gradlew clean build
