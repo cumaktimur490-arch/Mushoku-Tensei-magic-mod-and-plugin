@@ -44,6 +44,8 @@ public final class MagicConfig {
     public Map<String, Double> wandMultipliers = MagicConfig.defaultWandMultipliers();
     public boolean wandRightClickCasts = true;
     public double wandRightClickCooldownSeconds = 2.0;
+    /** Allow fire spells to ignite or destroy blocks; disable for a safer server. */
+    public boolean fireSpellsModifyBlocks = true;
     public boolean announceOnJoin = true;
     public List<SpellDef> spells = MagicConfig.defaultSpells();
 

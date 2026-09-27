@@ -52,5 +52,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: mushoku-magic-${{ github.sha }}
-          path: build/libs/mushoku-magic-2.0.1.jar
+          path: build/libs/mushoku-magic-2.1.0.jar
           if-no-files-found: error

@@ -5,6 +5,7 @@ package com.mushokumagic.spell;
 
 import com.mushokumagic.config.MagicConfig;
 import com.mushokumagic.mana.ManaData;
+import com.mushokumagic.mana.ManaManager;
 import com.mushokumagic.spell.CastParams;
 import com.mushokumagic.spell.Spell;
 import com.mushokumagic.util.Msg;
@@ -96,10 +97,19 @@ public final class SpellCasting {
             return;
         }
         class_3218 level = class_32182;
+        double power = MagicScaling.clampPower(ManaManager.powerMultiplier(player) * params.wordPower() * params.damageMultiplier());
+        double progressClamped = Math.max(0.0, Math.min(1.0, progress));
         class_243 from = player.method_33571();
-        class_243 to = SpellCasting.aimPoint(player, 48.0);
-        class_243 point = from.method_35590(to, Math.max((double)0.0, (double)Math.min((double)1.0, (double)progress)));
-        level.method_65096(SpellCasting.particleFor(spell.element()), point.method_10216(), point.method_10214(), point.method_10215(), 4, 0.02, 0.02, 0.02, 0.0);
+        class_243 to = SpellCasting.aimPoint(player, MagicScaling.range(48.0, power));
+        class_243 point = from.method_35590(to, progressClamped);
+        int intensity = MagicScaling.intensity(power);
+        int particleCount = 4 + Math.min(8, intensity);
+        double spread = 0.02 + intensity * 0.004;
+        level.method_65096(SpellCasting.particleFor(spell.element()), point.method_10216(), point.method_10214(), point.method_10215(), particleCount, spread, spread, spread, 0.01);
+        long castTick = Math.round(progressClamped * Math.max(1, spell.castTicks()));
+        if (intensity >= 4 && castTick % 4 == 0) {
+            level.method_65096((class_2394)class_2398.field_11207, point.method_10216(), point.method_10214(), point.method_10215(), Math.min(6, intensity / 2), spread * 1.5, spread * 1.5, spread * 1.5, 0.04);
+        }
     }
 
     public static String progressText(int ticksLeft) {

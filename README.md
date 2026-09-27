@@ -20,4 +20,10 @@ Building requires JDK 25 because the recovered Fabric Loom version runs on Java 
 ./gradlew clean build
 ```
 
-Version 2.0.1 is built as `build/libs/mushoku-magic-2.0.1.jar`; its Fabric metadata version is generated from `mod_version` in `gradle.properties`. The three supplied wand textures are alpha-trimmed but not resized, preserving their original pixel detail at 103×123, 242×604, and 117×85 pixels. Minecraft's displayed sharpness still depends on the in-game render size and filtering. The test suite checks the staff defaults and legacy-config migration. GitHub Actions runs the same build and tests on pushes and pull requests. Download the release jar from the repository's [Releases](https://github.com/cumaktimur490-arch/Mushoku-Tensei-magic-mod-and-plugin/releases) page.
+Version 2.1.0 is built as `build/libs/mushoku-magic-2.1.0.jar`; its Fabric metadata version is generated from `mod_version` in `gradle.properties`. The three supplied wand textures are alpha-trimmed but not resized, preserving their original pixel detail at 103×123, 242×604, and 117×85 pixels.
+
+## Wand-powered magic
+
+Wands multiply spell damage and amplify range, area, and visual effects. The area and cast range are bounded to keep extreme custom multipliers manageable. At the base rank with no extra-word bonuses, the ×50 staff lets the default fire bolt reach about 87 blocks and affect an approximately 52×52-block area; the explosive fireball can affect up to about 64×64 blocks. Fire spells set fire and explosions can damage terrain by default. Set `fireSpellsModifyBlocks` to `false` in `config/mushoku_magic.json` to disable those world changes while keeping the spell visuals and entity damage; an administrator can apply the change with `/magicadmin reload` (or restart the server). Large explosions can substantially alter the world.
+
+Minecraft's displayed sharpness still depends on the in-game render size and filtering. The test suite checks staff defaults, legacy-config migration, and spell scaling. GitHub Actions runs the same build and tests on pushes and pull requests. Download the release jar from the repository's [Releases](https://github.com/cumaktimur490-arch/Mushoku-Tensei-magic-mod-and-plugin/releases) page.

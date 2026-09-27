@@ -1,6 +1,7 @@
 package com.mushokumagic.config;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Method;
 import java.util.LinkedHashMap;
@@ -15,6 +16,7 @@ class MagicConfigWandMultiplierTest {
         assertEquals(2.0, config.wandMultiplier(1), 0.0);
         assertEquals(15.0, config.wandMultiplier(2), 0.0);
         assertEquals(50.0, config.wandMultiplier(3), 0.0);
+        assertTrue(config.fireSpellsModifyBlocks);
     }
 
     @Test

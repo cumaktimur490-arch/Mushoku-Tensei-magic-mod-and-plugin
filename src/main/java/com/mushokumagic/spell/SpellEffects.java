@@ -4,6 +4,7 @@
 package com.mushokumagic.spell;
 
 import com.mushokumagic.MushokuMagic;
+import com.mushokumagic.config.MagicConfig;
 import com.mushokumagic.mana.ManaManager;
 import com.mushokumagic.spell.CastParams;
 import com.mushokumagic.spell.Spell;
@@ -50,7 +51,7 @@ public final class SpellEffects {
             return;
         }
         class_3218 level = class_32182;
-        double power = ManaManager.powerMultiplier(caster) * params.wordPower() * params.damageMultiplier();
+        double power = MagicScaling.clampPower(ManaManager.powerMultiplier(caster) * params.wordPower() * params.damageMultiplier());
         String string = spell.id();
         int n = -1;
         switch (string.hashCode()) {
@@ -176,7 +177,7 @@ public final class SpellEffects {
                 break;
             }
             case 10: {
-                SpellEffects.updraft(caster, level, params);
+                SpellEffects.updraft(caster, level, params, power);
                 break;
             }
             case 11: {
@@ -206,28 +207,33 @@ public final class SpellEffects {
     }
 
     private static void fireBolt(class_3222 caster, class_3218 level, Spell spell, CastParams params, double power) {
-        class_243 point = SpellCasting.aimPoint(caster, 48.0);
-        SpellEffects.impact(caster, level, point, spell.radius(), spell.power() * power, 5.0 * power, params);
+        class_243 point = SpellCasting.aimPoint(caster, MagicScaling.range(48.0, power));
+        SpellEffects.impact(caster, level, point, spell.radius(), spell.power() * power, 5.0 * power, params, power);
     }
 
     private static void explosiveFireball(class_3222 caster, class_3218 level, Spell spell, CastParams params, double power) {
-        class_243 point = SpellCasting.aimPoint(caster, 48.0);
-        double radius = spell.radius() * params.radiusMultiplier();
+        class_243 point = SpellCasting.aimPoint(caster, MagicScaling.range(48.0, power));
+        double radius = MagicScaling.radius(spell.radius(), power, params.radiusMultiplier());
         List<class_1309> targets = level.method_18467(class_1309.class, SpellEffects.boxAround(point, radius));
         for (class_1309 target : targets) {
-            if (target == caster) continue;
+            if (target == caster || target.method_73189().method_1025(point) > radius * radius) continue;
             MagicHitTracker.mark(target, caster, level.method_75260());
         }
-        level.method_8537((class_1297)caster, point.method_10216(), point.method_10214(), point.method_10215(), (float)radius, false, class_1937.class_7867.field_40888);
-        SpellEffects.igniteAround(level, point, 6, radius);
+        boolean modifyBlocks = MagicConfig.get().fireSpellsModifyBlocks;
+        level.method_8537((class_1297)caster, point.method_10216(), point.method_10214(), point.method_10215(), (float)radius, modifyBlocks, modifyBlocks ? class_1937.class_7867.field_40889 : class_1937.class_7867.field_40888);
+        if (modifyBlocks) {
+            SpellEffects.igniteAround(level, point, SpellEffects.fireAttemptCount(radius), radius);
+        }
+        SpellEffects.fireBurst(level, point, radius, power, params);
         if (!params.silent()) {
-            level.method_65096((class_2394)class_2398.field_11221, point.method_10216(), point.method_10214(), point.method_10215(), 1, 0.0, 0.0, 0.0, 0.0);
-            level.method_43128(null, point.method_10216(), point.method_10214(), point.method_10215(), (class_3414)class_3417.field_15152.comp_349(), class_3419.field_15248, 1.0f, 1.0f);
+            float volume = (float)Math.min(2.5, 1.0 + Math.log1p(power) * 0.2);
+            float pitch = (float)Math.max(0.55, 1.05 - MagicScaling.intensity(power) * 0.035);
+            level.method_43128(null, point.method_10216(), point.method_10214(), point.method_10215(), (class_3414)class_3417.field_15152.comp_349(), class_3419.field_15248, volume, pitch);
         }
     }
 
     private static void light(class_3222 caster, class_3218 level, Spell spell, CastParams params, double power) {
-        class_239 hit = caster.method_5745(8.0, 0.0f, false);
+        class_239 hit = caster.method_5745(MagicScaling.range(8.0, power), 0.0f, false);
         class_243 target = hit.method_17783() == class_239.class_240.field_1333 ? caster.method_73189() : hit.method_17784();
         class_2338 pos = class_2338.method_49638((class_2374)target);
         if (!level.method_8320(pos).method_45474()) {
@@ -245,37 +251,44 @@ public final class SpellEffects {
     }
 
     private static void waterBall(class_3222 caster, class_3218 level, Spell spell, CastParams params, double power) {
-        class_243 point = SpellCasting.aimPoint(caster, 32.0);
-        double radius = Math.max((double)1.0, (double)(spell.radius() * params.radiusMultiplier()));
+        class_243 point = SpellCasting.aimPoint(caster, MagicScaling.range(32.0, power));
+        double radius = Math.max(1.0, MagicScaling.radius(spell.radius(), power, params.radiusMultiplier()));
         SpellEffects.extinguish(level, point, radius);
         if (!params.silent()) {
-            level.method_65096((class_2394)class_2398.field_11202, point.method_10216(), point.method_10214(), point.method_10215(), 40, 0.5, 0.5, 0.5, 0.1);
+            SpellEffects.waterBurst(level, point, radius, power);
             level.method_43128(null, point.method_10216(), point.method_10214(), point.method_10215(), class_3417.field_14810, class_3419.field_15248, 1.0f, 1.0f);
         }
     }
 
     private static void iceNeedle(class_3222 caster, class_3218 level, Spell spell, CastParams params, double power) {
-        class_243 point = SpellCasting.aimPoint(caster, 32.0);
-        class_1309 target = SpellEffects.nearest(level, point, 2.0, caster);
-        if (target != null) {
+        class_243 point = SpellCasting.aimPoint(caster, MagicScaling.range(32.0, power));
+        double radius = Math.max(2.0, MagicScaling.radius(spell.radius(), power, params.radiusMultiplier()));
+        int maxTargets = MagicScaling.intensity(power);
+        int affected = 0;
+        for (class_1309 target : level.method_18467(class_1309.class, SpellEffects.boxAround(point, radius))) {
+            if (target == caster || target.method_73189().method_1025(point) > radius * radius) continue;
             SpellEffects.magicDamage(caster, level, target, 2.0 * power, 0.0);
             target.method_6092(new class_1293(class_1294.field_5909, (int)Math.max((long)20L, (long)Math.round((double)(40.0 * power))), 0));
             MagicHitTracker.mark(target, caster, level.method_75260());
+            if (++affected >= maxTargets) break;
         }
         if (!params.silent()) {
-            level.method_65096((class_2394)class_2398.field_28013, point.method_10216(), point.method_10214(), point.method_10215(), 25, 0.25, 0.25, 0.25, 0.02);
+            SpellEffects.iceBurst(level, point, radius, power);
             level.method_43128(null, point.method_10216(), point.method_10214(), point.method_10215(), class_3417.field_15081, class_3419.field_15248, 0.6f, 1.6f);
         }
     }
 
     private static void waterWall(class_3222 caster, class_3218 level, Spell spell, CastParams params, double power) {
-        int duration = (int)Math.max((long)40L, (long)Math.round((double)(100.0 * power)));
+        int duration = (int)Math.min(12000.0, Math.max(40.0, Math.round(100.0 * power)));
+        double sizePower = MagicScaling.areaMultiplier(power) * Math.sqrt(Math.max(0.1, params.radiusMultiplier()));
+        int halfSize = Math.max(1, Math.min(6, (int)Math.ceil(sizePower / 2.0)));
+        int height = Math.max(2, Math.min(5, 2 + MagicScaling.intensity(power) / 4));
         int placed = 0;
         class_2338 center = caster.method_24515();
-        for (int dx = -1; dx <= 1; ++dx) {
-            for (int dz = -1; dz <= 1; ++dz) {
-                if (dx == 0 && dz == 0) continue;
-                for (int dy = 0; dy <= 1; ++dy) {
+        for (int dx = -halfSize; dx <= halfSize; ++dx) {
+            for (int dz = -halfSize; dz <= halfSize; ++dz) {
+                if (Math.abs(dx) != halfSize && Math.abs(dz) != halfSize) continue;
+                for (int dy = 0; dy < height; ++dy) {
                     class_2338 pos = center.method_10069(dx, dy, dz);
                     if (!TemporaryBlocks.place(level, pos, class_2246.field_10295.method_9564(), duration)) continue;
                     ++placed;
@@ -287,27 +300,26 @@ public final class SpellEffects {
             return;
         }
         if (!params.silent()) {
+            SpellEffects.waterBurst(level, new class_243(center.method_10263() + 0.5, center.method_10264() + 0.5, center.method_10260() + 0.5), halfSize, power);
             level.method_43128(null, (double)center.method_10263() + 0.5, (double)center.method_10264() + 0.5, (double)center.method_10260() + 0.5, class_3417.field_14843, class_3419.field_15248, 1.0f, 1.2f);
         }
     }
 
     private static void stoneBall(class_3222 caster, class_3218 level, Spell spell, CastParams params, double power) {
-        class_243 point = SpellCasting.aimPoint(caster, 32.0);
-        double radius = Math.max((double)1.0, (double)(spell.radius() * params.radiusMultiplier()));
-        List<class_1309> targets = level.method_18467(class_1309.class, SpellEffects.boxAround(point, radius));
-        for (class_1309 target : targets) {
-            if (target == caster) continue;
+        class_243 point = SpellCasting.aimPoint(caster, MagicScaling.range(32.0, power));
+        double radius = Math.max(1.0, MagicScaling.radius(spell.radius(), power, params.radiusMultiplier()));
+        for (class_1309 target : level.method_18467(class_1309.class, SpellEffects.boxAround(point, radius))) {
+            if (target == caster || target.method_73189().method_1025(point) > radius * radius) continue;
             SpellEffects.magicDamage(caster, level, target, spell.power() * power, 0.0);
-            break;
         }
         if (!params.silent()) {
-            level.method_65096((class_2394)class_2398.field_11205, point.method_10216(), point.method_10214(), point.method_10215(), 20, 0.3, 0.3, 0.3, 0.05);
+            SpellEffects.earthBurst(level, point, radius, power);
             level.method_43128(null, point.method_10216(), point.method_10214(), point.method_10215(), class_3417.field_14658, class_3419.field_15248, 0.8f, 1.0f);
         }
     }
 
     private static void stoneWall(class_3222 caster, class_3218 level, Spell spell, CastParams params, double power) {
-        int duration = (int)Math.max((long)40L, (long)Math.round((double)(200.0 * power)));
+        int duration = (int)Math.min(12000.0, Math.max(40.0, Math.round(200.0 * power)));
         class_243 look = caster.method_5720();
         class_243 forward = new class_243(look.field_1352, 0.0, look.field_1350);
         if (forward.method_1027() < 1.0E-4) {
@@ -316,9 +328,11 @@ public final class SpellEffects {
         forward = forward.method_1029();
         class_243 side = new class_243(-forward.field_1350, 0.0, forward.field_1352);
         class_2338 base = class_2338.method_49638((class_2374)caster.method_73189().method_1019(forward.method_1021(2.0)));
+        int halfWidth = Math.max(2, Math.min(10, (int)Math.ceil(MagicScaling.areaMultiplier(power) * 0.75)));
+        int wallHeight = Math.max(3, Math.min(8, 2 + MagicScaling.intensity(power) / 2));
         int placed = 0;
-        for (int offset = -2; offset <= 2; ++offset) {
-            for (int height = 0; height < 3; ++height) {
+        for (int offset = -halfWidth; offset <= halfWidth; ++offset) {
+            for (int height = 0; height < wallHeight; ++height) {
                 int dz;
                 int dx = (int)Math.round((double)(side.field_1352 * (double)offset));
                 class_2338 pos = base.method_10069(dx, height, dz = (int)Math.round((double)(side.field_1350 * (double)offset)));
@@ -336,32 +350,36 @@ public final class SpellEffects {
     }
 
     private static void swamp(class_3222 caster, class_3218 level, Spell spell, CastParams params, double power) {
-        double radius = Math.max((double)3.0, (double)(spell.radius() * params.radiusMultiplier()));
+        double radius = Math.max(3.0, MagicScaling.radius(spell.radius(), power, params.radiusMultiplier()));
         class_243 look = caster.method_5720();
-        int duration = (int)Math.max((long)20L, (long)Math.round((double)(120.0 * power)));
+        int duration = (int)Math.min(12000.0, Math.max(20.0, Math.round(120.0 * power)));
         int affected = 0;
         for (class_1309 target : level.method_18467(class_1309.class, caster.method_5829().method_1014(radius))) {
             class_243 toTarget;
-            if (target == caster || (toTarget = target.method_73189().method_1020(caster.method_73189())).method_1027() > 1.0 && toTarget.method_1029().method_1026(look) < 0.2) continue;
+            if (target == caster || (toTarget = target.method_73189().method_1020(caster.method_73189())).method_1027() > radius || toTarget.method_1027() > 1.0 && toTarget.method_1029().method_1026(look) < 0.2) continue;
             target.method_6092(new class_1293(class_1294.field_5909, duration, 2));
             ++affected;
         }
         Msg.actionBar(caster, (class_2561)Msg.t("mushoku_magic.msg.swamp", affected));
         if (!params.silent()) {
-            level.method_65096((class_2394)class_2398.field_11233, caster.method_23317(), caster.method_23318() + 0.2, caster.method_23321(), 60, radius / 2.0, 0.2, radius / 2.0, 0.0);
+            int particles = Math.min(180, 48 + MagicScaling.intensity(power) * 12);
+            level.method_65096((class_2394)class_2398.field_11233, caster.method_23317(), caster.method_23318() + 0.2, caster.method_23321(), particles, radius / 2.0, 0.3, radius / 2.0, 0.01);
             level.method_43128(null, caster.method_23317(), caster.method_23318(), caster.method_23321(), class_3417.field_14788, class_3419.field_15248, 0.8f, 0.6f);
         }
     }
 
     private static void gust(class_3222 caster, class_3218 level, Spell spell, CastParams params, double power) {
-        double radius = Math.max((double)2.0, (double)(spell.radius() * params.radiusMultiplier()));
+        double radius = Math.max(2.0, MagicScaling.radius(spell.radius(), power, params.radiusMultiplier()));
+        double pushStrength = Math.min(2.75, 0.75 + Math.sqrt(Math.max(1.0, power)) * 0.15) * params.damageMultiplier();
         int affected = 0;
         for (class_1309 target : level.method_18467(class_1309.class, caster.method_5829().method_1014(radius))) {
             if (target == caster) continue;
             class_243 push = target.method_73189().method_1020(caster.method_73189());
-            if (push.method_1027() > 0.001) {
-                push = push.method_1029().method_1021(0.9 * params.damageMultiplier());
-                target.method_5762(push.field_1352, 0.45, push.field_1350);
+            double distance = push.method_1027();
+            if (distance > radius) continue;
+            if (distance > 0.001) {
+                push = push.method_1029().method_1021(pushStrength);
+                target.method_5762(push.field_1352, Math.min(1.5, 0.25 + pushStrength * 0.25), push.field_1350);
                 target.field_6037 = true;
             }
             target.method_5646();
@@ -370,18 +388,23 @@ public final class SpellEffects {
         }
         SpellEffects.extinguish(level, caster.method_73189(), radius + 2.0);
         if (!params.silent()) {
-            level.method_65096((class_2394)class_2398.field_11204, caster.method_23317(), caster.method_23318() + 1.0, caster.method_23321(), 40, radius / 2.0, 0.5, radius / 2.0, 0.05);
+            int particles = Math.min(180, 40 + MagicScaling.intensity(power) * 12);
+            level.method_65096((class_2394)class_2398.field_47494, caster.method_23317(), caster.method_23318() + 1.0, caster.method_23321(), Math.max(1, particles / 3), radius / 2.0, 0.8, radius / 2.0, 0.08);
+            level.method_65096((class_2394)class_2398.field_11204, caster.method_23317(), caster.method_23318() + 1.0, caster.method_23321(), particles, radius / 2.0, 0.5, radius / 2.0, 0.05);
             level.method_43128(null, caster.method_23317(), caster.method_23318(), caster.method_23321(), (class_3414)class_3417.field_49049.comp_349(), class_3419.field_15248, 1.0f, 1.2f);
         }
         Msg.actionBar(caster, (class_2561)Msg.t("mushoku_magic.msg.gust", affected));
     }
 
-    private static void updraft(class_3222 caster, class_3218 level, CastParams params) {
-        caster.method_5762(0.0, 0.9, 0.0);
+    private static void updraft(class_3222 caster, class_3218 level, CastParams params, double power) {
+        double lift = Math.min(2.5, 0.75 + Math.sqrt(Math.max(1.0, power)) * 0.17);
+        caster.method_5762(0.0, lift, 0.0);
         caster.field_6037 = true;
         caster.method_6016(class_1294.field_5909);
         if (!params.silent()) {
-            level.method_65096((class_2394)class_2398.field_11204, caster.method_23317(), caster.method_23318(), caster.method_23321(), 25, 0.3, 0.1, 0.3, 0.15);
+            int intensity = MagicScaling.intensity(power);
+            level.method_65096((class_2394)class_2398.field_47494, caster.method_23317(), caster.method_23318(), caster.method_23321(), 4 + intensity, 0.5, 0.2, 0.5, 0.16);
+            level.method_65096((class_2394)class_2398.field_11207, caster.method_23317(), caster.method_23318(), caster.method_23321(), 2 + intensity, 0.35, 0.5, 0.35, 0.08);
         }
     }
 
@@ -389,33 +412,40 @@ public final class SpellEffects {
         int duration = (int)Math.max((long)20L, (long)Math.round((double)(40.0 * power)));
         caster.method_6092(new class_1293(class_1294.field_5904, duration, 2));
         if (!params.silent()) {
-            level.method_65096((class_2394)class_2398.field_11204, caster.method_23317(), caster.method_23318() + 0.5, caster.method_23321(), 20, 0.4, 0.2, 0.4, 0.1);
+            int intensity = MagicScaling.intensity(power);
+            level.method_65096((class_2394)class_2398.field_11204, caster.method_23317(), caster.method_23318() + 0.5, caster.method_23321(), 20 + intensity * 6, 0.5, 0.3, 0.5, 0.1);
+            level.method_65096((class_2394)class_2398.field_11207, caster.method_23317(), caster.method_23318() + 0.5, caster.method_23321(), intensity * 2, 0.4, 0.5, 0.4, 0.06);
         }
     }
 
     private static void healBasic(class_3222 caster, class_3218 level, Spell spell, CastParams params, double power) {
         caster.method_6092(new class_1293(class_1294.field_5924, (int)Math.max((long)20L, (long)Math.round((double)(100.0 * power))), 0));
-        SpellEffects.healVisual(caster, level, params);
+        SpellEffects.healVisual(caster, level, params, power);
     }
 
     private static void healStrong(class_3222 caster, class_3218 level, Spell spell, CastParams params, double power) {
         caster.method_6092(new class_1293(class_1294.field_5924, (int)Math.max((long)20L, (long)Math.round((double)(200.0 * power))), 0));
         caster.method_6092(new class_1293(class_1294.field_5907, (int)Math.max((long)20L, (long)Math.round((double)(60.0 * power))), 0));
-        SpellEffects.healVisual(caster, level, params);
+        SpellEffects.healVisual(caster, level, params, power);
     }
 
     private static void healFull(class_3222 caster, class_3218 level, Spell spell, CastParams params, double power) {
         caster.method_6092(new class_1293(class_1294.field_5924, (int)Math.max((long)20L, (long)Math.round((double)(300.0 * power))), 0));
         caster.method_6092(new class_1293(class_1294.field_5907, (int)Math.max((long)20L, (long)Math.round((double)(100.0 * power))), 0));
         caster.method_6025((float)(2.0 * power));
-        SpellEffects.healVisual(caster, level, params);
+        SpellEffects.healVisual(caster, level, params, power);
     }
 
-    private static void healVisual(class_3222 caster, class_3218 level, CastParams params) {
+    private static void healVisual(class_3222 caster, class_3218 level, CastParams params, double power) {
         if (params.silent()) {
             return;
         }
-        level.method_65096((class_2394)class_2398.field_11201, caster.method_23317(), caster.method_23318() + 1.0, caster.method_23321(), 12, 0.4, 0.4, 0.4, 0.02);
+        int intensity = MagicScaling.intensity(power);
+        double x = caster.method_23317();
+        double y = caster.method_23318() + 1.0;
+        double z = caster.method_23321();
+        level.method_65096((class_2394)class_2398.field_11201, x, y, z, 8 + intensity * 5, 0.6, 0.8, 0.6, 0.04);
+        level.method_65096((class_2394)class_2398.field_11211, x, y, z, 4 + intensity * 3, 0.5, 0.7, 0.5, 0.03);
         level.method_43128(null, caster.method_23317(), caster.method_23318(), caster.method_23321(), class_3417.field_26980, class_3419.field_15248, 0.8f, 1.6f);
     }
 
@@ -431,7 +461,9 @@ public final class SpellEffects {
         int repairAmount = (int)Math.ceil((double)((double)stack.method_7936() * spell.power() * power));
         stack.method_7974(Math.max((int)0, (int)(stack.method_7919() - repairAmount)));
         if (!params.silent()) {
-            level.method_65096((class_2394)class_2398.field_11211, caster.method_23317(), caster.method_23318() + 1.0, caster.method_23321(), 15, 0.4, 0.4, 0.4, 0.02);
+            int intensity = MagicScaling.intensity(power);
+            level.method_65096((class_2394)class_2398.field_11211, caster.method_23317(), caster.method_23318() + 1.0, caster.method_23321(), 12 + intensity * 5, 0.5, 0.5, 0.5, 0.04);
+            level.method_65096((class_2394)class_2398.field_11207, caster.method_23317(), caster.method_23318() + 1.0, caster.method_23321(), 6 + intensity * 3, 0.4, 0.5, 0.4, 0.05);
             level.method_43128(null, caster.method_23317(), caster.method_23318(), caster.method_23321(), class_3417.field_14559, class_3419.field_15248, 0.7f, 1.4f);
         }
         Msg.actionBar(caster, (class_2561)Msg.t("mushoku_magic.msg.repair_done", new Object[0]));
@@ -439,6 +471,55 @@ public final class SpellEffects {
 
     private static boolean isRepairable(class_1799 stack) {
         return !stack.method_7960() && stack.method_7963() && stack.method_7986();
+    }
+
+    private static void fireBurst(class_3218 level, class_243 center, double radius, double power, CastParams params) {
+        if (params.silent()) return;
+        int intensity = MagicScaling.intensity(power);
+        double spread = Math.max(0.35, Math.min(16.0, radius * 0.5));
+        double verticalSpread = Math.max(0.8, Math.min(16.0, radius * 0.5));
+        double x = center.method_10216();
+        double y = center.method_10214();
+        double z = center.method_10215();
+        level.method_65096((class_2394)class_2398.field_11221, x, y, z, 1, 0.0, 0.0, 0.0, 0.0);
+        level.method_65096((class_2394)class_2398.field_11236, x, y, z, 2 + intensity, spread * 0.4, verticalSpread * 0.5, spread * 0.4, 0.05);
+        level.method_65096((class_2394)class_2398.field_11240, x, y, z, 32 + intensity * 14, spread, verticalSpread, spread, 0.08);
+        level.method_65096((class_2394)class_2398.field_22246, x, y, z, 16 + intensity * 7, spread * 0.8, verticalSpread * 1.2, spread * 0.8, 0.06);
+        level.method_65096((class_2394)class_2398.field_11237, x, y, z, 16 + intensity * 7, spread * 0.75, verticalSpread, spread * 0.75, 0.025);
+        level.method_65096((class_2394)class_2398.field_11207, x, y, z, 8 + intensity * 5, spread, verticalSpread * 1.4, spread, 0.06);
+    }
+
+    private static void waterBurst(class_3218 level, class_243 center, double radius, double power) {
+        int intensity = MagicScaling.intensity(power);
+        double spread = Math.max(0.35, Math.min(16.0, radius * 0.5));
+        double x = center.method_10216();
+        double y = center.method_10214();
+        double z = center.method_10215();
+        level.method_65096((class_2394)class_2398.field_11202, x, y, z, 32 + intensity * 12, spread, 1.0, spread, 0.12);
+        level.method_65096((class_2394)class_2398.field_11247, x, y, z, 12 + intensity * 7, spread * 0.8, 1.4, spread * 0.8, 0.05);
+        level.method_65096((class_2394)class_2398.field_11207, x, y, z, 6 + intensity * 4, spread, 1.2, spread, 0.04);
+    }
+
+    private static void iceBurst(class_3218 level, class_243 center, double radius, double power) {
+        int intensity = MagicScaling.intensity(power);
+        double spread = Math.max(0.25, Math.min(16.0, radius * 0.5));
+        double x = center.method_10216();
+        double y = center.method_10214();
+        double z = center.method_10215();
+        level.method_65096((class_2394)class_2398.field_28013, x, y, z, 18 + intensity * 10, spread, spread, spread, 0.035);
+        level.method_65096((class_2394)class_2398.field_11207, x, y, z, 8 + intensity * 5, spread * 1.2, spread * 1.2, spread * 1.2, 0.04);
+        level.method_65096((class_2394)class_2398.field_11237, x, y, z, 4 + intensity * 3, spread, spread * 0.5, spread, 0.015);
+    }
+
+    private static void earthBurst(class_3218 level, class_243 center, double radius, double power) {
+        int intensity = MagicScaling.intensity(power);
+        double spread = Math.max(0.25, Math.min(16.0, radius * 0.5));
+        double x = center.method_10216();
+        double y = center.method_10214();
+        double z = center.method_10215();
+        level.method_65096((class_2394)class_2398.field_11205, x, y, z, 24 + intensity * 10, spread, spread, spread, 0.08);
+        level.method_65096((class_2394)class_2398.field_11237, x, y, z, 12 + intensity * 5, spread, spread * 0.6, spread, 0.04);
+        level.method_65096((class_2394)class_2398.field_11207, x, y, z, 6 + intensity * 4, spread, spread, spread, 0.05);
     }
 
     private static class_238 boxAround(class_243 center, double radius) {
@@ -456,37 +537,55 @@ public final class SpellEffects {
         }
     }
 
-    private static void impact(class_3222 caster, class_3218 level, class_243 point, double radius, double damage, double fireSeconds, CastParams params) {
-        double finalRadius = radius * params.radiusMultiplier();
+    private static void impact(class_3222 caster, class_3218 level, class_243 point, double radius, double damage, double fireSeconds, CastParams params, double power) {
+        double finalRadius = MagicScaling.radius(radius, power, params.radiusMultiplier());
         List<class_1309> targets = level.method_18467(class_1309.class, SpellEffects.boxAround(point, finalRadius));
         if (params.explosion()) {
             for (class_1309 target : targets) {
-                if (target == caster) continue;
+                if (target == caster || target.method_73189().method_1025(point) > finalRadius * finalRadius) continue;
                 MagicHitTracker.mark(target, caster, level.method_75260());
             }
-            level.method_8537((class_1297)caster, point.method_10216(), point.method_10214(), point.method_10215(), (float)finalRadius, false, class_1937.class_7867.field_40888);
+            boolean modifyBlocks = MagicConfig.get().fireSpellsModifyBlocks;
+            level.method_8537((class_1297)caster, point.method_10216(), point.method_10214(), point.method_10215(), (float)finalRadius, modifyBlocks, modifyBlocks ? class_1937.class_7867.field_40889 : class_1937.class_7867.field_40888);
         } else {
             for (class_1309 target : targets) {
+                if (target == caster || target.method_73189().method_1025(point) > finalRadius * finalRadius) continue;
                 SpellEffects.magicDamage(caster, level, target, damage, fireSeconds);
             }
         }
-        SpellEffects.igniteAround(level, point, 3, finalRadius);
+        if (MagicConfig.get().fireSpellsModifyBlocks) {
+            SpellEffects.igniteAround(level, point, SpellEffects.fireAttemptCount(finalRadius), finalRadius);
+        }
+        SpellEffects.fireBurst(level, point, finalRadius, power, params);
         if (!params.silent()) {
-            level.method_65096((class_2394)class_2398.field_11240, point.method_10216(), point.method_10214(), point.method_10215(), 30, 0.4, 0.4, 0.4, 0.05);
-            level.method_43128(null, point.method_10216(), point.method_10214(), point.method_10215(), class_3417.field_15013, class_3419.field_15248, 1.0f, 1.0f);
+            float volume = (float)Math.min(2.0, 0.8 + Math.log1p(power) * 0.16);
+            level.method_43128(null, point.method_10216(), point.method_10214(), point.method_10215(), class_3417.field_15013, class_3419.field_15248, volume, 0.9f);
         }
     }
 
+    private static int fireAttemptCount(double radius) {
+        return Math.min(192, Math.max(3, (int)Math.ceil(radius * radius * 0.12)));
+    }
+
     private static void igniteAround(class_3218 level, class_243 center, int attempts, double radius) {
+        if (radius <= 0.0 || attempts <= 0) {
+            return;
+        }
+        int startY = (int)Math.floor(center.method_10214());
         for (int i = 0; i < attempts; ++i) {
-            class_2680 fire;
-            double z;
-            double y;
-            double x = center.method_10216() + (level.field_9229.method_43058() - 0.5) * radius * 2.0;
-            class_2338 pos = class_2338.method_49637((double)x, (double)(y = center.method_10214() + (level.field_9229.method_43058() - 0.5) * radius), (double)(z = center.method_10215() + (level.field_9229.method_43058() - 0.5) * radius * 2.0));
-            class_2680 state = level.method_8320(pos);
-            if (!state.method_45474() || !(fire = class_4770.method_24416((class_1922)level, (class_2338)pos)).method_26184((class_4538)level, pos)) continue;
-            level.method_8501(pos, fire);
+            double angle = level.field_9229.method_43058() * Math.PI * 2.0;
+            double distance = Math.sqrt(level.field_9229.method_43058()) * radius;
+            int x = (int)Math.floor(center.method_10216() + Math.cos(angle) * distance);
+            int z = (int)Math.floor(center.method_10215() + Math.sin(angle) * distance);
+            for (int drop = 0; drop <= 16; ++drop) {
+                class_2338 pos = class_2338.method_49637((double)x, (double)(startY - drop), (double)z);
+                class_2680 state = level.method_8320(pos);
+                if (!state.method_45474()) continue;
+                class_2680 fire = class_4770.method_24416((class_1922)level, (class_2338)pos);
+                if (!fire.method_26184((class_4538)level, pos)) continue;
+                level.method_8501(pos, fire);
+                break;
+            }
         }
     }
 
