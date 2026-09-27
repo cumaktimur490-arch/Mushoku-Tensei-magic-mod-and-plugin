@@ -5,9 +5,15 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.mushokumagic.spell.PhraseParser;
 import com.mushokumagic.spell.SpellRegistry;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -19,9 +25,24 @@ class MagicConfigAnimeSpellPackTest {
 
         assertNotNull(spell(config, "water_cannon"));
         assertNotNull(spell(config, "cumulonimbus"));
+        assertTrue(spell(config, "cumulonimbus").phrases.contains("кумуло нимбус"));
         assertTrue(spell(config, "earth_hedgehog").phrases.contains("earth hedgehog"));
         assertTrue(spell(config, "stone_ball").phrases.contains("stone cannon"));
         assertTrue(spell(config, "swamp").phrases.contains("quagmire"));
+    }
+
+    @Test
+    void everyDefaultSpellHasARussianDisplayName() throws IOException {
+        try (InputStream stream = MagicConfigAnimeSpellPackTest.class.getResourceAsStream("/assets/mushoku_magic/lang/ru_ru.json")) {
+            assertNotNull(stream);
+            JsonObject translations = JsonParser.parseReader(new InputStreamReader(stream, StandardCharsets.UTF_8)).getAsJsonObject();
+            for (MagicConfig.SpellDef definition : new MagicConfig().spells) {
+                String key = "mushoku_magic.spell." + definition.id;
+                assertTrue(translations.has(key), "Missing Russian spell name: " + key);
+                assertFalse(translations.get(key).getAsString().isBlank(), "Blank Russian spell name: " + key);
+            }
+            assertEquals("Кумуло Нимбус", translations.get("mushoku_magic.spell.cumulonimbus").getAsString());
+        }
     }
 
     @Test
@@ -42,13 +63,15 @@ class MagicConfigAnimeSpellPackTest {
         assertNotNull(spell(config, "earth_hedgehog"));
         assertTrue(waterCannon.phrases.contains("water cannon"));
         assertTrue(cumulonimbus.phrases.contains("cumulonimbus"));
+        assertTrue(cumulonimbus.phrases.contains("кумуло нимбус"));
         assertTrue(spell(config, "stone_ball").phrases.contains("stone cannon"));
         assertTrue(spell(config, "explosive_fireball").phrases.contains("nuclear explosion"));
-        assertEquals(2, config.spellPackVersion);
+        assertEquals(3, config.spellPackVersion);
 
         SpellRegistry.rebuild(config.spells);
         assertEquals("water_cannon", PhraseParser.parse("Water Cannon").spell().id());
         assertEquals("cumulonimbus", PhraseParser.parse("Cumulonimbus").spell().id());
+        assertEquals("cumulonimbus", PhraseParser.parse("Кумуло Нимбус").spell().id());
         assertEquals("earth_hedgehog", PhraseParser.parse("Earth Hedgehog").spell().id());
         assertEquals("stone_ball", PhraseParser.parse("Stone Cannon").spell().id());
         assertEquals("swamp", PhraseParser.parse("Quagmire").spell().id());
@@ -69,10 +92,29 @@ class MagicConfigAnimeSpellPackTest {
 
         MagicConfig.SpellDef addedSpell = spell(config, "earth_hedgehog");
         assertNotNull(addedSpell);
-        assertEquals(2, config.spellPackVersion);
+        assertEquals(3, config.spellPackVersion);
         config.spells.remove(addedSpell);
         normalize(config);
         assertFalse(config.spells.stream().anyMatch(definition -> "earth_hedgehog".equals(definition.id)));
+    }
+
+    @Test
+    void addsSpacedRussianCumulonimbusPhraseToVersionTwoPointTwoOneConfigsOnce() throws ReflectiveOperationException {
+        MagicConfig config = new MagicConfig();
+        MagicConfig.SpellDef cumulonimbus = spell(config, "cumulonimbus");
+        cumulonimbus.phrases.remove("кумуло нимбус");
+        config.spellPackVersion = 2;
+
+        normalize(config);
+
+        assertEquals(3, config.spellPackVersion);
+        assertTrue(cumulonimbus.phrases.contains("кумуло нимбус"));
+        SpellRegistry.rebuild(config.spells);
+        assertEquals("cumulonimbus", PhraseParser.parse("Кумуло Нимбус").spell().id());
+
+        cumulonimbus.phrases.remove("кумуло нимбус");
+        normalize(config);
+        assertFalse(cumulonimbus.phrases.contains("кумуло нимбус"));
     }
 
     private static MagicConfig.SpellDef spell(MagicConfig config, String id) {
