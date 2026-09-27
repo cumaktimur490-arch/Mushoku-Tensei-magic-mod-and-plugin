@@ -16,9 +16,11 @@ import java.nio.file.Path;
 import java.nio.file.attribute.FileAttribute;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import net.fabricmc.loader.api.FabricLoader;
 
 public final class MagicConfig {
@@ -47,6 +49,8 @@ public final class MagicConfig {
     /** Allow fire spells to ignite or destroy blocks; disable for a safer server. */
     public boolean fireSpellsModifyBlocks = true;
     public boolean announceOnJoin = true;
+    /** One-time migration marker for the anime spell additions. */
+    public int spellPackVersion = 0;
     public List<SpellDef> spells = MagicConfig.defaultSpells();
 
     private static Map<String, Double> defaultWandMultipliers() {
@@ -69,12 +73,38 @@ public final class MagicConfig {
         return new ArrayList((Collection)List.of(new RankDef("beginner", 40.0, 209.0, 1.0), new RankDef("average", 210.0, 329.0, 1.1), new RankDef("advanced", 330.0, 499.0, 1.2), new RankDef("saint", 500.0, 739.0, 1.35), new RankDef("royal", 740.0, 989.0, 1.5), new RankDef("imperial", 990.0, 1499.0, 1.7), new RankDef("divine", 1500.0, -1.0, 2.0)));
     }
 
+    private static void addAnimeSpellAliases(SpellDef spell) {
+        if (spell == null || spell.id == null) {
+            return;
+        }
+        switch (spell.id) {
+            case "explosive_fireball" -> MagicConfig.addPhrases(spell, "exodus flame", "nuclear explosion");
+            case "ice_needle" -> MagicConfig.addPhrases(spell, "icicle lance", "ice lance");
+            case "stone_ball" -> MagicConfig.addPhrases(spell, "stone cannon", "rock bullet");
+            case "stone_wall" -> MagicConfig.addPhrases(spell, "earth wall");
+            case "swamp" -> MagicConfig.addPhrases(spell, "quagmire");
+        }
+    }
+
+    private static void addPhrases(SpellDef spell, String... phrases) {
+        if (spell.phrases == null) {
+            spell.phrases = new ArrayList<>();
+        }
+        for (String phrase : phrases) {
+            if (!spell.phrases.contains(phrase)) {
+                spell.phrases.add(phrase);
+            }
+        }
+    }
+
     private static List<SpellDef> defaultSpells() {
         ArrayList list = new ArrayList();
         list.add(new SpellDef("fire_bolt", "fire", 50.0, 40, 4.0, 2.5, (List<String>)List.of("\u043e\u0433\u043e\u043d\u044c \u043f\u043e\u0440\u0430\u0437\u0438 \u0446\u0435\u043b\u044c", "\u043e\u0433\u043d\u0435\u043d\u043d\u044b\u0439 \u0441\u043d\u0430\u0440\u044f\u0434", "\u043e\u0433\u043d\u0435\u043d\u043d\u044b\u0439 \u0448\u0430\u0440", "\u0444\u0430\u0435\u0440\u0431\u043e\u043b", "fire bolt", "fireball")));
         list.add(new SpellDef("light", "fire", 20.0, 0, 1.0, 0.0, (List<String>)List.of("\u0441\u0432\u0435\u0442 \u043e\u0441\u0432\u0435\u0442\u0438 \u043c\u043e\u0439 \u043f\u0443\u0442\u044c", "\u043e\u0433\u043e\u043d\u0451\u043a", "\u043e\u0433\u043e\u043d\u0435\u043a", "\u0441\u0432\u0435\u0442", "light")));
         list.add(new SpellDef("explosive_fireball", "fire", 160.0, 40, 6.0, 4.0, (List<String>)List.of("\u043f\u043b\u0430\u043c\u044f \u0432\u0437\u043e\u0440\u0432\u0438\u0441\u044c \u0441\u0438\u043b\u043e\u0439", "\u0432\u0437\u0440\u044b\u0432\u043d\u043e\u0439 \u0444\u0430\u0435\u0440\u0431\u043e\u043b", "\u043e\u0433\u043d\u0435\u043d\u043d\u044b\u0439 \u0432\u0437\u0440\u044b\u0432", "explosive fireball", "fire blast")));
         list.add(new SpellDef("water_ball", "water", 10.0, 10, 0.0, 3.0, (List<String>)List.of("\u0432\u043e\u0434\u0430 \u043e\u0431\u0440\u0443\u0448\u044c\u0441\u044f", "\u0432\u043e\u0434\u044f\u043d\u043e\u0439 \u0448\u0430\u0440", "\u0432\u043e\u0442\u0435\u0440\u0431\u043e\u043b", "water ball")));
+        list.add(new SpellDef("water_cannon", "water", 90.0, 30, 4.5, 1.4, (List<String>)List.of("water cannon", "water cannon technique", "\u0432\u043e\u0434\u044f\u043d\u0430\u044f \u043f\u0443\u0448\u043a\u0430", "\u0432\u043e\u0434\u044f\u043d\u043e\u0439 \u043f\u043e\u0442\u043e\u043a")));
+        list.add(new SpellDef("cumulonimbus", "water", 220.0, 60, 3.0, 12.0, (List<String>)List.of("cumulonimbus", "storm cloud", "heavy rain", "\u043a\u0443\u043c\u0443\u043b\u043e\u043d\u0438\u043c\u0431\u0443\u0441", "\u0433\u0440\u043e\u0437\u043e\u0432\u0430\u044f \u0442\u0443\u0447\u0430", "\u043b\u0438\u0432\u0435\u043d\u044c")));
         list.add(new SpellDef("ice_needle", "water", 50.0, 15, 2.0, 1.0, (List<String>)List.of("\u0432\u043e\u0434\u0430 \u0437\u0430\u0441\u0442\u044b\u043d\u044c \u0438\u0433\u043b\u043e\u0439", "\u043b\u0435\u0434\u044f\u043d\u0430\u044f \u0438\u0433\u043b\u0430", "\u043b\u0435\u0434\u044f\u043d\u0430\u044f \u0441\u043f\u0438\u0446\u0430", "ice needle")));
         list.add(new SpellDef("water_wall", "water", 90.0, 40, 1.0, 0.0, (List<String>)List.of("\u0432\u043e\u0434\u0430 \u0432\u0441\u0442\u0430\u043d\u044c \u0441\u0442\u0435\u043d\u043e\u0439", "\u0432\u043e\u0434\u044f\u043d\u0430\u044f \u0441\u0442\u0435\u043d\u0430", "water wall")));
         list.add(new SpellDef("stone_ball", "earth", 25.0, 15, 1.0, 1.0, (List<String>)List.of("\u0437\u0435\u043c\u043b\u044f \u0441\u043e\u0436\u043c\u0438\u0441\u044c \u0432 \u043a\u0430\u043c\u0435\u043d\u044c", "\u043a\u0430\u043c\u0435\u043d\u043d\u044b\u0439 \u0448\u0430\u0440", "\u043a\u0430\u043c\u0435\u043d\u044c \u0448\u0430\u0440", "stone ball")));
@@ -87,6 +117,9 @@ public final class MagicConfig {
         list.add(new SpellDef("heal_strong", "healing", 90.0, 40, 1.0, 0.0, (List<String>)List.of("\u0434\u0443\u0445\u0438 \u0437\u0430\u0449\u0438\u0442\u0438\u0442\u0435 \u043c\u043e\u0451 \u0442\u0435\u043b\u043e", "\u0443\u043a\u0440\u0435\u043f\u043b\u044f\u044e\u0449\u0435\u0435 \u043b\u0435\u0447\u0435\u043d\u0438\u0435", "strong healing")));
         list.add(new SpellDef("heal_full", "healing", 130.0, 60, 1.0, 0.0, (List<String>)List.of("\u0434\u0443\u0445\u0438 \u0432\u043e\u0441\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u0435 \u043c\u043e\u044e \u043f\u043b\u043e\u0442\u044c", "\u043f\u043e\u043b\u043d\u043e\u0435 \u0432\u043e\u0441\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435", "full healing")));
         list.add(new SpellDef("repair_item", "repair", 100.0, 60, 0.5, 0.0, (List<String>)List.of("\u0434\u0443\u0445\u0438 \u0432\u043e\u0441\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u0435 \u043f\u0440\u0435\u0434\u043c\u0435\u0442", "\u043f\u043e\u0447\u0438\u043d\u043a\u0430", "\u0440\u0435\u043c\u043e\u043d\u0442", "repair item")));
+        for (Object value : list) {
+            MagicConfig.addAnimeSpellAliases((SpellDef)value);
+        }
         return list;
     }
 
@@ -171,7 +204,22 @@ public final class MagicConfig {
         if (this.spells == null || this.spells.isEmpty()) {
             this.spells = MagicConfig.defaultSpells();
         }
+        this.spells = new ArrayList<>(this.spells);
+        if (this.spellPackVersion < 1) {
+            Set<String> spellIds = new HashSet<>();
+            for (SpellDef spell : this.spells) {
+                if (spell == null) continue;
+                MagicConfig.addAnimeSpellAliases(spell);
+                if (spell.id != null) spellIds.add(spell.id);
+            }
+            for (SpellDef spell : MagicConfig.defaultSpells()) {
+                if (!("water_cannon".equals(spell.id) || "cumulonimbus".equals(spell.id)) || !spellIds.add(spell.id)) continue;
+                this.spells.add(spell);
+            }
+            this.spellPackVersion = 1;
+        }
         for (SpellDef spell : this.spells) {
+            if (spell == null) continue;
             if (spell.phrases == null) {
                 spell.phrases = new ArrayList();
             }

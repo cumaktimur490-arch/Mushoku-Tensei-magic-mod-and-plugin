@@ -14,6 +14,8 @@
 	"mushoku_magic.spell.light": "Огонёк",
 	"mushoku_magic.spell.explosive_fireball": "Взрывной фаербол",
 	"mushoku_magic.spell.water_ball": "Водяной шар",
+	"mushoku_magic.spell.water_cannon": "Водяная пушка",
+	"mushoku_magic.spell.cumulonimbus": "Кумулонимбус",
 	"mushoku_magic.spell.ice_needle": "Ледяная игла",
 	"mushoku_magic.spell.water_wall": "Водяная стена",
 	"mushoku_magic.spell.stone_ball": "Каменный шар",
@@ -45,6 +47,7 @@
 	"mushoku_magic.msg.repair_done": "Предмет восстановлен.",
 	"mushoku_magic.msg.swamp": "Топь появилась под ногами врагов (%s).",
 	"mushoku_magic.msg.gust": "Порыв ветра отбросил существ (%s).",
+	"mushoku_magic.msg.cumulonimbus": "Кучево-дождевая туча обрушила дождь и замедлила существ (%s).",
 
 	"mushoku_magic.msg.spells_header": "Выученные заклинания:",
 	"mushoku_magic.msg.spells_all_header": "Все заклинания мода:",

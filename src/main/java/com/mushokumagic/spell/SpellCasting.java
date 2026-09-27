@@ -46,39 +46,13 @@ public final class SpellCasting {
     }
 
     public static class_2394 particleFor(String element) {
-        String string = element;
-        int n = -1;
-        switch (string.hashCode()) {
-            case 112903447: {
-                if (!string.equals("water")) break;
-                n = 0;
-                break;
-            }
-            case 96278602: {
-                if (!string.equals("earth")) break;
-                n = 1;
-                break;
-            }
-            case 3649544: {
-                if (!string.equals("wind")) break;
-                n = 2;
-                break;
-            }
-            case 795549946: {
-                if (!string.equals("healing")) break;
-                n = 3;
-                break;
-            }
-            case -934535283: {
-                if (!string.equals("repair")) break;
-                n = 4;
-            }
-        }
-        return switch (n) {
-            case 0 -> class_2398.field_11202;
-            case 1 -> class_2398.field_11205;
-            case 2 -> class_2398.field_11204;
-            case 3, 4 -> class_2398.field_11201;
+        return switch (element) {
+            case "water" -> class_2398.field_11202;
+            case "ice" -> class_2398.field_28013;
+            case "earth" -> class_2398.field_11205;
+            case "wind" -> class_2398.field_11204;
+            case "healing", "repair" -> class_2398.field_11201;
+            case "light" -> class_2398.field_11207;
             default -> class_2398.field_11240;
         };
     }
@@ -100,12 +74,16 @@ public final class SpellCasting {
         double power = MagicScaling.clampPower(ManaManager.powerMultiplier(player) * params.wordPower() * params.damageMultiplier());
         double progressClamped = Math.max(0.0, Math.min(1.0, progress));
         class_243 from = player.method_33571();
-        class_243 to = SpellCasting.aimPoint(player, MagicScaling.range(48.0, power));
+        double baseRange = "water_cannon".equals(spell.id()) || "cumulonimbus".equals(spell.id()) ? 64.0 : 48.0;
+        class_243 to = SpellCasting.aimPoint(player, MagicScaling.range(baseRange, power));
         class_243 point = from.method_35590(to, progressClamped);
         int intensity = MagicScaling.intensity(power);
-        int particleCount = 4 + Math.min(8, intensity);
+        String visualElement = "ice_needle".equals(spell.id()) ? "ice" : ("light".equals(spell.id()) ? "light" : spell.element());
         double spread = 0.02 + intensity * 0.004;
-        level.method_65096(SpellCasting.particleFor(spell.element()), point.method_10216(), point.method_10214(), point.method_10215(), particleCount, spread, spread, spread, 0.01);
+        level.method_65096(MagicPalette.core(visualElement, 0.85f + intensity * 0.045f), point.method_10216(), point.method_10214(), point.method_10215(), 4 + Math.min(8, intensity), spread, spread, spread, 0.01);
+        level.method_65096(MagicPalette.body(visualElement, 0.65f + intensity * 0.035f), point.method_10216(), point.method_10214(), point.method_10215(), 2 + intensity / 3, spread * 0.6, spread * 0.6, spread * 0.6, 0.015);
+        level.method_65096(SpellCasting.particleFor(visualElement), point.method_10216(), point.method_10214(), point.method_10215(), 2 + intensity / 4, spread * 1.3, spread * 1.3, spread * 1.3, 0.01);
+        level.method_65096(MagicPalette.surge(visualElement, 0.6f, power >= 15.0), point.method_10216(), point.method_10214(), point.method_10215(), 1 + intensity / 5, spread * 0.45, spread * 0.45, spread * 0.45, 0.01);
         long castTick = Math.round(progressClamped * Math.max(1, spell.castTicks()));
         if (intensity >= 4 && castTick % 4 == 0) {
             level.method_65096((class_2394)class_2398.field_11207, point.method_10216(), point.method_10214(), point.method_10215(), Math.min(6, intensity / 2), spread * 1.5, spread * 1.5, spread * 1.5, 0.04);

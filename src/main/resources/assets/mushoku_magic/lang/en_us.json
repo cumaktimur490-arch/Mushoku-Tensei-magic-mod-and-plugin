@@ -14,6 +14,8 @@
 	"mushoku_magic.spell.light": "Light",
 	"mushoku_magic.spell.explosive_fireball": "Explosive Fireball",
 	"mushoku_magic.spell.water_ball": "Water Ball",
+	"mushoku_magic.spell.water_cannon": "Water Cannon",
+	"mushoku_magic.spell.cumulonimbus": "Cumulonimbus",
 	"mushoku_magic.spell.ice_needle": "Ice Needle",
 	"mushoku_magic.spell.water_wall": "Water Wall",
 	"mushoku_magic.spell.stone_ball": "Stone Ball",
@@ -45,6 +47,7 @@
 	"mushoku_magic.msg.repair_done": "Item restored.",
 	"mushoku_magic.msg.swamp": "Swamp spreads under your enemies (%s).",
 	"mushoku_magic.msg.gust": "Gust pushed creatures away (%s).",
+	"mushoku_magic.msg.cumulonimbus": "Cumulonimbus soaked the area and slowed creatures (%s).",
 
 	"mushoku_magic.msg.spells_header": "Learned spells:",
 	"mushoku_magic.msg.spells_all_header": "All spells of the mod:",
