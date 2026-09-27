@@ -143,6 +143,11 @@ public final class SpellEffects {
             case 1363602955: {
                 if (!string.equals("cumulonimbus")) break;
                 n = 17;
+                break;
+            }
+            case 1726806096: {
+                if (!string.equals("earth_hedgehog")) break;
+                n = 18;
             }
         }
         switch (n) {
@@ -216,6 +221,10 @@ public final class SpellEffects {
             }
             case 17: {
                 SpellEffects.cumulonimbus(caster, level, spell, params, power);
+                break;
+            }
+            case 18: {
+                SpellEffects.earthHedgehog(caster, level, spell, params, power);
                 break;
             }
             default: {
@@ -395,6 +404,47 @@ public final class SpellEffects {
             level.method_43128(null, point.method_10216(), point.method_10214(), point.method_10215(), class_3417.field_14843, class_3419.field_15248, 1.4f, 0.65f);
         }
         Msg.actionBar(caster, (class_2561)Msg.t("mushoku_magic.msg.cumulonimbus", affected));
+    }
+
+    private static void earthHedgehog(class_3222 caster, class_3218 level, Spell spell, CastParams params, double power) {
+        class_243 point = SpellCasting.aimPoint(caster, MagicScaling.range(32.0, power));
+        double radius = Math.max(1.0, MagicScaling.radius(spell.radius(), power, params.radiusMultiplier()));
+        int intensity = MagicScaling.intensity(power);
+        int maxTargets = 24 + intensity * 8;
+        int affected = 0;
+        int slowTicks = (int)Math.min(200.0, Math.max(20.0, Math.round(40.0 * power)));
+        for (class_1309 target : level.method_18467(class_1309.class, SpellEffects.boxAround(point, radius))) {
+            if (target == caster || target.method_73189().method_1025(point) > radius * radius) continue;
+            SpellEffects.magicDamage(caster, level, target, spell.power() * power, 0.0);
+            target.method_6092(new class_1293(class_1294.field_5909, slowTicks, 0));
+            target.method_5762(0.0, Math.min(0.9, 0.35 + Math.sqrt(power) * 0.08), 0.0);
+            target.field_6037 = true;
+            if (++affected >= maxTargets) break;
+        }
+        if (!params.silent()) {
+            int spikeCount = 6 + Math.min(6, intensity / 2);
+            int spikeLevels = 2 + intensity / 4;
+            double footprint = Math.max(1.0, radius * 0.8);
+            double spikeHeight = 1.6 + intensity * 0.3;
+            for (int spike = 0; spike < spikeCount; ++spike) {
+                double angle = Math.PI * 2.0 * spike / spikeCount;
+                double dx = Math.cos(angle);
+                double dz = Math.sin(angle);
+                for (int step = 1; step <= spikeLevels; ++step) {
+                    double progress = (double)step / spikeLevels;
+                    double distance = footprint * (0.45 + 0.55 * progress);
+                    double x = point.method_10216() + dx * distance;
+                    double y = point.method_10214() + progress * spikeHeight;
+                    double z = point.method_10215() + dz * distance;
+                    double spread = 0.08 + progress * 0.05;
+                    level.method_65096(MagicPalette.core("earth", 0.85f + intensity * 0.035f), x, y, z, 2 + intensity / 3, spread, spread, spread, 0.025);
+                    level.method_65096((class_2394)class_2398.field_11205, x, y, z, 1 + intensity / 6, spread * 0.8, spread, spread * 0.8, 0.055);
+                }
+            }
+            SpellEffects.earthBurst(level, point, radius, power);
+            level.method_43128(null, point.method_10216(), point.method_10214(), point.method_10215(), class_3417.field_14658, class_3419.field_15248, 1.1f, 0.8f);
+        }
+        Msg.actionBar(caster, (class_2561)Msg.t("mushoku_magic.msg.earth_hedgehog", affected));
     }
 
     private static void stoneBall(class_3222 caster, class_3218 level, Spell spell, CastParams params, double power) {

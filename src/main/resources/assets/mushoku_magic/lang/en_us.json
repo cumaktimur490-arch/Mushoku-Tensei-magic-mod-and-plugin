@@ -19,6 +19,7 @@
 	"mushoku_magic.spell.ice_needle": "Ice Needle",
 	"mushoku_magic.spell.water_wall": "Water Wall",
 	"mushoku_magic.spell.stone_ball": "Stone Ball",
+	"mushoku_magic.spell.earth_hedgehog": "Earth Hedgehog",
 	"mushoku_magic.spell.stone_wall": "Stone Wall",
 	"mushoku_magic.spell.swamp": "Swamp",
 	"mushoku_magic.spell.gust": "Gust",
@@ -48,6 +49,7 @@
 	"mushoku_magic.msg.swamp": "Swamp spreads under your enemies (%s).",
 	"mushoku_magic.msg.gust": "Gust pushed creatures away (%s).",
 	"mushoku_magic.msg.cumulonimbus": "Cumulonimbus soaked the area and slowed creatures (%s).",
+	"mushoku_magic.msg.earth_hedgehog": "Earth spikes erupted around the target (%s).",
 
 	"mushoku_magic.msg.spells_header": "Learned spells:",
 	"mushoku_magic.msg.spells_all_header": "All spells of the mod:",

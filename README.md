@@ -20,11 +20,11 @@ Building requires JDK 25 because the recovered Fabric Loom version runs on Java 
 ./gradlew clean build
 ```
 
-Version 2.2.0 is built as `build/libs/mushoku-magic-2.2.0.jar`; its Fabric metadata version is generated from `mod_version` in `gradle.properties`. The three supplied wand textures are alpha-trimmed but not resized, preserving their original pixel detail at 103×123, 242×604, and 117×85 pixels.
+Version 2.3.0 is built as `build/libs/mushoku-magic-2.3.0.jar`; its Fabric metadata version is generated from `mod_version` in `gradle.properties`. The three supplied wand textures are alpha-trimmed but not resized, preserving their original pixel detail at 103×123, 242×604, and 117×85 pixels.
 
 ## Anime spell phrases
 
-The spell list recognizes these chat phrases: **Water Cannon** (a high-pressure water beam) and **Cumulonimbus** (a targeted rain-cloud effect that slows creatures and extinguishes nearby fire). Existing spells also recognize aliases such as **Stone Cannon**, **Quagmire**, **Icicle Lance**, **Exodus Flame**, and **Nuclear Explosion**. These names map to the mod's existing or adapted Minecraft mechanics; they are gameplay interpretations, not claims of frame-perfect spell simulation. A one-time config migration adds the two new spells and aliases to existing `mushoku_magic.json` files without restoring them if a player later removes them.
+The spell list recognizes **Water Cannon** (a high-pressure water beam), **Cumulonimbus** (a targeted rain-cloud effect that slows creatures and extinguishes nearby fire), and **Earth Hedgehog** (a ring of rising stone spikes that damages, slows, and lifts nearby creatures). Existing spells also recognize aliases such as **Stone Cannon**, **Quagmire**, **Icicle Lance**, **Exodus Flame**, and **Nuclear Explosion**. These names map to the mod's existing or adapted Minecraft mechanics; they are gameplay interpretations, not claims of frame-perfect spell simulation. Versioned config migrations add new spells and aliases to existing `mushoku_magic.json` files without restoring them if a player later removes them.
 
 ## Wand-powered magic
 

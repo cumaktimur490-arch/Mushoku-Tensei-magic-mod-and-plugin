@@ -19,6 +19,7 @@ class MagicConfigAnimeSpellPackTest {
 
         assertNotNull(spell(config, "water_cannon"));
         assertNotNull(spell(config, "cumulonimbus"));
+        assertTrue(spell(config, "earth_hedgehog").phrases.contains("earth hedgehog"));
         assertTrue(spell(config, "stone_ball").phrases.contains("stone cannon"));
         assertTrue(spell(config, "swamp").phrases.contains("quagmire"));
     }
@@ -38,21 +39,40 @@ class MagicConfigAnimeSpellPackTest {
         MagicConfig.SpellDef cumulonimbus = spell(config, "cumulonimbus");
         assertNotNull(waterCannon);
         assertNotNull(cumulonimbus);
+        assertNotNull(spell(config, "earth_hedgehog"));
         assertTrue(waterCannon.phrases.contains("water cannon"));
         assertTrue(cumulonimbus.phrases.contains("cumulonimbus"));
         assertTrue(spell(config, "stone_ball").phrases.contains("stone cannon"));
         assertTrue(spell(config, "explosive_fireball").phrases.contains("nuclear explosion"));
-        assertEquals(1, config.spellPackVersion);
+        assertEquals(2, config.spellPackVersion);
 
         SpellRegistry.rebuild(config.spells);
         assertEquals("water_cannon", PhraseParser.parse("Water Cannon").spell().id());
         assertEquals("cumulonimbus", PhraseParser.parse("Cumulonimbus").spell().id());
+        assertEquals("earth_hedgehog", PhraseParser.parse("Earth Hedgehog").spell().id());
         assertEquals("stone_ball", PhraseParser.parse("Stone Cannon").spell().id());
         assertEquals("swamp", PhraseParser.parse("Quagmire").spell().id());
 
         config.spells.remove(cumulonimbus);
         normalize(config);
         assertFalse(config.spells.stream().anyMatch(definition -> "cumulonimbus".equals(definition.id)));
+    }
+
+    @Test
+    void addsEarthHedgehogToVersionTwoPointTwoConfigsOnlyOnce() throws ReflectiveOperationException {
+        MagicConfig config = new MagicConfig();
+        MagicConfig.SpellDef defaultSpell = spell(config, "earth_hedgehog");
+        config.spells.remove(defaultSpell);
+        config.spellPackVersion = 1;
+
+        normalize(config);
+
+        MagicConfig.SpellDef addedSpell = spell(config, "earth_hedgehog");
+        assertNotNull(addedSpell);
+        assertEquals(2, config.spellPackVersion);
+        config.spells.remove(addedSpell);
+        normalize(config);
+        assertFalse(config.spells.stream().anyMatch(definition -> "earth_hedgehog".equals(definition.id)));
     }
 
     private static MagicConfig.SpellDef spell(MagicConfig config, String id) {

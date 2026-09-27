@@ -19,6 +19,7 @@
 	"mushoku_magic.spell.ice_needle": "Ледяная игла",
 	"mushoku_magic.spell.water_wall": "Водяная стена",
 	"mushoku_magic.spell.stone_ball": "Каменный шар",
+	"mushoku_magic.spell.earth_hedgehog": "Земляной ёж",
 	"mushoku_magic.spell.stone_wall": "Каменная стена",
 	"mushoku_magic.spell.swamp": "Болото",
 	"mushoku_magic.spell.gust": "Порыв ветра",
@@ -48,6 +49,7 @@
 	"mushoku_magic.msg.swamp": "Топь появилась под ногами врагов (%s).",
 	"mushoku_magic.msg.gust": "Порыв ветра отбросил существ (%s).",
 	"mushoku_magic.msg.cumulonimbus": "Кучево-дождевая туча обрушила дождь и замедлила существ (%s).",
+	"mushoku_magic.msg.earth_hedgehog": "Земляные шипы вырвались вокруг цели (%s).",
 
 	"mushoku_magic.msg.spells_header": "Выученные заклинания:",
 	"mushoku_magic.msg.spells_all_header": "Все заклинания мода:",

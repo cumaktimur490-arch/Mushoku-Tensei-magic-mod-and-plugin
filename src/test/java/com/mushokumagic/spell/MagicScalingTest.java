@@ -17,11 +17,13 @@ class MagicScalingTest {
     }
 
     @Test
-    void tierThreeStaffAlsoExpandsAnimeWaterSpellRangeAndArea() {
+    void tierThreeStaffAlsoExpandsAnimeSpellRangesAndAreas() {
         double power = 50.0;
 
         assertEquals(103.2, MagicScaling.range(64.0, power), 0.0001);
         assertTrue(MagicScaling.radius(1.4, power, 1.0) > 1.4);
+        assertEquals(71.2, MagicScaling.range(32.0, power), 0.0001);
+        assertEquals(32.0, MagicScaling.radius(5.0, power, 1.0), 0.0);
         assertEquals(32.0, MagicScaling.radius(12.0, power, 1.0), 0.0);
     }
 

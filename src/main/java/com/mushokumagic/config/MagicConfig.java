@@ -49,7 +49,7 @@ public final class MagicConfig {
     /** Allow fire spells to ignite or destroy blocks; disable for a safer server. */
     public boolean fireSpellsModifyBlocks = true;
     public boolean announceOnJoin = true;
-    /** One-time migration marker for the anime spell additions. */
+    /** One-time migration marker for the anime spell pack. */
     public int spellPackVersion = 0;
     public List<SpellDef> spells = MagicConfig.defaultSpells();
 
@@ -97,6 +97,21 @@ public final class MagicConfig {
         }
     }
 
+    private static void addMissingDefaultSpells(List<SpellDef> spells, String... ids) {
+        Set<String> requestedIds = Set.of(ids);
+        Set<String> presentIds = new HashSet<>();
+        for (SpellDef spell : spells) {
+            if (spell != null && spell.id != null) {
+                presentIds.add(spell.id);
+            }
+        }
+        for (SpellDef spell : MagicConfig.defaultSpells()) {
+            if (requestedIds.contains(spell.id) && presentIds.add(spell.id)) {
+                spells.add(spell);
+            }
+        }
+    }
+
     private static List<SpellDef> defaultSpells() {
         ArrayList list = new ArrayList();
         list.add(new SpellDef("fire_bolt", "fire", 50.0, 40, 4.0, 2.5, (List<String>)List.of("\u043e\u0433\u043e\u043d\u044c \u043f\u043e\u0440\u0430\u0437\u0438 \u0446\u0435\u043b\u044c", "\u043e\u0433\u043d\u0435\u043d\u043d\u044b\u0439 \u0441\u043d\u0430\u0440\u044f\u0434", "\u043e\u0433\u043d\u0435\u043d\u043d\u044b\u0439 \u0448\u0430\u0440", "\u0444\u0430\u0435\u0440\u0431\u043e\u043b", "fire bolt", "fireball")));
@@ -108,6 +123,7 @@ public final class MagicConfig {
         list.add(new SpellDef("ice_needle", "water", 50.0, 15, 2.0, 1.0, (List<String>)List.of("\u0432\u043e\u0434\u0430 \u0437\u0430\u0441\u0442\u044b\u043d\u044c \u0438\u0433\u043b\u043e\u0439", "\u043b\u0435\u0434\u044f\u043d\u0430\u044f \u0438\u0433\u043b\u0430", "\u043b\u0435\u0434\u044f\u043d\u0430\u044f \u0441\u043f\u0438\u0446\u0430", "ice needle")));
         list.add(new SpellDef("water_wall", "water", 90.0, 40, 1.0, 0.0, (List<String>)List.of("\u0432\u043e\u0434\u0430 \u0432\u0441\u0442\u0430\u043d\u044c \u0441\u0442\u0435\u043d\u043e\u0439", "\u0432\u043e\u0434\u044f\u043d\u0430\u044f \u0441\u0442\u0435\u043d\u0430", "water wall")));
         list.add(new SpellDef("stone_ball", "earth", 25.0, 15, 1.0, 1.0, (List<String>)List.of("\u0437\u0435\u043c\u043b\u044f \u0441\u043e\u0436\u043c\u0438\u0441\u044c \u0432 \u043a\u0430\u043c\u0435\u043d\u044c", "\u043a\u0430\u043c\u0435\u043d\u043d\u044b\u0439 \u0448\u0430\u0440", "\u043a\u0430\u043c\u0435\u043d\u044c \u0448\u0430\u0440", "stone ball")));
+        list.add(new SpellDef("earth_hedgehog", "earth", 100.0, 40, 3.0, 5.0, (List<String>)List.of("earth hedgehog", "earth spike", "earth spikes", "spike field", "\u0437\u0435\u043c\u043b\u044f\u043d\u043e\u0439 \u0451\u0436", "\u0437\u0435\u043c\u043b\u044f\u043d\u044b\u0435 \u0448\u0438\u043f\u044b")));
         list.add(new SpellDef("stone_wall", "earth", 160.0, 40, 1.0, 0.0, (List<String>)List.of("\u0437\u0435\u043c\u043b\u044f \u0432\u0441\u0442\u0430\u043d\u044c \u043f\u0440\u0435\u0434\u043e \u043c\u043d\u043e\u0439", "\u043a\u0430\u043c\u0435\u043d\u043d\u0430\u044f \u0441\u0442\u0435\u043d\u0430", "stone wall")));
         list.add(new SpellDef("swamp", "earth", 200.0, 60, 1.0, 10.0, (List<String>)List.of("\u0437\u0435\u043c\u043b\u044f \u0440\u0430\u0437\u0432\u0435\u0440\u0437\u043d\u0438\u0441\u044c \u0442\u043e\u043f\u044c\u044e", "\u0431\u043e\u043b\u043e\u0442\u043e", "\u0442\u043e\u043f\u044c", "swamp")));
         list.add(new SpellDef("gust", "wind", 45.0, 10, 1.0, 5.0, (List<String>)List.of("\u0432\u0435\u0442\u0435\u0440 \u043e\u0442\u0442\u043e\u043b\u043a\u043d\u0438 \u0432\u0440\u0430\u0433\u043e\u0432", "\u043f\u043e\u0440\u044b\u0432 \u0432\u0435\u0442\u0440\u0430", "\u0432\u0435\u0442\u0435\u0440", "gust", "gust of wind")));
@@ -206,17 +222,15 @@ public final class MagicConfig {
         }
         this.spells = new ArrayList<>(this.spells);
         if (this.spellPackVersion < 1) {
-            Set<String> spellIds = new HashSet<>();
             for (SpellDef spell : this.spells) {
-                if (spell == null) continue;
                 MagicConfig.addAnimeSpellAliases(spell);
-                if (spell.id != null) spellIds.add(spell.id);
             }
-            for (SpellDef spell : MagicConfig.defaultSpells()) {
-                if (!("water_cannon".equals(spell.id) || "cumulonimbus".equals(spell.id)) || !spellIds.add(spell.id)) continue;
-                this.spells.add(spell);
-            }
+            MagicConfig.addMissingDefaultSpells(this.spells, "water_cannon", "cumulonimbus");
             this.spellPackVersion = 1;
+        }
+        if (this.spellPackVersion < 2) {
+            MagicConfig.addMissingDefaultSpells(this.spells, "earth_hedgehog");
+            this.spellPackVersion = 2;
         }
         for (SpellDef spell : this.spells) {
             if (spell == null) continue;

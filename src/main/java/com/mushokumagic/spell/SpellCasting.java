@@ -74,7 +74,11 @@ public final class SpellCasting {
         double power = MagicScaling.clampPower(ManaManager.powerMultiplier(player) * params.wordPower() * params.damageMultiplier());
         double progressClamped = Math.max(0.0, Math.min(1.0, progress));
         class_243 from = player.method_33571();
-        double baseRange = "water_cannon".equals(spell.id()) || "cumulonimbus".equals(spell.id()) ? 64.0 : 48.0;
+        double baseRange = switch (spell.id()) {
+            case "water_cannon", "cumulonimbus" -> 64.0;
+            case "water_ball", "ice_needle", "stone_ball", "earth_hedgehog" -> 32.0;
+            default -> 48.0;
+        };
         class_243 to = SpellCasting.aimPoint(player, MagicScaling.range(baseRange, power));
         class_243 point = from.method_35590(to, progressClamped);
         int intensity = MagicScaling.intensity(power);
