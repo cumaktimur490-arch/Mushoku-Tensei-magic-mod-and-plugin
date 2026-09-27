@@ -283,7 +283,7 @@ public final class SpellEffects {
         double radius = Math.max(1.0, MagicScaling.radius(spell.radius(), power, params.radiusMultiplier()));
         SpellEffects.extinguish(level, point, radius);
         if (!params.silent()) {
-            SpellEffects.waterBurst(level, point, radius, power);
+            SpellEffects.waterBurst(level, point, radius, power, params.largeVisuals());
             level.method_43128(null, point.method_10216(), point.method_10214(), point.method_10215(), class_3417.field_14810, class_3419.field_15248, 1.0f, 1.0f);
         }
     }
@@ -322,13 +322,13 @@ public final class SpellEffects {
             int samples = Math.max(5, Math.min(20, (int)Math.ceil(length / 4.0)));
             for (int i = 0; i <= samples; ++i) {
                 class_243 sample = start.method_1019(segment.method_1021((double)i / (double)samples));
-                double spread = Math.min(0.6, 0.12 + intensity * 0.025);
-                level.method_65096(MagicPalette.core("water", 0.95f), sample.method_10216(), sample.method_10214(), sample.method_10215(), 3 + intensity / 2, spread, spread, spread, 0.025);
+                double spread = Math.min(0.6, 0.12 + intensity * 0.025) * (params.largeVisuals() ? 1.7 : 1.0);
+                level.method_65096(MagicPalette.core("water", 0.95f), sample.method_10216(), sample.method_10214(), sample.method_10215(), 3 + intensity / 2 + (params.largeVisuals() ? 2 : 0), spread, spread, spread, 0.025);
                 if (i % 2 == 0) {
-                    level.method_65096((class_2394)class_2398.field_11202, sample.method_10216(), sample.method_10214(), sample.method_10215(), 1 + intensity / 4, spread * 1.5, spread, spread * 1.5, 0.035);
+                    level.method_65096((class_2394)class_2398.field_11202, sample.method_10216(), sample.method_10214(), sample.method_10215(), 1 + intensity / 4 + (params.largeVisuals() ? 2 : 0), spread * 1.5, spread, spread * 1.5, 0.035);
                 }
             }
-            SpellEffects.waterBurst(level, point, radius, power);
+            SpellEffects.waterBurst(level, point, radius, power, params.largeVisuals());
             level.method_43128(null, point.method_10216(), point.method_10214(), point.method_10215(), class_3417.field_14843, class_3419.field_15248, 1.2f, 0.75f);
         }
     }
@@ -373,7 +373,7 @@ public final class SpellEffects {
             return;
         }
         if (!params.silent()) {
-            SpellEffects.waterBurst(level, new class_243(center.method_10263() + 0.5, center.method_10264() + 0.5, center.method_10260() + 0.5), halfSize, power);
+            SpellEffects.waterBurst(level, new class_243(center.method_10263() + 0.5, center.method_10264() + 0.5, center.method_10260() + 0.5), halfSize, power, params.largeVisuals());
             level.method_43128(null, (double)center.method_10263() + 0.5, (double)center.method_10264() + 0.5, (double)center.method_10260() + 0.5, class_3417.field_14843, class_3419.field_15248, 1.0f, 1.2f);
         }
     }
@@ -392,15 +392,16 @@ public final class SpellEffects {
         if (!params.silent()) {
             int intensity = MagicScaling.intensity(power);
             double cloudRadius = Math.min(24.0, Math.max(4.0, radius * 0.75));
+            if (params.largeVisuals()) cloudRadius = Math.min(36.0, cloudRadius * 1.65);
             class_243 cloud = point.method_1019(new class_243(0.0, Math.max(5.0, Math.min(12.0, radius * 0.25)), 0.0));
-            int cloudCount = Math.min(260, 50 + intensity * 16);
-            int rainCount = Math.min(420, 80 + intensity * 22);
-            SpellEffects.coloredBurst(level, cloud, "water", Math.min(8.0, cloudRadius * 0.4), power, false);
+            int cloudCount = Math.min(params.largeVisuals() ? 360 : 260, 50 + intensity * 16 + (params.largeVisuals() ? 80 : 0));
+            int rainCount = Math.min(params.largeVisuals() ? 600 : 420, 80 + intensity * 22 + (params.largeVisuals() ? 140 : 0));
+            SpellEffects.coloredBurst(level, cloud, "water", Math.min(8.0, cloudRadius * 0.4), power, false, params.largeVisuals());
             level.method_65096((class_2394)class_2398.field_11204, cloud.method_10216(), cloud.method_10214(), cloud.method_10215(), cloudCount, cloudRadius, 2.5, cloudRadius, 0.015);
-            level.method_65096(MagicPalette.body("water", 0.7f), cloud.method_10216(), cloud.method_10214(), cloud.method_10215(), 18 + intensity * 5, cloudRadius * 0.7, 1.5, cloudRadius * 0.7, 0.01);
+            level.method_65096(MagicPalette.body("water", 0.7f), cloud.method_10216(), cloud.method_10214(), cloud.method_10215(), 18 + intensity * 5 + (params.largeVisuals() ? 30 : 0), cloudRadius * 0.7, 1.5, cloudRadius * 0.7, 0.01);
             level.method_65096((class_2394)class_2398.field_11242, cloud.method_10216(), cloud.method_10214(), cloud.method_10215(), rainCount, cloudRadius, 1.5, cloudRadius, 0.12);
-            level.method_65096((class_2394)class_2398.field_11202, point.method_10216(), point.method_10214(), point.method_10215(), 28 + intensity * 8, radius * 0.55, 0.4, radius * 0.55, 0.04);
-            SpellEffects.waterBurst(level, point, Math.min(6.0, radius * 0.25), power);
+            level.method_65096((class_2394)class_2398.field_11202, point.method_10216(), point.method_10214(), point.method_10215(), 28 + intensity * 8 + (params.largeVisuals() ? 48 : 0), radius * 0.55, 0.4, radius * 0.55, 0.04);
+            SpellEffects.waterBurst(level, point, Math.min(6.0, radius * 0.25), power, params.largeVisuals());
             level.method_43128(null, point.method_10216(), point.method_10214(), point.method_10215(), class_3417.field_14843, class_3419.field_15248, 1.4f, 0.65f);
         }
         Msg.actionBar(caster, (class_2561)Msg.t("mushoku_magic.msg.cumulonimbus", affected));
@@ -623,46 +624,60 @@ public final class SpellEffects {
     }
 
     private static void coloredBurst(class_3218 level, class_243 center, String element, double radius, double power, boolean overcharged) {
+        SpellEffects.coloredBurst(level, center, element, radius, power, overcharged, false);
+    }
+
+    private static void coloredBurst(class_3218 level, class_243 center, String element, double radius, double power, boolean overcharged, boolean largeVisuals) {
         int intensity = MagicScaling.intensity(power);
-        double spread = Math.max(0.25, Math.min(16.0, radius * 0.5));
+        int particleBoost = largeVisuals ? Math.min(48, 16 + intensity * 3) : 0;
+        double maxSpread = largeVisuals ? 32.0 : 16.0;
+        double spread = Math.max(0.25, Math.min(maxSpread, radius * 0.5));
         double x = center.method_10216();
         double y = center.method_10214();
         double z = center.method_10215();
-        level.method_65096(MagicPalette.core(element, Math.min(1.7f, 0.8f + intensity * 0.05f)), x, y, z, 8 + intensity, spread, spread * 0.55, spread, 0.035);
-        level.method_65096(MagicPalette.body(element, Math.min(1.6f, 0.7f + intensity * 0.045f)), x, y, z, 12 + intensity * 2, spread * 0.85, spread * 0.65, spread * 0.85, 0.045);
-        level.method_65096(MagicPalette.edge(element, 0.7f), x, y, z, 6 + intensity, spread, spread * 0.8, spread, 0.025);
+        level.method_65096(MagicPalette.core(element, Math.min(1.7f, 0.8f + intensity * 0.05f)), x, y, z, 8 + intensity + particleBoost / 3, spread, spread * 0.55, spread, 0.035);
+        level.method_65096(MagicPalette.body(element, Math.min(1.6f, 0.7f + intensity * 0.045f)), x, y, z, 12 + intensity * 2 + particleBoost, spread * 0.85, spread * 0.65, spread * 0.85, 0.045);
+        level.method_65096(MagicPalette.edge(element, 0.7f), x, y, z, 6 + intensity + particleBoost / 2, spread, spread * 0.8, spread, 0.025);
         if ("fire".equals(element) && overcharged) {
-            level.method_65096(MagicPalette.surge(element, 0.85f, true), x, y, z, 6 + intensity, spread * 0.6, spread * 0.5, spread * 0.6, 0.035);
+            level.method_65096(MagicPalette.surge(element, 0.85f, true), x, y, z, 6 + intensity + particleBoost / 2, spread * 0.6, spread * 0.5, spread * 0.6, 0.035);
         }
     }
 
     private static void fireBurst(class_3218 level, class_243 center, double radius, double power, CastParams params) {
         if (params.silent()) return;
         int intensity = MagicScaling.intensity(power);
-        double spread = Math.max(0.35, Math.min(16.0, radius * 0.5));
-        double verticalSpread = Math.max(0.8, Math.min(16.0, radius * 0.5));
+        double visualRadius = params.largeVisuals() ? Math.min(64.0, radius * 2.4) : radius;
+        int particleBoost = params.largeVisuals() ? Math.min(96, 32 + intensity * 5) : 0;
+        double spread = Math.max(0.35, Math.min(32.0, visualRadius * 0.5));
+        double verticalSpread = Math.max(0.8, Math.min(32.0, visualRadius * 0.5));
         double x = center.method_10216();
         double y = center.method_10214();
         double z = center.method_10215();
-        SpellEffects.coloredBurst(level, center, "fire", radius, power, power >= 15.0 || params.explosion());
+        SpellEffects.coloredBurst(level, center, "fire", visualRadius, power, power >= 15.0 || params.explosion(), params.largeVisuals());
         level.method_65096((class_2394)class_2398.field_11221, x, y, z, 1, 0.0, 0.0, 0.0, 0.0);
         level.method_65096((class_2394)class_2398.field_11236, x, y, z, 2 + intensity, spread * 0.4, verticalSpread * 0.5, spread * 0.4, 0.05);
-        level.method_65096((class_2394)class_2398.field_11240, x, y, z, 32 + intensity * 14, spread, verticalSpread, spread, 0.08);
-        level.method_65096((class_2394)class_2398.field_22246, x, y, z, 16 + intensity * 7, spread * 0.8, verticalSpread * 1.2, spread * 0.8, 0.06);
-        level.method_65096((class_2394)class_2398.field_11237, x, y, z, 16 + intensity * 7, spread * 0.75, verticalSpread, spread * 0.75, 0.025);
-        level.method_65096((class_2394)class_2398.field_11207, x, y, z, 8 + intensity * 5, spread, verticalSpread * 1.4, spread, 0.06);
+        level.method_65096((class_2394)class_2398.field_11240, x, y, z, 32 + intensity * 14 + particleBoost, spread, verticalSpread, spread, 0.08);
+        level.method_65096((class_2394)class_2398.field_22246, x, y, z, 16 + intensity * 7 + particleBoost / 2, spread * 0.8, verticalSpread * 1.2, spread * 0.8, 0.06);
+        level.method_65096((class_2394)class_2398.field_11237, x, y, z, 16 + intensity * 7 + particleBoost / 2, spread * 0.75, verticalSpread, spread * 0.75, 0.025);
+        level.method_65096((class_2394)class_2398.field_11207, x, y, z, 8 + intensity * 5 + particleBoost / 3, spread, verticalSpread * 1.4, spread, 0.06);
     }
 
     private static void waterBurst(class_3218 level, class_243 center, double radius, double power) {
+        SpellEffects.waterBurst(level, center, radius, power, false);
+    }
+
+    private static void waterBurst(class_3218 level, class_243 center, double radius, double power, boolean largeVisuals) {
         int intensity = MagicScaling.intensity(power);
-        double spread = Math.max(0.35, Math.min(16.0, radius * 0.5));
+        double visualRadius = largeVisuals ? Math.min(64.0, radius * 2.4) : radius;
+        int particleBoost = largeVisuals ? Math.min(120, 36 + intensity * 7) : 0;
+        double spread = Math.max(0.35, Math.min(32.0, visualRadius * 0.5));
         double x = center.method_10216();
         double y = center.method_10214();
         double z = center.method_10215();
-        SpellEffects.coloredBurst(level, center, "water", radius, power, false);
-        level.method_65096((class_2394)class_2398.field_11202, x, y, z, 32 + intensity * 12, spread, 1.0, spread, 0.12);
-        level.method_65096((class_2394)class_2398.field_11247, x, y, z, 12 + intensity * 7, spread * 0.8, 1.4, spread * 0.8, 0.05);
-        level.method_65096((class_2394)class_2398.field_11207, x, y, z, 6 + intensity * 4, spread, 1.2, spread, 0.04);
+        SpellEffects.coloredBurst(level, center, "water", visualRadius, power, false, largeVisuals);
+        level.method_65096((class_2394)class_2398.field_11202, x, y, z, 32 + intensity * 12 + particleBoost, spread, 1.0 + (largeVisuals ? 1.0 : 0.0), spread, 0.12);
+        level.method_65096((class_2394)class_2398.field_11247, x, y, z, 12 + intensity * 7 + particleBoost / 2, spread * 0.8, 1.4, spread * 0.8, 0.05);
+        level.method_65096((class_2394)class_2398.field_11207, x, y, z, 6 + intensity * 4 + particleBoost / 3, spread, 1.2, spread, 0.04);
     }
 
     private static void iceBurst(class_3218 level, class_243 center, double radius, double power) {

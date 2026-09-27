@@ -26,12 +26,13 @@ public final class SpellCasting {
 
     public static CastParams paramsFor(List<String> extraWords) {
         MagicConfig config = MagicConfig.get();
-        double wordBonus = Math.min((double)((double)extraWords.size() * config.wordBonusPerWord), (double)config.maxWordBonus);
+        int bonusWordCount = extraWords.size();
         double radius = 1.0;
         double damage = 1.0;
         double castTime = 1.0;
         boolean explosion = false;
         boolean silent = false;
+        boolean largeVisuals = false;
         for (String word : extraWords) {
             for (MagicConfig.KeywordDef keyword : config.keywords.values()) {
                 if (!keyword.words.contains(word)) continue;
@@ -40,9 +41,14 @@ public final class SpellCasting {
                 castTime *= keyword.castTimeMultiplier;
                 explosion |= keyword.explosion;
                 silent |= keyword.silent;
+                if ("big".equals(keyword.id)) {
+                    largeVisuals = true;
+                    --bonusWordCount;
+                }
             }
         }
-        return new CastParams(wordBonus, radius, damage, castTime, explosion, silent);
+        double wordBonus = Math.min((double)(Math.max(0, bonusWordCount) * config.wordBonusPerWord), (double)config.maxWordBonus);
+        return new CastParams(wordBonus, radius, damage, castTime, explosion, silent, largeVisuals);
     }
 
     public static class_2394 particleFor(String element) {
@@ -83,11 +89,14 @@ public final class SpellCasting {
         class_243 point = from.method_35590(to, progressClamped);
         int intensity = MagicScaling.intensity(power);
         String visualElement = "ice_needle".equals(spell.id()) ? "ice" : ("light".equals(spell.id()) ? "light" : spell.element());
-        double spread = 0.02 + intensity * 0.004;
-        level.method_65096(MagicPalette.core(visualElement, 0.85f + intensity * 0.045f), point.method_10216(), point.method_10214(), point.method_10215(), 4 + Math.min(8, intensity), spread, spread, spread, 0.01);
-        level.method_65096(MagicPalette.body(visualElement, 0.65f + intensity * 0.035f), point.method_10216(), point.method_10214(), point.method_10215(), 2 + intensity / 3, spread * 0.6, spread * 0.6, spread * 0.6, 0.015);
-        level.method_65096(SpellCasting.particleFor(visualElement), point.method_10216(), point.method_10214(), point.method_10215(), 2 + intensity / 4, spread * 1.3, spread * 1.3, spread * 1.3, 0.01);
-        level.method_65096(MagicPalette.surge(visualElement, 0.6f, power >= 15.0), point.method_10216(), point.method_10214(), point.method_10215(), 1 + intensity / 5, spread * 0.45, spread * 0.45, spread * 0.45, 0.01);
+        boolean largeWaterOrFire = params.largeVisuals() && ("water".equals(visualElement) || "fire".equals(visualElement));
+        double spread = (0.02 + intensity * 0.004) * (largeWaterOrFire ? 2.0 : 1.0);
+        float scaleBoost = largeWaterOrFire ? 1.2f : 1.0f;
+        int countBoost = largeWaterOrFire ? 4 : 0;
+        level.method_65096(MagicPalette.core(visualElement, (0.85f + intensity * 0.045f) * scaleBoost), point.method_10216(), point.method_10214(), point.method_10215(), 4 + Math.min(8, intensity) + countBoost, spread, spread, spread, 0.01);
+        level.method_65096(MagicPalette.body(visualElement, (0.65f + intensity * 0.035f) * scaleBoost), point.method_10216(), point.method_10214(), point.method_10215(), 2 + intensity / 3 + countBoost / 2, spread * 0.6, spread * 0.6, spread * 0.6, 0.015);
+        level.method_65096(SpellCasting.particleFor(visualElement), point.method_10216(), point.method_10214(), point.method_10215(), 2 + intensity / 4 + countBoost, spread * 1.3, spread * 1.3, spread * 1.3, 0.01);
+        level.method_65096(MagicPalette.surge(visualElement, 0.6f, power >= 15.0), point.method_10216(), point.method_10214(), point.method_10215(), 1 + intensity / 5 + (largeWaterOrFire ? 2 : 0), spread * 0.45, spread * 0.45, spread * 0.45, 0.01);
         long castTick = Math.round(progressClamped * Math.max(1, spell.castTicks()));
         if (intensity >= 4 && castTick % 4 == 0) {
             level.method_65096((class_2394)class_2398.field_11207, point.method_10216(), point.method_10214(), point.method_10215(), Math.min(6, intensity / 2), spread * 1.5, spread * 1.5, spread * 1.5, 0.04);

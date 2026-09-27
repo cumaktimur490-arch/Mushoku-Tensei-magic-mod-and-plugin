@@ -66,6 +66,11 @@ public final class MagicConfig {
         map.put("explosion", new KeywordDef("explosion", (List<String>)List.of("\u0432\u0437\u0440\u044b\u0432", "\u0432\u0437\u0440\u044b\u0432\u043d\u043e\u0439", "\u0432\u0437\u043e\u0440\u0432\u0438\u0441\u044c", "explosion", "explosive"), 1.5, 1.25, 1.0, true, false));
         map.put("fast", new KeywordDef("fast", (List<String>)List.of("\u0431\u044b\u0441\u0442\u0440\u044b\u0439", "\u0431\u044b\u0441\u0442\u0440\u043e", "\u0443\u0441\u043a\u043e\u0440\u044c", "fast", "quick"), 1.0, 1.0, 0.5, false, false));
         map.put("silent", new KeywordDef("silent", (List<String>)List.of("\u0442\u0438\u0445\u0438\u0439", "\u0442\u0438\u0445\u043e", "\u0431\u0435\u0437\u0437\u0432\u0443\u0447\u043d\u043e", "silent", "quiet"), 1.0, 1.0, 1.0, false, true));
+        map.put("big", new KeywordDef("big", List.of(
+                "big", "large", "huge",
+                "большой", "большая", "большое", "большие", "большого", "большую", "больших", "большому", "большим", "большими", "большом",
+                "огромный", "огромная", "огромное", "огромные", "огромного", "огромной", "огромную", "огромных", "огромному", "огромным", "огромными", "огромном"),
+                1.0, 1.0, 1.0, false, false));
         return map;
     }
 
@@ -199,8 +204,12 @@ public final class MagicConfig {
         if (this.ranks == null || this.ranks.isEmpty()) {
             this.ranks = MagicConfig.defaultRanks();
         }
+        Map<String, KeywordDef> defaultKeywords = MagicConfig.defaultKeywords();
         if (this.keywords == null || this.keywords.isEmpty()) {
-            this.keywords = MagicConfig.defaultKeywords();
+            this.keywords = defaultKeywords;
+        } else {
+            this.keywords = new LinkedHashMap<>(this.keywords);
+            this.keywords.putIfAbsent("big", defaultKeywords.get("big"));
         }
         Map<String, Double> defaultWandMultipliers = MagicConfig.defaultWandMultipliers();
         if (this.wandMultipliers == null

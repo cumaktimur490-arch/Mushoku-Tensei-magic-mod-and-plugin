@@ -3,9 +3,9 @@
  */
 package com.mushokumagic.spell;
 
-public record CastParams(double wordBonus, double radiusMultiplier, double damageMultiplier, double castTimeMultiplier, boolean explosion, boolean silent) {
+public record CastParams(double wordBonus, double radiusMultiplier, double damageMultiplier, double castTimeMultiplier, boolean explosion, boolean silent, boolean largeVisuals) {
     public static CastParams none() {
-        return new CastParams(0.0, 1.0, 1.0, 1.0, false, false);
+        return new CastParams(0.0, 1.0, 1.0, 1.0, false, false, false);
     }
 
     public double wordPower() {
