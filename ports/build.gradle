@@ -8,9 +8,10 @@ allprojects {
 }
 
 subprojects {
-    // Loom defaults to Fabric. Select each loader before applying the plugin so
-    // it creates the matching Forge/NeoForge dependency configuration.
-    project.ext.set('loom.platform', project.name)
+    // NeoForge 1.20.1 is the legacy Forge-compatible 47.1.x line. Loom's
+    // supported 1.20.1 toolchain therefore uses its Forge platform for both
+    // projects; the NeoForge module still depends on the native NeoForge artifact.
+    project.ext.set('loom.platform', 'forge')
     apply plugin: 'dev.architectury.loom'
 
     base {

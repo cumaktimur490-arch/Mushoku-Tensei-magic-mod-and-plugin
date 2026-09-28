@@ -1,5 +1,5 @@
 dependencies {
     // NeoForge's 1.20.1 line retains Forge's FML/API packages; the separately
     // named artifact keeps its dependency metadata and output distinct.
-    neoForge "net.neoforged:forge:${neoforge_legacy_version}"
+    forge "net.neoforged:forge:${neoforge_legacy_version}"
 }
