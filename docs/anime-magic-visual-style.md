@@ -14,6 +14,10 @@ This is a gameplay-focused adaptation of representative anime spell scenes, not 
 
 The palette is applied to the casting trail and impact bursts using Minecraft's colorizable dust particles; the existing splash, flame, snowflake, gust, heart, smoke, and impact particles remain as shape and texture layers. The purple fire accent is only used for overcharged fire effects.
 
+## Casting choreography
+
+Casting now has a distinct gathering phase and release phase instead of moving the same particle dot along a straight line for every spell. Five rotating elemental motes condense around a bright focus near the caster; in the final part of a projectile cast, a tapered orb travels to the aimed point. Water Cannon grows outward as a pressurized stream, and target-based spells form a small rotating pattern at the target. Cumulonimbus gathers into a rising cloud and Earth Hedgehog traces a ground-level ring before its spikes emerge. The oversized Counter Arrow fireball reference is a rounded, layered orange-red mass with a much brighter core, so the cast focus and traveling fireball emphasize that silhouette without copying the frame or adding anime art to the mod. Particle size also follows each spell's configured power tier, with a hard visual cap; it does not change damage, range, or gameplay area.
+
 ## Recognizable anime techniques
 
 - **Water Cannon** is implemented as a long cyan-blue jet with a bright core, splash accents, damage, and knockback along its path; its width grows with magical power.

@@ -21,6 +21,8 @@ import net.minecraft.class_3218;
 import net.minecraft.class_3222;
 
 public final class SpellCasting {
+    private static final int FORMATION_DOTS = 5;
+
     private SpellCasting() {
     }
 
@@ -113,28 +115,274 @@ public final class SpellCasting {
         class_3218 level = class_32182;
         double power = MagicScaling.clampPower(ManaManager.powerMultiplier(player) * params.wordPower() * params.damageMultiplier());
         double progressClamped = Math.max(0.0, Math.min(1.0, progress));
+        int intensity = MagicScaling.intensity(power);
+        String spellId = spell.id();
+        String visualElement = "ice_needle".equals(spellId) ? "ice" : ("light".equals(spellId) ? "light" : spell.element());
+        boolean largeWaterOrFire = params.largeVisuals() && ("water".equals(visualElement) || "fire".equals(visualElement));
+        double visualScale = SpellCasting.intrinsicVisualScale(spell);
         class_243 from = player.method_33571();
-        double baseRange = switch (spell.id()) {
+        double baseRange = switch (spellId) {
             case "water_cannon", "cumulonimbus" -> 64.0;
             case "water_ball", "ice_needle", "stone_ball", "earth_hedgehog" -> 32.0;
             default -> 48.0;
         };
         class_243 to = SpellCasting.aimPoint(player, MagicScaling.range(baseRange, power));
-        class_243 point = from.method_35590(to, progressClamped);
-        int intensity = MagicScaling.intensity(power);
-        String visualElement = "ice_needle".equals(spell.id()) ? "ice" : ("light".equals(spell.id()) ? "light" : spell.element());
-        boolean largeWaterOrFire = params.largeVisuals() && ("water".equals(visualElement) || "fire".equals(visualElement));
-        double spread = (0.02 + intensity * 0.004) * (largeWaterOrFire ? 2.0 : 1.0);
-        float scaleBoost = largeWaterOrFire ? 1.2f : 1.0f;
-        int countBoost = largeWaterOrFire ? 4 : 0;
-        level.method_65096(MagicPalette.core(visualElement, (0.85f + intensity * 0.045f) * scaleBoost), point.method_10216(), point.method_10214(), point.method_10215(), 4 + Math.min(8, intensity) + countBoost, spread, spread, spread, 0.01);
-        level.method_65096(MagicPalette.body(visualElement, (0.65f + intensity * 0.035f) * scaleBoost), point.method_10216(), point.method_10214(), point.method_10215(), 2 + intensity / 3 + countBoost / 2, spread * 0.6, spread * 0.6, spread * 0.6, 0.015);
-        level.method_65096(SpellCasting.particleFor(visualElement), point.method_10216(), point.method_10214(), point.method_10215(), 2 + intensity / 4 + countBoost, spread * 1.3, spread * 1.3, spread * 1.3, 0.01);
-        level.method_65096(MagicPalette.surge(visualElement, 0.6f, power >= 15.0), point.method_10216(), point.method_10214(), point.method_10215(), 1 + intensity / 5 + (largeWaterOrFire ? 2 : 0), spread * 0.45, spread * 0.45, spread * 0.45, 0.01);
-        long castTick = Math.round(progressClamped * Math.max(1, spell.castTicks()));
-        if (intensity >= 4 && castTick % 4 == 0) {
-            level.method_65096((class_2394)class_2398.field_11207, point.method_10216(), point.method_10214(), point.method_10215(), Math.min(6, intensity / 2), spread * 1.5, spread * 1.5, spread * 1.5, 0.04);
+        long now = level.method_75260();
+
+        if (SpellCasting.isProjectileSpell(spellId) || "water_cannon".equals(spellId)) {
+            class_243 focus = from.method_1019(player.method_5720().method_1021(0.62)).method_1019(new class_243(0.0, -0.28, 0.0));
+            if (progressClamped < SpellVisualMotion.RELEASE_START) {
+                SpellCasting.drawFocus(level, player, focus, visualElement, intensity,
+                        progressClamped / SpellVisualMotion.RELEASE_START, power, visualScale, largeWaterOrFire, now);
+            } else {
+                double releaseProgress = SpellVisualMotion.releaseProgress(progressClamped);
+                if ("water_cannon".equals(spellId)) {
+                    SpellCasting.drawWaterBeam(level, from, to, intensity, releaseProgress, visualScale, largeWaterOrFire, now);
+                } else {
+                    SpellCasting.drawProjectile(level, from, to, visualElement, intensity, releaseProgress, power, visualScale, largeWaterOrFire, now);
+                }
+            }
+            return;
         }
+
+        boolean selfCentered = SpellCasting.isSelfCenteredSpell(spellId);
+        boolean formingCloud = "cumulonimbus".equals(spellId);
+        boolean groundFormation = "earth_hedgehog".equals(spellId);
+        class_243 focus = selfCentered
+                ? new class_243(player.method_23317(), player.method_23318() + 0.95, player.method_23321())
+                : to;
+        SpellCasting.drawTargetFormation(
+                level,
+                player,
+                spell,
+                focus,
+                visualElement,
+                intensity,
+                progressClamped,
+                power,
+                visualScale,
+                params.radiusMultiplier(),
+                largeWaterOrFire,
+                selfCentered,
+                formingCloud,
+                groundFormation,
+                now);
+    }
+
+    static double intrinsicVisualScale(Spell spell) {
+        double spellPower = Double.isFinite(spell.power()) ? Math.max(1.0, spell.power()) : 50.0;
+        return Math.max(0.8, Math.min(2.0, Math.sqrt(spellPower / 50.0)));
+    }
+
+    private static boolean isProjectileSpell(String spellId) {
+        return switch (spellId) {
+            case "fire_bolt", "explosive_fireball", "water_ball", "ice_needle", "stone_ball" -> true;
+            default -> false;
+        };
+    }
+
+    private static boolean isSelfCenteredSpell(String spellId) {
+        return switch (spellId) {
+            case "water_wall", "stone_wall", "swamp", "gust", "updraft", "haste",
+                    "heal_basic", "heal_strong", "heal_full", "repair_item" -> true;
+            default -> false;
+        };
+    }
+
+    private static void drawFocus(
+            class_3218 level,
+            class_3222 player,
+            class_243 focus,
+            String element,
+            int intensity,
+            double progress,
+            double power,
+            double visualScale,
+            boolean largeVisuals,
+            long now) {
+        double charge = Math.max(0.0, Math.min(1.0, progress));
+        double pulse = SpellVisualMotion.chargePulse(charge);
+        double ringRadius = (0.12 + pulse * (largeVisuals ? 0.65 : 0.46) + charge * 0.12)
+                * visualScale;
+        double phase = SpellCasting.phase(player, now);
+        double x = focus.method_10216();
+        double y = focus.method_10214();
+        double z = focus.method_10215();
+        if (now % 2L == 0L) {
+            for (int dot = 0; dot < FORMATION_DOTS; ++dot) {
+                double angle = phase + Math.PI * 2.0 * dot / FORMATION_DOTS;
+                double particleX = x + Math.cos(angle) * ringRadius;
+                double particleY = y + Math.sin(angle * 2.0 + phase * 0.35) * 0.12;
+                double particleZ = z + Math.sin(angle) * ringRadius;
+                class_2394 particle = dot % 2 == 0
+                        ? MagicPalette.body(element, (0.55f + (float)pulse * 0.35f) * (float)visualScale)
+                        : MagicPalette.edge(element, (0.45f + (float)pulse * 0.25f) * (float)visualScale);
+                level.method_65096(particle, particleX, particleY, particleZ, 1, 0.0, 0.0, 0.0, 0.0);
+            }
+        }
+        level.method_65096(
+                MagicPalette.core(element, (float)((0.9 + pulse * 0.65 + intensity * 0.025) * visualScale)),
+                x, y, z,
+                1 + (largeVisuals ? 1 : 0),
+                0.025 + pulse * 0.035, 0.025 + pulse * 0.035, 0.025 + pulse * 0.035,
+                0.008);
+        if (now % 4L == 0L) {
+            level.method_65096(
+                    SpellCasting.particleFor(element),
+                    x, y, z,
+                    1 + intensity / 6 + (largeVisuals ? 1 : 0),
+                    0.04 + pulse * 0.03, 0.04 + pulse * 0.03, 0.04 + pulse * 0.03,
+                    0.012);
+        }
+        if ("fire".equals(element) && power >= 15.0 && now % 2L == 0L) {
+            level.method_65096(MagicPalette.surge(element, (0.55f + (float)pulse * 0.2f) * (float)visualScale, true),
+                    x, y, z, 1, 0.08, 0.08, 0.08, 0.01);
+        }
+    }
+
+    private static void drawProjectile(
+            class_3218 level,
+            class_243 from,
+            class_243 to,
+            String element,
+            int intensity,
+            double progress,
+            double power,
+            double visualScale,
+            boolean largeVisuals,
+            long now) {
+        class_243 segment = to.method_1020(from);
+        double distanceSquared = segment.method_1027();
+        if (distanceSquared < 1.0E-6) {
+            return;
+        }
+        double travel = SpellVisualMotion.easeInOut(progress);
+        class_243 direction = segment.method_1029();
+        class_243 head = from.method_1019(segment.method_1021(travel));
+        double tailSpacing = Math.min(0.34 + intensity * 0.025, Math.sqrt(distanceSquared) * travel * 0.45);
+        class_243 tail = head.method_1020(direction.method_1021(tailSpacing));
+        double spread = (0.025 + intensity * 0.003) * visualScale * (largeVisuals ? 1.6 : 1.0);
+        float sizeBoost = (float)(visualScale * (largeVisuals ? 1.25 : 1.0));
+
+        level.method_65096(MagicPalette.core(element, (0.9f + intensity * 0.045f) * sizeBoost),
+                head.method_10216(), head.method_10214(), head.method_10215(),
+                2 + intensity / 4 + (largeVisuals ? 2 : 0), spread, spread, spread, 0.015);
+        level.method_65096(MagicPalette.body(element, (0.62f + intensity * 0.035f) * sizeBoost),
+                tail.method_10216(), tail.method_10214(), tail.method_10215(),
+                1 + intensity / 5, spread * 0.8, spread * 0.8, spread * 0.8, 0.018);
+        level.method_65096(SpellCasting.particleFor(element),
+                head.method_10216(), head.method_10214(), head.method_10215(),
+                1 + intensity / 6 + (largeVisuals ? 1 : 0), spread * 1.4, spread * 1.4, spread * 1.4, 0.025);
+        if ("fire".equals(element) && power >= 15.0 && now % 2L == 0L) {
+            level.method_65096(MagicPalette.surge(element, 0.65f, true),
+                    tail.method_10216(), tail.method_10214(), tail.method_10215(),
+                    1, spread * 1.5, spread * 1.5, spread * 1.5, 0.015);
+        }
+        if (intensity >= 4 && now % 4L == 0L) {
+            level.method_65096((class_2394)class_2398.field_11207,
+                    head.method_10216(), head.method_10214(), head.method_10215(),
+                    1 + intensity / 6, spread * 1.5, spread * 1.5, spread * 1.5, 0.035);
+        }
+    }
+
+    private static void drawWaterBeam(
+            class_3218 level,
+            class_243 from,
+            class_243 to,
+            int intensity,
+            double progress,
+            double visualScale,
+            boolean largeVisuals,
+            long now) {
+        if (now % 2L != 0L) {
+            return;
+        }
+        class_243 segment = to.method_1020(from);
+        double distanceSquared = segment.method_1027();
+        if (distanceSquared < 1.0E-6) {
+            return;
+        }
+        double beamProgress = SpellVisualMotion.easeOut(progress);
+        double beamLength = Math.sqrt(distanceSquared) * beamProgress;
+        int samples = Math.max(1, Math.min(6, (int)Math.ceil(beamLength / 8.0)));
+        double spread = (0.035 + intensity * 0.006) * visualScale * (largeVisuals ? 1.5 : 1.0);
+        for (int sampleIndex = 0; sampleIndex <= samples; ++sampleIndex) {
+            double amount = beamProgress * (double)sampleIndex / (double)samples;
+            class_243 sample = from.method_1019(segment.method_1021(amount));
+            level.method_65096(MagicPalette.core("water", Math.min(2.2f,
+                    (0.9f + intensity * 0.035f) * (float)visualScale * (largeVisuals ? 1.25f : 1.0f))),
+                    sample.method_10216(), sample.method_10214(), sample.method_10215(),
+                    1 + intensity / 6, spread, spread, spread, 0.018);
+            if (sampleIndex % 2 == 0) {
+                level.method_65096((class_2394)class_2398.field_11202,
+                        sample.method_10216(), sample.method_10214(), sample.method_10215(),
+                        1, spread * 1.4, spread, spread * 1.4, 0.025);
+            }
+        }
+    }
+
+    private static void drawTargetFormation(
+            class_3218 level,
+            class_3222 player,
+            Spell spell,
+            class_243 focus,
+            String element,
+            int intensity,
+            double progress,
+            double power,
+            double visualScale,
+            double radiusMultiplier,
+            boolean largeVisuals,
+            boolean selfCentered,
+            boolean formingCloud,
+            boolean groundFormation,
+            long now) {
+        double charge = Math.max(0.0, Math.min(1.0, progress));
+        double pulse = SpellVisualMotion.chargePulse(charge);
+        double baseRadius = Math.max(0.25, MagicScaling.radius(spell.radius(), power, radiusMultiplier) * 0.22 * visualScale);
+        double maxRadius = formingCloud ? Math.min(10.0, Math.max(1.5, baseRadius))
+                : groundFormation ? Math.min(8.0, Math.max(1.0, baseRadius))
+                : (largeVisuals ? 1.05 : 0.72) * visualScale;
+        double ringRadius = selfCentered
+                ? (0.25 + pulse * 0.45) * visualScale
+                : 0.18 + charge * maxRadius;
+        double verticalShift = formingCloud ? 5.0 + charge * 3.0 : (groundFormation ? 0.08 + charge * 0.45 : 0.0);
+        double phase = SpellCasting.phase(player, now);
+        double x = focus.method_10216();
+        double y = focus.method_10214() + verticalShift;
+        double z = focus.method_10215();
+
+        if (now % 2L == 0L) {
+            for (int dot = 0; dot < FORMATION_DOTS; ++dot) {
+                double angle = phase + Math.PI * 2.0 * dot / FORMATION_DOTS;
+                double particleY = y + Math.sin(angle * 2.0 + phase * 0.4) * (formingCloud ? 0.24 : 0.1);
+                double particleX = x + Math.cos(angle) * ringRadius;
+                double particleZ = z + Math.sin(angle) * ringRadius;
+                if (formingCloud) {
+                    level.method_65096((class_2394)class_2398.field_11204,
+                            particleX, particleY, particleZ, 1, 0.0, 0.0, 0.0, 0.0);
+                    level.method_65096(MagicPalette.body("water", (0.55f + (float)pulse * 0.3f) * (float)visualScale),
+                            particleX, particleY, particleZ, 1, 0.015, 0.015, 0.015, 0.004);
+                } else {
+                    class_2394 particle = groundFormation && dot % 2 == 0
+                            ? SpellCasting.particleFor("earth")
+                            : MagicPalette.edge(element, (0.5f + (float)pulse * 0.25f) * (float)visualScale);
+                    level.method_65096(particle, particleX, particleY, particleZ, 1, 0.01, 0.01, 0.01, 0.006);
+                }
+            }
+        }
+
+        level.method_65096(MagicPalette.core(element, (0.85f + (float)pulse * 0.55f) * (float)visualScale),
+                x, y, z, 1 + intensity / 8, 0.04 + pulse * 0.06, 0.04 + pulse * 0.06, 0.04 + pulse * 0.06, 0.01);
+        if (now % 4L == 0L) {
+            level.method_65096(SpellCasting.particleFor(element),
+                    x, y, z, 1 + intensity / 6, 0.06, 0.05, 0.06, 0.015);
+        }
+    }
+
+    private static double phase(class_3222 player, long now) {
+        long uuidPhase = player.method_5667().getLeastSignificantBits() & 0xFFFFL;
+        return now * 0.22 + uuidPhase * 0.0004;
     }
 
     public static String progressText(int ticksLeft) {

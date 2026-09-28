@@ -31,6 +31,19 @@ class SpellCastingLargeVisualsTest {
     }
 
     @Test
+    void visualMassTracksTheSpellTierWithoutChangingGameplayScaling() {
+        Spell waterBall = new Spell("water_ball", "water", 10.0, 10, 10.0, 3.0, List.of());
+        Spell fireBolt = new Spell("fire_bolt", "fire", 50.0, 40, 50.0, 4.0, List.of());
+        Spell explosiveFireball = new Spell("explosive_fireball", "fire", 160.0, 40, 160.0, 6.0, List.of());
+
+        assertEquals(0.8, SpellCasting.intrinsicVisualScale(waterBall), 0.0);
+        assertEquals(1.0, SpellCasting.intrinsicVisualScale(fireBolt), 0.0);
+        assertEquals(Math.sqrt(3.2), SpellCasting.intrinsicVisualScale(explosiveFireball), 1.0E-12);
+        assertEquals(50.0, fireBolt.power(), 0.0);
+        assertEquals(160.0, explosiveFireball.power(), 0.0);
+    }
+
+    @Test
     void recognizesLargeBallPhrasesBeforeOrAfterTheSpellName() {
         SpellRegistry.rebuild(new MagicConfig().spells);
 
