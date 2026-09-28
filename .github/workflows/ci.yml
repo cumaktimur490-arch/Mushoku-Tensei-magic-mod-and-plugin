@@ -144,7 +144,9 @@ jobs:
 
   publish-release:
     name: Publish verified release
-    if: github.event_name == 'workflow_dispatch' && inputs.publish_release
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.publish_release) ||
+      (github.event_name == 'push' && contains(github.event.head_commit.message, '[publish-release]'))
     needs:
       - build
       - loader-ports
