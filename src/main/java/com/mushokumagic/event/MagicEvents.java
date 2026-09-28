@@ -9,6 +9,7 @@ import com.mushokumagic.mana.ManaData;
 import com.mushokumagic.mana.ManaManager;
 import com.mushokumagic.spell.CastManager;
 import com.mushokumagic.util.Msg;
+import com.mushokumagic.world.LocalStormManager;
 import com.mushokumagic.world.MagicHitTracker;
 import com.mushokumagic.world.TemporaryBlocks;
 import java.util.Locale;
@@ -45,7 +46,10 @@ public final class MagicEvents {
         ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> CastManager.cancel(newPlayer));
         UseItemCallback.EVENT.register(MagicEvents::onUseItem);
         ServerTickEvents.END_SERVER_TICK.register(MagicEvents::onServerTick);
-        ServerLifecycleEvents.SERVER_STOPPING.register(server -> TemporaryBlocks.restoreAll(server));
+        ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
+            TemporaryBlocks.restoreAll(server);
+            LocalStormManager.clear();
+        });
     }
 
     private static void onJoin(class_3222 player) {
@@ -90,6 +94,7 @@ public final class MagicEvents {
         for (class_3218 level : server.method_3738()) {
             TemporaryBlocks.tick(level);
         }
+        LocalStormManager.tick(server);
         for (class_3222 player : server.method_3760().method_14571()) {
             ManaManager.tickPlayer(player);
         }

@@ -10,6 +10,7 @@ import com.mushokumagic.spell.CastParams;
 import com.mushokumagic.spell.Spell;
 import com.mushokumagic.spell.SpellCasting;
 import com.mushokumagic.util.Msg;
+import com.mushokumagic.world.LocalStormManager;
 import com.mushokumagic.world.MagicHitTracker;
 import com.mushokumagic.world.TemporaryBlocks;
 import java.util.List;
@@ -382,6 +383,7 @@ public final class SpellEffects {
         class_243 point = SpellCasting.aimPoint(caster, MagicScaling.range(64.0, power));
         double radius = Math.max(3.0, MagicScaling.radius(spell.radius(), power, params.radiusMultiplier()));
         int duration = (int)Math.min(1200.0, Math.max(40.0, Math.round(100.0 * power)));
+        int stormDuration = (int)Math.min(2400.0, Math.max(1200.0, Math.round(600.0 * power)));
         int affected = 0;
         for (class_1309 target : level.method_18467(class_1309.class, SpellEffects.boxAround(point, radius))) {
             if (target == caster || target.method_73189().method_1025(point) > radius * radius) continue;
@@ -390,6 +392,7 @@ public final class SpellEffects {
         }
         SpellEffects.extinguish(level, point, radius);
         if (!params.silent()) {
+            LocalStormManager.start(level, point, stormDuration);
             int intensity = MagicScaling.intensity(power);
             double cloudRadius = Math.min(24.0, Math.max(4.0, radius * 0.75));
             if (params.largeVisuals()) cloudRadius = Math.min(36.0, cloudRadius * 1.65);
@@ -630,14 +633,15 @@ public final class SpellEffects {
     private static void coloredBurst(class_3218 level, class_243 center, String element, double radius, double power, boolean overcharged, boolean largeVisuals) {
         int intensity = MagicScaling.intensity(power);
         int particleBoost = largeVisuals ? Math.min(48, 16 + intensity * 3) : 0;
+        float particleScale = largeVisuals ? 1.35f : 1.0f;
         double maxSpread = largeVisuals ? 32.0 : 16.0;
         double spread = Math.max(0.25, Math.min(maxSpread, radius * 0.5));
         double x = center.method_10216();
         double y = center.method_10214();
         double z = center.method_10215();
-        level.method_65096(MagicPalette.core(element, Math.min(1.7f, 0.8f + intensity * 0.05f)), x, y, z, 8 + intensity + particleBoost / 3, spread, spread * 0.55, spread, 0.035);
-        level.method_65096(MagicPalette.body(element, Math.min(1.6f, 0.7f + intensity * 0.045f)), x, y, z, 12 + intensity * 2 + particleBoost, spread * 0.85, spread * 0.65, spread * 0.85, 0.045);
-        level.method_65096(MagicPalette.edge(element, 0.7f), x, y, z, 6 + intensity + particleBoost / 2, spread, spread * 0.8, spread, 0.025);
+        level.method_65096(MagicPalette.core(element, Math.min(1.7f, (0.8f + intensity * 0.05f) * particleScale)), x, y, z, 8 + intensity + particleBoost / 3, spread, spread * 0.55, spread, 0.035);
+        level.method_65096(MagicPalette.body(element, Math.min(1.6f, (0.7f + intensity * 0.045f) * particleScale)), x, y, z, 12 + intensity * 2 + particleBoost, spread * 0.85, spread * 0.65, spread * 0.85, 0.045);
+        level.method_65096(MagicPalette.edge(element, 0.7f * particleScale), x, y, z, 6 + intensity + particleBoost / 2, spread, spread * 0.8, spread, 0.025);
         if ("fire".equals(element) && overcharged) {
             level.method_65096(MagicPalette.surge(element, 0.85f, true), x, y, z, 6 + intensity + particleBoost / 2, spread * 0.6, spread * 0.5, spread * 0.6, 0.035);
         }
@@ -646,7 +650,7 @@ public final class SpellEffects {
     private static void fireBurst(class_3218 level, class_243 center, double radius, double power, CastParams params) {
         if (params.silent()) return;
         int intensity = MagicScaling.intensity(power);
-        double visualRadius = params.largeVisuals() ? Math.min(64.0, radius * 2.4) : radius;
+        double visualRadius = params.largeVisuals() ? Math.min(64.0, radius * 4.0) : radius;
         int particleBoost = params.largeVisuals() ? Math.min(96, 32 + intensity * 5) : 0;
         double spread = Math.max(0.35, Math.min(32.0, visualRadius * 0.5));
         double verticalSpread = Math.max(0.8, Math.min(32.0, visualRadius * 0.5));
@@ -668,7 +672,7 @@ public final class SpellEffects {
 
     private static void waterBurst(class_3218 level, class_243 center, double radius, double power, boolean largeVisuals) {
         int intensity = MagicScaling.intensity(power);
-        double visualRadius = largeVisuals ? Math.min(64.0, radius * 2.4) : radius;
+        double visualRadius = largeVisuals ? Math.min(64.0, radius * 4.0) : radius;
         int particleBoost = largeVisuals ? Math.min(120, 36 + intensity * 7) : 0;
         double spread = Math.max(0.35, Math.min(32.0, visualRadius * 0.5));
         double x = center.method_10216();

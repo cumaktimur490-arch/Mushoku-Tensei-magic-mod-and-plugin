@@ -3,6 +3,7 @@
  */
 package com.mushokumagic.spell;
 
+import com.mushokumagic.config.MagicConfig;
 import com.mushokumagic.spell.Spell;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -47,31 +48,69 @@ public final class PhraseParser {
     }
 
     public static Result parse(String rawMessage) {
-        String rest;
         String text = PhraseParser.normalize(rawMessage);
         if (text.isEmpty()) {
             return null;
         }
+        ArrayList<String> configuredModifiers = new ArrayList<>();
+        Map<String, MagicConfig.KeywordDef> keywords = MagicConfig.get().keywords;
+        if (keywords != null) {
+            for (MagicConfig.KeywordDef keyword : keywords.values()) {
+                if (keyword == null || keyword.words == null) continue;
+                for (String configuredModifier : keyword.words) {
+                    if (configuredModifier == null) continue;
+                    String modifier = PhraseParser.normalize(configuredModifier);
+                    if (!modifier.isEmpty() && !configuredModifiers.contains(modifier)) {
+                        configuredModifiers.add(modifier);
+                    }
+                }
+            }
+        }
         Spell bestSpell = null;
         String bestPhrase = null;
+        int bestModifierLength = 0;
         for (Map.Entry entry : PHRASES.entrySet()) {
             String phrase = (String)entry.getKey();
-            boolean matches = text.equals(phrase) || text.startsWith(phrase + " ");
-            if (!matches || bestPhrase != null && phrase.length() <= bestPhrase.length()) continue;
-            bestPhrase = phrase;
-            bestSpell = (Spell)(entry.getValue());
+            if (PhraseParser.startsWithPhrase(text, phrase)
+                    && (bestPhrase == null || phrase.length() > bestPhrase.length())) {
+                bestPhrase = phrase;
+                bestSpell = (Spell)entry.getValue();
+                bestModifierLength = 0;
+            }
+            for (String modifier : configuredModifiers) {
+                if (!text.startsWith(modifier + " ")) continue;
+                String remaining = text.substring(modifier.length() + 1);
+                if (!PhraseParser.startsWithPhrase(remaining, phrase)
+                        || bestPhrase != null && phrase.length() <= bestPhrase.length()) continue;
+                bestPhrase = phrase;
+                bestSpell = (Spell)entry.getValue();
+                bestModifierLength = modifier.length();
+            }
         }
         if (bestSpell == null || bestPhrase == null) {
             return null;
         }
-        ArrayList extraWords = new ArrayList();
-        if (text.length() > bestPhrase.length() && !(rest = text.substring(bestPhrase.length() + 1).trim()).isEmpty()) {
-            for (String word : rest.split(" ")) {
-                if (word.isBlank()) continue;
-                extraWords.add(word);
+        int phraseStart = bestModifierLength == 0 ? 0 : bestModifierLength + 1;
+        int phraseEnd = phraseStart + bestPhrase.length();
+        ArrayList<String> extraWords = new ArrayList<>();
+        if (bestModifierLength > 0) {
+            for (String word : text.substring(0, bestModifierLength).split(" ")) {
+                if (!word.isBlank()) extraWords.add(word);
             }
         }
-        return new Result(bestSpell, (List<String>)extraWords);
+        if (text.length() > phraseEnd) {
+            String rest = text.substring(phraseEnd + 1).trim();
+            if (!rest.isEmpty()) {
+                for (String word : rest.split(" ")) {
+                    if (!word.isBlank()) extraWords.add(word);
+                }
+            }
+        }
+        return new Result(bestSpell, extraWords);
+    }
+
+    private static boolean startsWithPhrase(String text, String phrase) {
+        return text.equals(phrase) || text.startsWith(phrase + " ");
     }
 
     public record Result(Spell spell, List<String> extraWords) {

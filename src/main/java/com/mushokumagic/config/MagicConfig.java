@@ -67,9 +67,11 @@ public final class MagicConfig {
         map.put("fast", new KeywordDef("fast", (List<String>)List.of("\u0431\u044b\u0441\u0442\u0440\u044b\u0439", "\u0431\u044b\u0441\u0442\u0440\u043e", "\u0443\u0441\u043a\u043e\u0440\u044c", "fast", "quick"), 1.0, 1.0, 0.5, false, false));
         map.put("silent", new KeywordDef("silent", (List<String>)List.of("\u0442\u0438\u0445\u0438\u0439", "\u0442\u0438\u0445\u043e", "\u0431\u0435\u0437\u0437\u0432\u0443\u0447\u043d\u043e", "silent", "quiet"), 1.0, 1.0, 1.0, false, true));
         map.put("big", new KeywordDef("big", List.of(
-                "big", "large", "huge",
+                "big", "large", "huge", "big ball", "large ball", "huge ball", "big sphere", "large sphere", "huge sphere",
                 "большой", "большая", "большое", "большие", "большого", "большую", "больших", "большому", "большим", "большими", "большом",
-                "огромный", "огромная", "огромное", "огромные", "огромного", "огромной", "огромную", "огромных", "огромному", "огромным", "огромными", "огромном"),
+                "большой шар", "большого шара", "большого размера", "большая сфера",
+                "огромный", "огромная", "огромное", "огромные", "огромного", "огромной", "огромную", "огромных", "огромному", "огромным", "огромными", "огромном",
+                "огромный шар", "огромного шара", "огромного размера", "огромная сфера"),
                 1.0, 1.0, 1.0, false, false));
         return map;
     }
@@ -209,7 +211,20 @@ public final class MagicConfig {
             this.keywords = defaultKeywords;
         } else {
             this.keywords = new LinkedHashMap<>(this.keywords);
-            this.keywords.putIfAbsent("big", defaultKeywords.get("big"));
+            KeywordDef defaultBig = defaultKeywords.get("big");
+            KeywordDef configuredBig = this.keywords.get("big");
+            if (configuredBig == null) {
+                this.keywords.put("big", defaultBig);
+            } else if ("big".equals(configuredBig.id)) {
+                if (configuredBig.words == null) {
+                    configuredBig.words = new ArrayList<>();
+                }
+                for (String word : defaultBig.words) {
+                    if (!configuredBig.words.contains(word)) {
+                        configuredBig.words.add(word);
+                    }
+                }
+            }
         }
         Map<String, Double> defaultWandMultipliers = MagicConfig.defaultWandMultipliers();
         if (this.wandMultipliers == null

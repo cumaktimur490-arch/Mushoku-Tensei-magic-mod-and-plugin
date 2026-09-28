@@ -26,7 +26,23 @@ class MagicConfigKeywordMigrationTest {
         assertTrue(config.keywords.containsKey("explosion"));
         assertTrue(config.keywords.containsKey("fast"));
         assertTrue(config.keywords.containsKey("silent"));
-        assertTrue(config.keywords.get("big").words.containsAll(List.of("big", "large", "huge", "большой", "огромный")));
+        assertTrue(config.keywords.get("big").words.containsAll(List.of("big", "large", "huge", "большой", "огромный", "большого шара", "большого размера")));
+    }
+
+    @Test
+    void addsNewLargeBallPhrasesToPreviouslySavedBigKeywordWithoutResettingItsOptions() throws ReflectiveOperationException {
+        MagicConfig config = new MagicConfig();
+        MagicConfig.KeywordDef savedBigKeyword = new MagicConfig.KeywordDef(
+                "big", List.of("user's large orb"), 1.0, 1.25, 0.9, false, false);
+        config.keywords = new java.util.LinkedHashMap<>(java.util.Map.of("big", savedBigKeyword));
+
+        normalize(config);
+
+        assertTrue(savedBigKeyword.words.contains("user's large orb"));
+        assertTrue(savedBigKeyword.words.contains("большого шара"));
+        assertTrue(savedBigKeyword.words.contains("большого размера"));
+        assertEquals(1.25, savedBigKeyword.damageMultiplier, 0.0);
+        assertEquals(0.9, savedBigKeyword.castTimeMultiplier, 0.0);
     }
 
     private static void normalize(MagicConfig config) throws ReflectiveOperationException {

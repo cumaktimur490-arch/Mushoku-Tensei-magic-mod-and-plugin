@@ -33,22 +33,56 @@ public final class SpellCasting {
         boolean explosion = false;
         boolean silent = false;
         boolean largeVisuals = false;
-        for (String word : extraWords) {
+        if (config.keywords != null) {
             for (MagicConfig.KeywordDef keyword : config.keywords.values()) {
-                if (!keyword.words.contains(word)) continue;
-                radius *= keyword.radiusMultiplier;
-                damage *= keyword.damageMultiplier;
-                castTime *= keyword.castTimeMultiplier;
-                explosion |= keyword.explosion;
-                silent |= keyword.silent;
-                if ("big".equals(keyword.id)) {
-                    largeVisuals = true;
-                    --bonusWordCount;
+                if (keyword == null || keyword.words == null) continue;
+                int wordIndex = 0;
+                while (wordIndex < extraWords.size()) {
+                    String[] matchedWords = SpellCasting.findKeywordPhrase(keyword.words, extraWords, wordIndex);
+                    if (matchedWords == null) {
+                        ++wordIndex;
+                        continue;
+                    }
+                    radius *= keyword.radiusMultiplier;
+                    damage *= keyword.damageMultiplier;
+                    castTime *= keyword.castTimeMultiplier;
+                    explosion |= keyword.explosion;
+                    silent |= keyword.silent;
+                    if ("big".equals(keyword.id)) {
+                        largeVisuals = true;
+                        bonusWordCount -= matchedWords.length;
+                    }
+                    wordIndex += matchedWords.length;
                 }
             }
         }
         double wordBonus = Math.min((double)(Math.max(0, bonusWordCount) * config.wordBonusPerWord), (double)config.maxWordBonus);
         return new CastParams(wordBonus, radius, damage, castTime, explosion, silent, largeVisuals);
+    }
+
+    private static String[] findKeywordPhrase(List<String> keywordPhrases, List<String> extraWords, int start) {
+        String[] bestMatch = null;
+        for (String keywordPhrase : keywordPhrases) {
+            if (keywordPhrase == null) continue;
+            String normalized = PhraseParser.normalize(keywordPhrase);
+            if (normalized.isEmpty()) continue;
+            String[] phraseWords = normalized.split(" ");
+            if (phraseWords.length <= (bestMatch == null ? 0 : bestMatch.length)
+                    || start + phraseWords.length > extraWords.size()) {
+                continue;
+            }
+            boolean matches = true;
+            for (int offset = 0; offset < phraseWords.length; ++offset) {
+                if (!phraseWords[offset].equals(extraWords.get(start + offset))) {
+                    matches = false;
+                    break;
+                }
+            }
+            if (matches) {
+                bestMatch = phraseWords;
+            }
+        }
+        return bestMatch;
     }
 
     public static class_2394 particleFor(String element) {

@@ -29,4 +29,26 @@ class SpellCastingLargeVisualsTest {
             assertEquals(1.0, params.castTimeMultiplier(), 0.0);
         }
     }
+
+    @Test
+    void recognizesLargeBallPhrasesBeforeOrAfterTheSpellName() {
+        SpellRegistry.rebuild(new MagicConfig().spells);
+
+        for (String command : List.of(
+                "Water Ball big ball",
+                "Водяной шар большого шара",
+                "Водяной шар большого размера",
+                "Огненный шар огромного размера",
+                "Большой водяной шар",
+                "Huge Fireball")) {
+            PhraseParser.Result parsed = PhraseParser.parse(command);
+            assertNotNull(parsed, "Large-ball wording should be accepted: " + command);
+
+            CastParams params = SpellCasting.paramsFor(parsed.extraWords());
+            assertTrue(params.largeVisuals(), "Large-ball wording should enable large visuals: " + command);
+            assertEquals(0.0, params.wordBonus(), 0.0, "Modifier phrase must not grant a power bonus");
+            assertEquals(1.0, params.radiusMultiplier(), 0.0, "Modifier phrase must not change gameplay area");
+            assertEquals(1.0, params.damageMultiplier(), 0.0, "Modifier phrase must not change damage");
+        }
+    }
 }
