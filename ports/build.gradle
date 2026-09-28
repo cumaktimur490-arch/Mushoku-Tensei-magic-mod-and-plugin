@@ -79,6 +79,10 @@ subprojects {
         }
     }
 
+    tasks.named('sourcesJar').configure {
+        dependsOn tasks.named('prepareLegacyResources')
+    }
+
     tasks.named('processResources').configure {
         dependsOn tasks.named('prepareLegacyResources')
         exclude 'fabric.mod.json'
