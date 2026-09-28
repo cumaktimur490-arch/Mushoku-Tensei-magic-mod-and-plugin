@@ -51,9 +51,10 @@ public final class ForgeEventHandlers {
 
     @SubscribeEvent
     public void onRightClickItem(PlayerInteractEvent.RightClickItem event) {
-        if (event.getSide() != LogicalSide.SERVER || !(event.getEntity() instanceof class_1657 player)) {
+        if (event.getSide() != LogicalSide.SERVER) {
             return;
         }
+        class_1657 player = event.getEntity();
         class_1937 world = (class_1937) event.getLevel();
         class_1269 result = MagicEvents.onUseItem(player, world, event.getHand());
         if (result == class_1269.field_5812) {
