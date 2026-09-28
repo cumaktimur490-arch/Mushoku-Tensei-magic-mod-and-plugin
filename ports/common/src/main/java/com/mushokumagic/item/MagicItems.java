@@ -34,15 +34,15 @@ public final class MagicItems {
         if (!event.getTabKey().equals(class_7706.field_41062)) {
             return;
         }
-        event.accept(MAGIC_STONE_1.get());
-        event.accept(MAGIC_STONE_2.get());
-        event.accept(MAGIC_STONE_3.get());
-        event.accept(ENCHANTED_STICK_1.get());
-        event.accept(ENCHANTED_STICK_2.get());
-        event.accept(ENCHANTED_STICK_3.get());
-        event.accept(WAND_1.get());
-        event.accept(WAND_2.get());
-        event.accept(WAND_3.get());
+        event.accept(MAGIC_STONE_1);
+        event.accept(MAGIC_STONE_2);
+        event.accept(MAGIC_STONE_3);
+        event.accept(ENCHANTED_STICK_1);
+        event.accept(ENCHANTED_STICK_2);
+        event.accept(ENCHANTED_STICK_3);
+        event.accept(WAND_1);
+        event.accept(WAND_2);
+        event.accept(WAND_3);
     }
 
     public static class_1792 wandForTier(int tier) {

@@ -42,8 +42,8 @@ public final class ForgeEventHandlers {
 
     @SubscribeEvent
     public void onPlayerClone(PlayerEvent.Clone event) {
-        if (event.getOriginal() instanceof class_1309 oldPlayer
-                && event.getEntity() instanceof class_3222 newPlayer) {
+        class_1309 oldPlayer = event.getOriginal();
+        if (event.getEntity() instanceof class_3222 newPlayer) {
             ManaData.copyTo(oldPlayer, newPlayer);
             CastManager.cancel(newPlayer);
         }

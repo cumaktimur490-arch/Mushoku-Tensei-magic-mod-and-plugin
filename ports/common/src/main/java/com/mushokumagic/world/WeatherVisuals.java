@@ -1,17 +1,16 @@
 package com.mushokumagic.world;
 
 import com.mushokumagic.spell.MagicPalette;
-import net.minecraft.class_2390;
 import net.minecraft.class_2394;
 import net.minecraft.class_2398;
 import net.minecraft.class_3218;
 
 /** Shared particle staging for layered local clouds, wind and directional precipitation. */
 public final class WeatherVisuals {
-    private static final class_2394 CLOUD_HIGHLIGHT = new class_2390(0xC5D3DD, 1.12f);
-    private static final class_2394 CLOUD_BODY = new class_2390(0x758491, 1.42f);
-    private static final class_2394 CLOUD_UNDERSIDE = new class_2390(0x35414F, 1.55f);
-    private static final class_2394 WIND_MIST = new class_2390(0xA7C5D4, 0.38f);
+    private static final class_2394 CLOUD_HIGHLIGHT = MagicPalette.dust(0xC5D3DD, 1.12f);
+    private static final class_2394 CLOUD_BODY = MagicPalette.dust(0x758491, 1.42f);
+    private static final class_2394 CLOUD_UNDERSIDE = MagicPalette.dust(0x35414F, 1.55f);
+    private static final class_2394 WIND_MIST = MagicPalette.dust(0xA7C5D4, 0.38f);
 
     private WeatherVisuals() {
     }

@@ -1,6 +1,7 @@
 package com.mushokumagic.world;
 
 import com.mushokumagic.config.MagicConfig;
+import com.mushokumagic.spell.MagicPalette;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -10,7 +11,6 @@ import java.util.IdentityHashMap;
 import net.minecraft.class_1959;
 import net.minecraft.class_2338;
 import net.minecraft.class_2374;
-import net.minecraft.class_2390;
 import net.minecraft.class_2394;
 import net.minecraft.class_2398;
 import net.minecraft.class_243;
@@ -31,11 +31,11 @@ public final class SevereWeatherManager {
     private static final int MAX_SYSTEMS_PER_WORLD = 4;
     private static final double MIN_PLAYER_DISTANCE = 320.0;
     private static final double PARTICLE_VIEW_PADDING = 96.0;
-    private static final class_2394 CLOUD = new class_2390(0xCFD9E0, 1.45f);
-    private static final class_2394 STORM_CLOUD = new class_2390(0x3D4856, 1.75f);
-    private static final class_2394 TORNADO_DUST = new class_2390(0x78828B, 1.12f);
-    private static final class_2394 HAIL_GRAIN = new class_2390(0xEAF5FF, 0.82f);
-    private static final class_2394 SAND_DUST = new class_2390(0xC9AD7A, 1.15f);
+    private static final class_2394 CLOUD = MagicPalette.dust(0xCFD9E0, 1.45f);
+    private static final class_2394 STORM_CLOUD = MagicPalette.dust(0x3D4856, 1.75f);
+    private static final class_2394 TORNADO_DUST = MagicPalette.dust(0x78828B, 1.12f);
+    private static final class_2394 HAIL_GRAIN = MagicPalette.dust(0xEAF5FF, 0.82f);
+    private static final class_2394 SAND_DUST = MagicPalette.dust(0xC9AD7A, 1.15f);
     private static final Map<class_3218, WorldState> WORLDS = new IdentityHashMap<>();
 
     private SevereWeatherManager() {

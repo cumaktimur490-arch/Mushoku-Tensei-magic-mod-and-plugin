@@ -111,9 +111,7 @@ public final class SpellCasting {
     public static class_243 weatherAdjustedAimPoint(class_3222 player, double range, String spellId) {
         class_243 origin = player.method_33571();
         class_243 target = SpellCasting.aimPoint(player, range);
-        if (!(player.method_51469() instanceof class_3218 level)) {
-            return target;
-        }
+        class_3218 level = player.method_51469();
         return WeatherPhysics.driftProjectileAimPoint(level, origin, target, spellId, range);
     }
 

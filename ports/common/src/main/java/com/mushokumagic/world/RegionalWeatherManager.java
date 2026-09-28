@@ -1,6 +1,7 @@
 package com.mushokumagic.world;
 
 import com.mushokumagic.config.MagicConfig;
+import com.mushokumagic.spell.MagicPalette;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -11,7 +12,6 @@ import java.util.concurrent.ThreadLocalRandom;
 import net.minecraft.class_1959;
 import net.minecraft.class_2338;
 import net.minecraft.class_2374;
-import net.minecraft.class_2390;
 import net.minecraft.class_2394;
 import net.minecraft.class_2398;
 import net.minecraft.class_243;
@@ -28,7 +28,7 @@ public final class RegionalWeatherManager {
     private static final long PARTICLE_INTERVAL = 10L;
     private static final int VANILLA_CLEAR_DURATION_TICKS = 12_000;
     private static final long VANILLA_WEATHER_REFRESH_TICKS = 6_000L;
-    private static final class_2394 DRY_DUST = new class_2390(0xBDA477, 0.8f);
+    private static final class_2394 DRY_DUST = MagicPalette.dust(0xBDA477, 0.8f);
     private static final Map<class_3218, WorldState> WORLDS = new IdentityHashMap<>();
     private static final Map<class_3218, List<ManualOverride>> MANUAL_OVERRIDES = new IdentityHashMap<>();
 

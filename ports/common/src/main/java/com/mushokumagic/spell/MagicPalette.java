@@ -2,6 +2,7 @@ package com.mushokumagic.spell;
 
 import net.minecraft.class_2390;
 import net.minecraft.class_2394;
+import org.joml.Vector3f;
 
 /**
  * Anime-inspired spell colors: warm, layered fire; bright water/ice highlights;
@@ -21,22 +22,30 @@ public final class MagicPalette {
     }
 
     public static class_2394 core(String element, float scale) {
-        return new class_2390(palette(element).core(), clampScale(scale));
+        return dust(palette(element).core(), scale);
     }
 
     public static class_2394 body(String element, float scale) {
-        return new class_2390(palette(element).body(), clampScale(scale));
+        return dust(palette(element).body(), scale);
     }
 
     public static class_2394 edge(String element, float scale) {
-        return new class_2390(palette(element).edge(), clampScale(scale));
+        return dust(palette(element).edge(), scale);
+    }
+
+    /** Builds a colored dust particle from a conventional packed 0xRRGGBB color. */
+    public static class_2394 dust(int color, float scale) {
+        float red = ((color >>> 16) & 0xFF) / 255.0f;
+        float green = ((color >>> 8) & 0xFF) / 255.0f;
+        float blue = (color & 0xFF) / 255.0f;
+        return new class_2390(new Vector3f(red, green, blue), clampScale(scale));
     }
 
     /** Purple is reserved for overcharged fire, echoing the series' highest-tier fire effect. */
     public static class_2394 surge(String element, float scale, boolean overcharged) {
         Palette palette = palette(element);
         int color = "fire".equals(element) && overcharged ? palette.surge() : palette.edge();
-        return new class_2390(color, clampScale(scale));
+        return dust(color, scale);
     }
 
     private static Palette palette(String element) {

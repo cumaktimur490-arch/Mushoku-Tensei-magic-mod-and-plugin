@@ -147,10 +147,7 @@ public final class MagicCommands {
             return 1;
         }
         class_3222 player = source.method_9207();
-        if (!(player.method_51469() instanceof class_3218 level)) {
-            source.method_9213((class_2561)Msg.literal("Локальную погоду можно проверить только в игровом мире."));
-            return 0;
-        }
+        class_3218 level = player.method_51469();
         class_243 position = player.method_19538();
         RegionalWeatherManager.ManualWeatherStatus status = RegionalWeatherManager.manualWeatherStatusAt(
                 level,
@@ -241,10 +238,7 @@ public final class MagicCommands {
         }
 
         class_3222 player = source.method_9207();
-        if (!(player.method_51469() instanceof class_3218 level)) {
-            source.method_9213((class_2561)Msg.literal("Локальную погоду можно задать только в игровом мире."));
-            return 0;
-        }
+        class_3218 level = player.method_51469();
         class_243 position = player.method_19538();
         double x = position.method_10216();
         double z = position.method_10215();

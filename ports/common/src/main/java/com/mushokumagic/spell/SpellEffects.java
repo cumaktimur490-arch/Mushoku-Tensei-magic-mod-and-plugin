@@ -22,7 +22,6 @@ import net.minecraft.class_1309;
 import net.minecraft.class_1799;
 import net.minecraft.class_1922;
 import net.minecraft.class_1937;
-import net.minecraft.class_1927;
 import net.minecraft.class_2246;
 import net.minecraft.class_2338;
 import net.minecraft.class_2374;
@@ -251,7 +250,7 @@ public final class SpellEffects {
         }
         boolean modifyBlocks = MagicConfig.get().fireSpellsModifyBlocks;
         boolean allowFire = modifyBlocks && WeatherPhysics.ignitionMultiplier(level, point) >= 0.2;
-        level.method_8537((class_1297)caster, point.method_10216(), point.method_10214(), point.method_10215(), (float)radius, allowFire, modifyBlocks ? class_1927.class_4179.field_18687 : class_1927.class_4179.field_40878);
+        level.method_8537((class_1297)caster, point.method_10216(), point.method_10214(), point.method_10215(), (float)radius, allowFire, modifyBlocks ? class_1937.class_7867.field_40889 : class_1937.class_7867.field_40888);
         if (modifyBlocks) {
             SpellEffects.igniteAround(level, point, SpellEffects.fireAttemptCount(radius), radius);
         }
@@ -259,7 +258,7 @@ public final class SpellEffects {
         if (!params.silent()) {
             float volume = (float)Math.min(2.5, 1.0 + Math.log1p(power) * 0.2);
             float pitch = (float)Math.max(0.55, 1.05 - MagicScaling.intensity(power) * 0.035);
-            level.method_43128(null, point.method_10216(), point.method_10214(), point.method_10215(), (class_3414)class_3417.field_15152.comp_349(), class_3419.field_15248, volume, pitch);
+            level.method_43128(null, point.method_10216(), point.method_10214(), point.method_10215(), class_3417.field_15152, class_3419.field_15248, volume, pitch);
         }
     }
 
@@ -759,7 +758,7 @@ public final class SpellEffects {
                 MagicHitTracker.mark(target, caster, level.method_8510());
             }
             boolean modifyBlocks = MagicConfig.get().fireSpellsModifyBlocks;
-            level.method_8537((class_1297)caster, point.method_10216(), point.method_10214(), point.method_10215(), (float)finalRadius, modifyBlocks, modifyBlocks ? class_1927.class_4179.field_18687 : class_1927.class_4179.field_40878);
+            level.method_8537((class_1297)caster, point.method_10216(), point.method_10214(), point.method_10215(), (float)finalRadius, modifyBlocks, modifyBlocks ? class_1937.class_7867.field_40889 : class_1937.class_7867.field_40888);
         } else {
             for (class_1309 target : targets) {
                 if (target == caster || target.method_19538().method_1025(point) > finalRadius * finalRadius) continue;
