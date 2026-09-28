@@ -11,6 +11,7 @@ import com.mushokumagic.spell.CastManager;
 import com.mushokumagic.util.Msg;
 import com.mushokumagic.world.LocalStormManager;
 import com.mushokumagic.world.MagicHitTracker;
+import com.mushokumagic.world.RegionalWeatherManager;
 import com.mushokumagic.world.TemporaryBlocks;
 import java.util.Locale;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
@@ -48,6 +49,7 @@ public final class MagicEvents {
         ServerTickEvents.END_SERVER_TICK.register(MagicEvents::onServerTick);
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
             TemporaryBlocks.restoreAll(server);
+            RegionalWeatherManager.clear();
             LocalStormManager.clear();
         });
     }
@@ -94,6 +96,7 @@ public final class MagicEvents {
         for (class_3218 level : server.method_3738()) {
             TemporaryBlocks.tick(level);
         }
+        RegionalWeatherManager.tick(server);
         LocalStormManager.tick(server);
         for (class_3222 player : server.method_3760().method_14571()) {
             ManaManager.tickPlayer(player);

@@ -48,6 +48,8 @@ public final class MagicConfig {
     public double wandRightClickCooldownSeconds = 2.0;
     /** Allow fire spells to ignite or destroy blocks; disable for a safer server. */
     public boolean fireSpellsModifyBlocks = true;
+    /** Replace dimension-wide vanilla weather with regional weather fronts. */
+    public boolean regionalWeatherEnabled = true;
     public boolean announceOnJoin = true;
     /** One-time migration marker for the anime spell pack. */
     public int spellPackVersion = 0;

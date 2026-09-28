@@ -17,6 +17,7 @@ class MagicConfigWandMultiplierTest {
         assertEquals(15.0, config.wandMultiplier(2), 0.0);
         assertEquals(50.0, config.wandMultiplier(3), 0.0);
         assertTrue(config.fireSpellsModifyBlocks);
+        assertTrue(config.regionalWeatherEnabled);
     }
 
     @Test
