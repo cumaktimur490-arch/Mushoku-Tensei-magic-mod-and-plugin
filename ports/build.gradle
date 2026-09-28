@@ -8,6 +8,9 @@ allprojects {
 }
 
 subprojects {
+    // Loom defaults to Fabric. Select each loader before applying the plugin so
+    // it creates the matching Forge/NeoForge dependency configuration.
+    project.ext.set('loom.platform', project.name)
     apply plugin: 'dev.architectury.loom'
 
     base {
