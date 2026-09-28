@@ -73,6 +73,28 @@ class RegionalWeatherModelTest {
     }
 
     @Test
+    void manualWeatherPresetsForceClearRainThunderAndSnowLocally() {
+        RegionalWeatherModel.WeatherState base = RegionalWeatherModel.sample(
+                55L, 128.0, 70.0, -256.0, 42_000L, 0.8f, true);
+        RegionalWeatherModel.WeatherState clear = RegionalWeatherModel.applyPreset(
+                base, RegionalWeatherModel.ManualPreset.CLEAR);
+        RegionalWeatherModel.WeatherState rain = RegionalWeatherModel.applyPreset(
+                base, RegionalWeatherModel.ManualPreset.RAIN);
+        RegionalWeatherModel.WeatherState thunder = RegionalWeatherModel.applyPreset(
+                base, RegionalWeatherModel.ManualPreset.THUNDER);
+        RegionalWeatherModel.WeatherState snow = RegionalWeatherModel.applyPreset(
+                base, RegionalWeatherModel.ManualPreset.SNOW);
+
+        assertEquals(RegionalWeatherModel.Precipitation.NONE, clear.precipitation());
+        assertEquals(0.0, clear.precipitationIntensity(), 0.0);
+        assertEquals(RegionalWeatherModel.Precipitation.RAIN, rain.precipitation());
+        assertTrue(rain.precipitationIntensity() > 0.7);
+        assertTrue(thunder.thunderstorm());
+        assertEquals(RegionalWeatherModel.Precipitation.SNOW, snow.precipitation());
+        assertTrue(snow.temperature() <= 0.15);
+    }
+
+    @Test
     void seasonalTemperatureAndWindAreBounded() {
         RegionalWeatherModel.WeatherState winter = RegionalWeatherModel.sample(
                 321L, 400.0, 80.0, -700.0, 0L, 0.8f, true);

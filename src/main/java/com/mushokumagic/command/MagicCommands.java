@@ -21,6 +21,10 @@ import com.mushokumagic.spell.CastManager;
 import com.mushokumagic.spell.Spell;
 import com.mushokumagic.spell.SpellRegistry;
 import com.mushokumagic.util.Msg;
+import com.mushokumagic.world.RegionalWeatherManager;
+import com.mushokumagic.world.RegionalWeatherModel;
+import com.mushokumagic.world.SevereWeatherManager;
+import com.mushokumagic.world.SevereWeatherModel;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
@@ -33,8 +37,10 @@ import net.minecraft.class_1799;
 import net.minecraft.class_1935;
 import net.minecraft.class_2168;
 import net.minecraft.class_2170;
+import net.minecraft.class_243;
 import net.minecraft.class_2186;
 import net.minecraft.class_2561;
+import net.minecraft.class_3218;
 import net.minecraft.class_3222;
 
 public final class MagicCommands {
@@ -53,6 +59,21 @@ public final class MagicCommands {
         dispatcher.register((LiteralArgumentBuilder)((LiteralArgumentBuilder)class_2170.method_9247((String)"spells").executes(MagicCommands::listLearned)).then(((LiteralArgumentBuilder)class_2170.method_9247((String)"all").requires(MagicCommands::isAdmin)).executes(MagicCommands::listAll)));
         dispatcher.register((LiteralArgumentBuilder)class_2170.method_9247((String)"magiclevel").executes(MagicCommands::magicLevel));
         dispatcher.register((LiteralArgumentBuilder)class_2170.method_9247((String)"mana").executes(MagicCommands::manaStatus));
+        LiteralArgumentBuilder<class_2168> weatherCommand = class_2170.method_9247("magicweather");
+        weatherCommand.requires(MagicCommands::isAdmin);
+        weatherCommand.executes(MagicCommands::weatherHelp);
+        weatherCommand.then(class_2170.method_9247("status").executes(MagicCommands::weatherStatus));
+        RequiredArgumentBuilder<class_2168, String> weatherPreset = class_2170.method_9244(
+                "preset",
+                StringArgumentType.word());
+        weatherPreset.suggests(MagicCommands::suggestWeather);
+        weatherPreset.executes(context -> MagicCommands.setWeather((CommandContext<class_2168>)context, 120));
+        weatherPreset.then(class_2170.method_9244(
+                "seconds",
+                IntegerArgumentType.integer(10, 3600))
+                .executes(MagicCommands::setWeatherWithDuration));
+        weatherCommand.then(weatherPreset);
+        dispatcher.register(weatherCommand);
         dispatcher.register((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)class_2170.method_9247((String)"cast").executes(MagicCommands::castLast)).then(class_2170.method_9247((String)"last").executes(MagicCommands::castLast))).then(class_2170.method_9244((String)"spell", (ArgumentType)StringArgumentType.word()).suggests(MagicCommands::suggestSpells).executes(MagicCommands::castNamed)));
         dispatcher.register((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)class_2170.method_9247((String)"wand").requires(MagicCommands::isAdmin)).executes(context -> MagicCommands.giveWand((CommandContext<class_2168>)context, 1, null))).then(((RequiredArgumentBuilder)class_2170.method_9244((String)"tier", (ArgumentType)IntegerArgumentType.integer((int)1, (int)3)).executes(context -> MagicCommands.giveWand((CommandContext<class_2168>)context, IntegerArgumentType.getInteger((CommandContext)context, (String)"tier"), null))).then(class_2170.method_9244((String)"player", (ArgumentType)class_2186.method_9305()).executes(context -> MagicCommands.giveWand((CommandContext<class_2168>)context, IntegerArgumentType.getInteger((CommandContext)context, (String)"tier"), class_2186.method_9315((CommandContext)context, (String)"player"))))));
         dispatcher.register((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)class_2170.method_9247((String)"magicadmin").requires(MagicCommands::isAdmin)).then(class_2170.method_9247((String)"reload").executes(MagicCommands::reloadConfig))).then(class_2170.method_9247((String)"reset").then(class_2170.method_9244((String)"player", (ArgumentType)class_2186.method_9305()).executes(MagicCommands::reset)))).then(class_2170.method_9247((String)"setmax").then(class_2170.method_9244((String)"player", (ArgumentType)class_2186.method_9305()).then(class_2170.method_9244((String)"value", (ArgumentType)IntegerArgumentType.integer((int)1, (int)100000)).executes(MagicCommands::setMax))))).then(class_2170.method_9247((String)"addxp").then(class_2170.method_9244((String)"player", (ArgumentType)class_2186.method_9305()).then(class_2170.method_9244((String)"value", (ArgumentType)IntegerArgumentType.integer((int)0, (int)100000)).executes(MagicCommands::addXp))))).then(class_2170.method_9247((String)"learn").then(class_2170.method_9244((String)"player", (ArgumentType)class_2186.method_9305()).then(class_2170.method_9244((String)"spell", (ArgumentType)StringArgumentType.word()).suggests(MagicCommands::suggestSpells).executes(MagicCommands::learnSpell))))).then(class_2170.method_9247((String)"clearoverload").then(class_2170.method_9244((String)"player", (ArgumentType)class_2186.method_9305()).executes(MagicCommands::clearOverload))));
@@ -111,6 +132,151 @@ public final class MagicCommands {
             return ((MagicConfig.RankDef)config.ranks.get((int)(i + 1))).multiplier;
         }
         return 0.0;
+    }
+
+    private static int weatherHelp(CommandContext<class_2168> context) {
+        ((class_2168)context.getSource()).method_9226(
+                () -> Msg.literal("Погода в этом моде локальная; vanilla /weather при включённой региональной погоде не управляет локальными фронтами."),
+                false);
+        ((class_2168)context.getSource()).method_9226(
+                () -> Msg.literal("Используйте: /magicweather <clear|cloudy|rain|thunder|snow|hail|tornado|cyclone|sandstorm> [секунды] (по умолчанию 120)."),
+                false);
+        return 1;
+    }
+
+    private static int weatherStatus(CommandContext<class_2168> context) throws CommandSyntaxException {
+        class_2168 source = (class_2168)context.getSource();
+        if (!MagicConfig.get().regionalWeatherEnabled) {
+            source.method_9226(
+                    () -> Msg.literal("Региональная погода отключена; используется ванильная погода мира."),
+                    false);
+            return 1;
+        }
+        class_3222 player = source.method_9207();
+        if (!(player.method_51469() instanceof class_3218 level)) {
+            source.method_9213((class_2561)Msg.literal("Локальную погоду можно проверить только в игровом мире."));
+            return 0;
+        }
+        class_243 position = player.method_73189();
+        RegionalWeatherManager.ManualWeatherStatus status = RegionalWeatherManager.manualWeatherStatusAt(
+                level,
+                position.method_10216(),
+                position.method_10215());
+        if (status == null) {
+            source.method_9226(
+                    () -> Msg.literal("В этой точке нет ручного погодного приказа; здесь действует динамическая региональная погода."),
+                    false);
+            return 1;
+        }
+        int seconds = (status.remainingTicks() + 19) / 20;
+        String weatherName = status.description();
+        source.method_9226(
+                () -> Msg.literal("Локальная погода: " + weatherName + ", ещё примерно " + seconds + " сек."),
+                false);
+        return 1;
+    }
+
+    private static int setWeatherWithDuration(CommandContext<class_2168> context) throws CommandSyntaxException {
+        int seconds = IntegerArgumentType.getInteger(context, "seconds");
+        return MagicCommands.setWeather(context, seconds);
+    }
+
+    private static int setWeather(CommandContext<class_2168> context, int seconds) throws CommandSyntaxException {
+        class_2168 source = (class_2168)context.getSource();
+        if (!MagicConfig.get().regionalWeatherEnabled) {
+            source.method_9213((class_2561)Msg.literal(
+                    "Региональная погода отключена. Включите regionalWeatherEnabled в config/mushoku_magic.json, затем выполните /magicadmin reload; иначе используйте vanilla /weather."));
+            return 0;
+        }
+
+        String requested = StringArgumentType.getString(context, "preset").toLowerCase(Locale.ROOT);
+        RegionalWeatherModel.ManualPreset preset;
+        SevereWeatherModel.Kind hazard = null;
+        String displayName;
+        switch (requested) {
+            case "clear", "sunny" -> {
+                preset = RegionalWeatherModel.ManualPreset.CLEAR;
+                displayName = "ясно";
+            }
+            case "cloudy" -> {
+                preset = RegionalWeatherModel.ManualPreset.CLOUDY;
+                displayName = "облачно";
+            }
+            case "rain" -> {
+                preset = RegionalWeatherModel.ManualPreset.RAIN;
+                displayName = "дождь";
+            }
+            case "thunder", "storm" -> {
+                preset = RegionalWeatherModel.ManualPreset.THUNDER;
+                displayName = "гроза";
+            }
+            case "snow" -> {
+                preset = RegionalWeatherModel.ManualPreset.SNOW;
+                displayName = "снег";
+            }
+            case "hail" -> {
+                preset = RegionalWeatherModel.ManualPreset.THUNDER;
+                hazard = SevereWeatherModel.Kind.HAIL;
+                displayName = "град";
+            }
+            case "tornado" -> {
+                preset = RegionalWeatherModel.ManualPreset.THUNDER;
+                hazard = SevereWeatherModel.Kind.TORNADO;
+                displayName = "торнадо";
+            }
+            case "cyclone", "hurricane" -> {
+                preset = RegionalWeatherModel.ManualPreset.THUNDER;
+                hazard = SevereWeatherModel.Kind.HURRICANE;
+                displayName = "циклон";
+            }
+            case "sandstorm" -> {
+                preset = RegionalWeatherModel.ManualPreset.CLOUDY;
+                hazard = SevereWeatherModel.Kind.SANDSTORM;
+                displayName = "песчаная буря";
+            }
+            default -> {
+                source.method_9213((class_2561)Msg.literal(
+                        "Неизвестный тип погоды. Введите /magicweather для списка вариантов."));
+                return 0;
+            }
+        }
+        if (hazard != null && !MagicConfig.get().severeWeatherEnabled) {
+            source.method_9213((class_2561)Msg.literal(
+                    "Опасные погодные системы отключены (severeWeatherEnabled=false). Обычные осадки менять можно."));
+            return 0;
+        }
+
+        class_3222 player = source.method_9207();
+        if (!(player.method_51469() instanceof class_3218 level)) {
+            source.method_9213((class_2561)Msg.literal("Локальную погоду можно задать только в игровом мире."));
+            return 0;
+        }
+        class_243 position = player.method_73189();
+        double x = position.method_10216();
+        double z = position.method_10215();
+        double radius = 160.0;
+        int durationTicks = seconds * 20;
+        RegionalWeatherManager.setManualWeather(level, x, z, preset, displayName, radius, durationTicks);
+        if (hazard != null && !SevereWeatherManager.startManual(level, position, hazard, durationTicks)) {
+            source.method_9213((class_2561)Msg.literal("Не удалось запустить локальную погодную систему."));
+            return 0;
+        }
+        if (preset == RegionalWeatherModel.ManualPreset.CLEAR) {
+            SevereWeatherManager.clearNear(level, x, z, radius);
+        }
+        source.method_9226(
+                () -> Msg.literal("Установлена локальная погода «" + displayName + "» в радиусе 160 блоков на " + seconds + " сек."),
+                true);
+        return 1;
+    }
+
+    private static CompletableFuture<Suggestions> suggestWeather(
+            CommandContext<class_2168> context,
+            SuggestionsBuilder builder) {
+        for (String preset : List.of("clear", "cloudy", "rain", "thunder", "snow", "hail", "tornado", "cyclone", "sandstorm")) {
+            builder.suggest(preset);
+        }
+        return builder.buildFuture();
     }
 
     private static int manaStatus(CommandContext<class_2168> context) throws CommandSyntaxException {

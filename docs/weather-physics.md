@@ -10,6 +10,7 @@ The server simulates climate and hazards only in loaded areas near players. It d
 - Severe weather creates stacked cloud and precipitation particle layers, hail grains, blown dust, and a rotating funnel. This is a lightweight particle-based rendering effect, not a custom volumetric-cloud renderer or a full atmospheric fluid solver.
 - `severeWeatherEnabled` controls natural cyclones, tornadoes, hailstorms, and sandstorms. `weatherBlockDamage` defaults to `false`; when enabled, tornadoes and cyclones may remove at most 24 fragile blocks per storm system near their path. Weather visuals and entity effects still work with block damage disabled.
 - Cumulonimbus remains a separate player-cast storm limited to its 20×20-chunk sector. Severe weather never changes dimension-wide weather. Set `regionalWeatherEnabled` to `false` to use vanilla weather instead.
+- While regional weather is enabled, the manager intentionally holds vanilla's global weather clear. Operators should use `/magicweather <clear|cloudy|rain|thunder|snow> [seconds]` to set an explicit local override (default 120 seconds, 160-block radius), or `/magicweather status` to inspect the area. `/magicweather hail`, `tornado`, `cyclone`, and `sandstorm` start moving local hazards; these require `severeWeatherEnabled=true`. `clear` also removes nearby severe systems. This is the working in-game control; vanilla `/weather` only controls the world after regional weather is disabled.
 - The simulation does not wet blocks, fill cauldrons, or apply crop-weather ticks.
 
 ## Spell interactions

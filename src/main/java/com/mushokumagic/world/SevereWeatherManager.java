@@ -132,6 +132,79 @@ public final class SevereWeatherManager {
         WORLDS.clear();
     }
 
+    /** Creates an explicitly requested local hazard, bypassing natural-spawn odds. */
+    public static boolean startManual(
+            class_3218 level,
+            class_243 center,
+            SevereWeatherModel.Kind kind,
+            int durationTicks) {
+        if (!MagicConfig.get().severeWeatherEnabled
+                || kind == null
+                || kind == SevereWeatherModel.Kind.NONE
+                || durationTicks <= 0) {
+            return false;
+        }
+        RegionalWeatherModel.WeatherState climate = RegionalWeatherManager.sampleAt(
+                level,
+                center.method_10216(),
+                center.method_10214(),
+                center.method_10215());
+        double windLength = Math.hypot(climate.windX(), climate.windZ());
+        double travelX = windLength > 1.0E-8 ? climate.windX() / windLength : 1.0;
+        double travelZ = windLength > 1.0E-8 ? climate.windZ() / windLength : 0.0;
+        double radius = switch (kind) {
+            case HURRICANE -> 144.0;
+            case TORNADO -> 38.0;
+            case HAIL -> 58.0;
+            case SANDSTORM -> 72.0;
+            case NONE -> 0.0;
+        };
+        double travelSpeed = switch (kind) {
+            case HURRICANE -> 0.011;
+            case TORNADO -> 0.034;
+            case HAIL -> 0.018;
+            case SANDSTORM -> 0.038;
+            case NONE -> 0.0;
+        };
+        int height = kind == SevereWeatherModel.Kind.TORNADO ? 48 : 28;
+        long now = level.method_75260();
+        double offset = kind == SevereWeatherModel.Kind.TORNADO ? 26.0 : 18.0;
+        if (kind == SevereWeatherModel.Kind.TORNADO || kind == SevereWeatherModel.Kind.HURRICANE) {
+            offset += level.field_9229.method_43058() * 14.0;
+        }
+        WorldState state = WORLDS.computeIfAbsent(level, ignored -> new WorldState());
+        if (state.systems.size() >= MAX_SYSTEMS_PER_WORLD) {
+            state.systems.remove(0);
+        }
+        state.systems.add(new SystemCell(
+                kind,
+                center.method_10216() + travelX * offset,
+                center.method_10214(),
+                center.method_10215() + travelZ * offset,
+                travelX,
+                travelZ,
+                travelSpeed,
+                radius,
+                height,
+                Math.max(0.78, SevereWeatherModel.initialIntensity(kind, climate)),
+                level.field_9229.method_43058() * Math.PI * 2.0,
+                now,
+                now + Math.min(72_000L, (long)durationTicks)));
+        return true;
+    }
+
+    /** Removes nearby temporary hazards when an administrator clears the local weather. */
+    public static void clearNear(class_3218 level, double x, double z, double radius) {
+        WorldState state = WORLDS.get(level);
+        if (state == null || state.systems.isEmpty()) {
+            return;
+        }
+        state.systems.removeIf(system -> Math.hypot(system.x - x, system.z - z) <= radius + system.radius);
+        if (state.systems.isEmpty()) {
+            WORLDS.remove(level);
+        }
+    }
+
     private static void tryFormSystem(class_3218 level, WorldState state, class_3222 player, long now) {
         class_243 position = player.method_73189();
         class_2338 blockPos = class_2338.method_49638((class_2374)position);

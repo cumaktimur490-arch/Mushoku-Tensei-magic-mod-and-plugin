@@ -2,6 +2,7 @@ package com.mushokumagic.world;
 
 import com.mushokumagic.config.MagicConfig;
 import com.mushokumagic.spell.MagicPalette;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -31,6 +32,7 @@ public final class RegionalWeatherManager {
     private static final class_2394 OVERCAST_CLOUD = new class_2390(0x58626E, 1.25f);
     private static final class_2394 DRY_DUST = new class_2390(0xBDA477, 0.8f);
     private static final Map<class_3218, WorldState> WORLDS = new IdentityHashMap<>();
+    private static final Map<class_3218, List<ManualOverride>> MANUAL_OVERRIDES = new IdentityHashMap<>();
 
     private RegionalWeatherManager() {
     }
@@ -38,6 +40,9 @@ public final class RegionalWeatherManager {
     public static void tick(MinecraftServer server) {
         Iterable<class_3218> levels = server.method_3738();
         if (!MagicConfig.get().regionalWeatherEnabled) {
+            for (class_3218 level : levels) {
+                RegionalWeatherManager.pruneManualOverrides(level, level.method_75260());
+            }
             RegionalWeatherManager.releaseVanillaWeather();
             return;
         }
@@ -45,6 +50,7 @@ public final class RegionalWeatherManager {
         List<class_3222> players = server.method_3760().method_14571();
         for (class_3218 level : levels) {
             long now = level.method_75260();
+            RegionalWeatherManager.pruneManualOverrides(level, now);
             WorldState worldState = WORLDS.computeIfAbsent(
                     level,
                     ignored -> new WorldState(ThreadLocalRandom.current().nextLong()));
@@ -71,6 +77,81 @@ public final class RegionalWeatherManager {
     public static void clear() {
         RegionalWeatherManager.releaseVanillaWeather();
         WORLDS.clear();
+        MANUAL_OVERRIDES.clear();
+    }
+
+    /** Starts an explicit local weather override centered on the command executor. */
+    public static void setManualWeather(
+            class_3218 level,
+            double x,
+            double z,
+            RegionalWeatherModel.ManualPreset preset,
+            String description,
+            double radius,
+            int durationTicks) {
+        if (preset == null || durationTicks <= 0 || !Double.isFinite(radius)) {
+            return;
+        }
+        long now = level.method_75260();
+        double safeRadius = Math.max(16.0, Math.min(512.0, radius));
+        List<ManualOverride> overrides = MANUAL_OVERRIDES.computeIfAbsent(level, ignored -> new ArrayList<>());
+        overrides.removeIf(existing -> Math.hypot(existing.x() - x, existing.z() - z)
+                < Math.max(existing.radius(), safeRadius) * 0.75);
+        if (overrides.size() >= 8) {
+            overrides.remove(0);
+        }
+        overrides.add(new ManualOverride(
+                x,
+                z,
+                safeRadius,
+                preset,
+                description == null ? preset.name().toLowerCase(java.util.Locale.ROOT) : description,
+                now,
+                now + Math.min(72_000L, (long)durationTicks)));
+    }
+
+    public static ManualWeatherStatus manualWeatherStatusAt(class_3218 level, double x, double z) {
+        ManualOverride override = RegionalWeatherManager.findManualOverride(level, x, z, level.method_75260());
+        return override == null
+                ? null
+                : new ManualWeatherStatus(
+                        override.preset(),
+                        override.description(),
+                        (int)Math.max(0L, override.endTick() - level.method_75260()));
+    }
+
+    private static ManualOverride findManualOverride(class_3218 level, double x, double z, long now) {
+        List<ManualOverride> overrides = MANUAL_OVERRIDES.get(level);
+        if (overrides == null || overrides.isEmpty()) {
+            return null;
+        }
+        ManualOverride best = null;
+        double bestDistance = Double.POSITIVE_INFINITY;
+        for (ManualOverride override : overrides) {
+            if (now >= override.endTick()) {
+                continue;
+            }
+            double distance = Math.hypot(x - override.x(), z - override.z());
+            double normalizedDistance = distance / override.radius();
+            if (normalizedDistance <= 1.0
+                    && (normalizedDistance < bestDistance
+                            || (normalizedDistance == bestDistance && best != null && override.startTick() > best.startTick()))) {
+                best = override;
+                bestDistance = normalizedDistance;
+            }
+        }
+        return best;
+    }
+
+    private static void pruneManualOverrides(class_3218 level, long now) {
+        List<ManualOverride> overrides = MANUAL_OVERRIDES.get(level);
+        if (overrides == null) {
+            return;
+        }
+        overrides.removeIf(override -> now >= override.endTick());
+        if (overrides.isEmpty()) {
+            MANUAL_OVERRIDES.remove(level);
+        }
     }
 
     /** Samples the same regional climate used by particles, or vanilla rain when the feature is disabled. */
@@ -91,6 +172,14 @@ public final class RegionalWeatherManager {
                 biomeTemperature,
                 hasPrecipitation);
         if (MagicConfig.get().regionalWeatherEnabled) {
+            ManualOverride override = RegionalWeatherManager.findManualOverride(
+                    level,
+                    x,
+                    z,
+                    level.method_75260());
+            if (override != null) {
+                return RegionalWeatherModel.applyPreset(regional, override.preset());
+            }
             return regional;
         }
 
@@ -160,6 +249,11 @@ public final class RegionalWeatherManager {
                 sampleX,
                 sampleY,
                 sampleZ);
+        boolean manualWeather = RegionalWeatherManager.findManualOverride(
+                level,
+                sampleX,
+                sampleZ,
+                now) != null;
 
         double driftX = weather.windX() * weather.windStrength() * 3.0;
         double driftZ = weather.windZ() * weather.windStrength() * 3.0;
@@ -168,7 +262,7 @@ public final class RegionalWeatherManager {
         double rainY = cell.minY() + 24.0;
         double cloudY = cell.minY() + 27.0;
 
-        if (hasPrecipitation && weather.cloudCover() >= 0.40) {
+        if ((hasPrecipitation || manualWeather) && weather.cloudCover() >= 0.40) {
             int cloudCount = 2 + (int)Math.round(weather.cloudCover() * 6.0);
             double cloudSpread = 13.0 + weather.cloudCover() * 9.0;
             level.method_65096((class_2394)class_2398.field_11204,
@@ -248,6 +342,22 @@ public final class RegionalWeatherManager {
 
     private static double randomOffset(class_3218 level, double radius) {
         return (level.field_9229.method_43058() * 2.0 - 1.0) * radius;
+    }
+
+    public record ManualWeatherStatus(
+            RegionalWeatherModel.ManualPreset preset,
+            String description,
+            int remainingTicks) {
+    }
+
+    private record ManualOverride(
+            double x,
+            double z,
+            double radius,
+            RegionalWeatherModel.ManualPreset preset,
+            String description,
+            long startTick,
+            long endTick) {
     }
 
     private record WeatherCell(int cellX, int cellY, int cellZ) {

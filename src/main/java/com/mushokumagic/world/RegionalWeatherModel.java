@@ -168,6 +168,43 @@ public final class RegionalWeatherModel {
         return value - Math.floor(value / divisor) * divisor;
     }
 
+    /** Applies an explicit, time-limited player command to the sampled local climate. */
+    public static WeatherState applyPreset(WeatherState base, ManualPreset preset) {
+        if (base == null || preset == null) {
+            return base;
+        }
+        return switch (preset) {
+            case CLEAR -> new WeatherState(
+                    0.76, 0.18, 0.08, 0.0, base.temperature(),
+                    base.windX(), base.windZ(), Math.min(0.3, base.windStrength()),
+                    Precipitation.NONE, false);
+            case CLOUDY -> new WeatherState(
+                    0.52, 0.58, 0.82, 0.0, base.temperature(),
+                    base.windX(), base.windZ(), Math.max(0.25, base.windStrength()),
+                    Precipitation.NONE, false);
+            case RAIN -> new WeatherState(
+                    0.34, 0.9, 0.98, 0.82, Math.max(0.2, base.temperature()),
+                    base.windX(), base.windZ(), Math.max(0.5, base.windStrength()),
+                    Precipitation.RAIN, false);
+            case THUNDER -> new WeatherState(
+                    0.16, 0.98, 1.0, 0.98, Math.max(0.2, base.temperature()),
+                    base.windX(), base.windZ(), Math.max(0.82, base.windStrength()),
+                    Precipitation.RAIN, true);
+            case SNOW -> new WeatherState(
+                    0.34, 0.9, 0.98, 0.82, Math.min(0.1, base.temperature()),
+                    base.windX(), base.windZ(), Math.max(0.45, base.windStrength()),
+                    Precipitation.SNOW, false);
+        };
+    }
+
+    public enum ManualPreset {
+        CLEAR,
+        CLOUDY,
+        RAIN,
+        THUNDER,
+        SNOW
+    }
+
     public enum Precipitation {
         NONE,
         RAIN,
