@@ -1,7 +1,6 @@
 package com.mushokumagic.world;
 
 import com.mushokumagic.config.MagicConfig;
-import com.mushokumagic.spell.MagicPalette;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -29,7 +28,6 @@ public final class RegionalWeatherManager {
     private static final long PARTICLE_INTERVAL = 10L;
     private static final int VANILLA_CLEAR_DURATION_TICKS = 12_000;
     private static final long VANILLA_WEATHER_REFRESH_TICKS = 6_000L;
-    private static final class_2394 OVERCAST_CLOUD = new class_2390(0x58626E, 1.25f);
     private static final class_2394 DRY_DUST = new class_2390(0xBDA477, 0.8f);
     private static final Map<class_3218, WorldState> WORLDS = new IdentityHashMap<>();
     private static final Map<class_3218, List<ManualOverride>> MANUAL_OVERRIDES = new IdentityHashMap<>();
@@ -263,36 +261,65 @@ public final class RegionalWeatherManager {
         double cloudY = cell.minY() + 27.0;
 
         if ((hasPrecipitation || manualWeather) && weather.cloudCover() >= 0.40) {
-            int cloudCount = 2 + (int)Math.round(weather.cloudCover() * 6.0);
             double cloudSpread = 13.0 + weather.cloudCover() * 9.0;
-            level.method_65096((class_2394)class_2398.field_11204,
-                    x, cloudY, z,
-                    cloudCount, cloudSpread, 2.5, cloudSpread, 0.006 + weather.windStrength() * 0.004);
-            if (weather.cloudCover() >= 0.62) {
-                int darkCloudCount = 2 + (int)Math.round((weather.cloudCover() - 0.5) * 14.0);
-                level.method_65096(OVERCAST_CLOUD,
-                        x, cloudY, z,
-                        darkCloudCount, cloudSpread, 1.8, cloudSpread, 0.003);
-            }
+            WeatherVisuals.emitCloudDeck(
+                    level,
+                    x,
+                    cloudY,
+                    z,
+                    cloudSpread,
+                    weather.cloudCover(),
+                    weather.windX(),
+                    weather.windZ(),
+                    now,
+                    weather.cloudCover() >= 0.62);
         }
 
         if (weather.precipitationIntensity() > 0.02) {
-            class_2394 precipitation = weather.precipitation() == RegionalWeatherModel.Precipitation.SNOW
+            boolean snowing = weather.precipitation() == RegionalWeatherModel.Precipitation.SNOW;
+            class_2394 precipitation = snowing
                     ? (class_2394)class_2398.field_28013
                     : (class_2394)class_2398.field_11242;
-            int precipitationCount = 6 + (int)Math.round(42.0 * weather.precipitationIntensity());
-            double spread = 9.0 + weather.precipitationIntensity() * 8.0;
-            double speed = weather.precipitation() == RegionalWeatherModel.Precipitation.SNOW
-                    ? 0.015 + weather.windStrength() * 0.025
-                    : 0.035 + weather.windStrength() * 0.05;
+            int precipitationCount = 12 + (int)Math.round(70.0 * weather.precipitationIntensity());
+            double spread = 10.0 + weather.precipitationIntensity() * 9.0;
+            double speed = snowing
+                    ? 0.018 + weather.windStrength() * 0.03
+                    : 0.045 + weather.windStrength() * 0.065;
             level.method_65096(precipitation,
                     x, rainY, z,
                     precipitationCount, spread, 7.0, spread, speed);
+            WeatherVisuals.emitDirectionalPrecipitation(
+                    level,
+                    precipitation,
+                    x,
+                    rainY - 1.0,
+                    z,
+                    4 + (int)Math.round(weather.precipitationIntensity() * 6.0),
+                    spread * 0.75,
+                    8.0,
+                    weather.windX(),
+                    weather.windZ(),
+                    weather.windStrength(),
+                    snowing);
         } else if (!hasPrecipitation && biomeTemperature > 1.0f && weather.windStrength() >= 0.72) {
             int dustCount = 3 + (int)Math.round(weather.windStrength() * 5.0);
             level.method_65096(DRY_DUST,
                     x, cell.minY() + 10.0, z,
                     dustCount, 9.0, 3.0, 9.0, 0.006 + weather.windStrength() * 0.012);
+        }
+
+        if (weather.windStrength() >= 0.55 && now % 10L == 0L) {
+            WeatherVisuals.emitWindThreads(
+                    level,
+                    x,
+                    cell.minY() + 12.0,
+                    z,
+                    3 + (int)Math.round(weather.windStrength() * 4.0),
+                    12.0,
+                    5.0,
+                    weather.windX(),
+                    weather.windZ(),
+                    weather.windStrength());
         }
 
         if (weather.windStrength() >= 0.78 && now % 40L == 0L) {
@@ -322,22 +349,7 @@ public final class RegionalWeatherManager {
     private static void spawnLightning(class_3218 level, WeatherCell cell) {
         double x = cell.centerX() + RegionalWeatherManager.randomOffset(level, 7.0);
         double z = cell.centerZ() + RegionalWeatherManager.randomOffset(level, 7.0);
-        double topY = cell.minY() + 25.0;
-        for (int segment = 0; segment < 9; ++segment) {
-            if (segment > 0) {
-                x += RegionalWeatherManager.randomOffset(level, 0.8);
-                z += RegionalWeatherManager.randomOffset(level, 0.8);
-            }
-            double y = topY - segment * 3.0;
-            level.method_65096(MagicPalette.core("water", 1.25f),
-                    x, y, z, 2, 0.35, 0.7, 0.35, 0.02);
-            if (segment % 2 == 0) {
-                level.method_65096((class_2394)class_2398.field_11207,
-                        x, y, z, 1, 0.12, 0.6, 0.12, 0.01);
-            }
-        }
-        level.method_65096(MagicPalette.core("water", 1.8f),
-                x, topY - 7.0, z, 18, 2.2, 3.5, 2.2, 0.03);
+        WeatherVisuals.emitLightning(level, x, z, cell.minY(), 27.0);
     }
 
     private static double randomOffset(class_3218 level, double radius) {

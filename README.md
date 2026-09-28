@@ -20,7 +20,7 @@ Building requires JDK 25 because the recovered Fabric Loom version runs on Java 
 ./gradlew clean build
 ```
 
-Version 2.2.9 is built as `build/libs/mushoku-magic-2.2.9.jar`; its Fabric metadata version is generated from `mod_version` in `gradle.properties`. The three supplied wand textures are alpha-trimmed but not resized, preserving their original pixel detail at 103×123, 242×604, and 117×85 pixels.
+Version 2.2.10 is built as `build/libs/mushoku-magic-2.2.10.jar`; its Fabric metadata version is generated from `mod_version` in `gradle.properties`. The three supplied wand textures are alpha-trimmed but not resized, preserving their original pixel detail at 103×123, 242×604, and 117×85 pixels.
 
 ## Regional meteorology
 

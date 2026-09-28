@@ -31,11 +31,11 @@ public final class SevereWeatherManager {
     private static final int MAX_SYSTEMS_PER_WORLD = 4;
     private static final double MIN_PLAYER_DISTANCE = 320.0;
     private static final double PARTICLE_VIEW_PADDING = 96.0;
-    private static final class_2394 CLOUD = new class_2390(0xAEB7BF, 1.25f);
-    private static final class_2394 STORM_CLOUD = new class_2390(0x5A626B, 1.45f);
-    private static final class_2394 TORNADO_DUST = new class_2390(0x737A80, 0.85f);
-    private static final class_2394 HAIL_GRAIN = new class_2390(0xEAF5FF, 0.55f);
-    private static final class_2394 SAND_DUST = new class_2390(0xC9AD7A, 0.9f);
+    private static final class_2394 CLOUD = new class_2390(0xCFD9E0, 1.45f);
+    private static final class_2394 STORM_CLOUD = new class_2390(0x3D4856, 1.75f);
+    private static final class_2394 TORNADO_DUST = new class_2390(0x78828B, 1.12f);
+    private static final class_2394 HAIL_GRAIN = new class_2390(0xEAF5FF, 0.82f);
+    private static final class_2394 SAND_DUST = new class_2390(0xC9AD7A, 1.15f);
     private static final Map<class_3218, WorldState> WORLDS = new IdentityHashMap<>();
 
     private SevereWeatherManager() {
@@ -321,22 +321,32 @@ public final class SevereWeatherManager {
             return;
         }
         double cloudY = system.baseY + system.height + 5.0;
-        if (now % 20L == 0L) {
-            SevereWeatherManager.emitCloudLayers(level, system, cloudY, intensity);
+        if (now % 10L == 0L) {
+            SevereWeatherManager.emitCloudLayers(level, system, cloudY, intensity, now);
         }
 
         switch (system.kind) {
             case HURRICANE -> {
-                level.method_65096((class_2394)class_2398.field_11242,
+                class_2394 rain = (class_2394)class_2398.field_11242;
+                level.method_65096(rain,
                         system.x, cloudY - 7.0, system.z,
                         56 + (int)Math.round(64.0 * intensity), system.radius * 0.78, 9.0, system.radius * 0.78, 0.13);
+                WeatherVisuals.emitDirectionalPrecipitation(
+                        level, rain, system.x, cloudY - 7.0, system.z,
+                        8, system.radius * 0.58, 9.0,
+                        system.travelX, system.travelZ, intensity, false);
                 SevereWeatherManager.emitHurricaneBands(level, system, now, cloudY, intensity);
             }
             case TORNADO -> SevereWeatherManager.emitTornadoFunnel(level, system, now, intensity);
             case HAIL -> {
-                level.method_65096((class_2394)class_2398.field_11242,
+                class_2394 rain = (class_2394)class_2398.field_11242;
+                level.method_65096(rain,
                         system.x, cloudY - 6.0, system.z,
                         32 + (int)Math.round(36.0 * intensity), system.radius * 0.55, 7.0, system.radius * 0.55, 0.12);
+                WeatherVisuals.emitDirectionalPrecipitation(
+                        level, rain, system.x, cloudY - 6.0, system.z,
+                        6, system.radius * 0.45, 8.0,
+                        system.travelX, system.travelZ, intensity, false);
                 level.method_65096(HAIL_GRAIN,
                         system.x, cloudY - 7.0, system.z,
                         18 + (int)Math.round(34.0 * intensity), system.radius * 0.52, 8.0, system.radius * 0.52, 0.18);
@@ -345,27 +355,48 @@ public final class SevereWeatherManager {
                 level.method_65096(SAND_DUST,
                         system.x, system.baseY + 5.0, system.z,
                         38 + (int)Math.round(48.0 * intensity), system.radius * 0.72, 5.0, system.radius * 0.72, 0.11);
+                level.method_65096((class_2394)class_2398.field_46763,
+                        system.x, system.baseY + 2.0, system.z,
+                        6 + (int)Math.round(8.0 * intensity), system.radius * 0.58, 1.6, system.radius * 0.58, 0.045);
                 level.method_65096(TORNADO_DUST,
                         system.x, system.baseY + 9.0, system.z,
                         10 + (int)Math.round(14.0 * intensity), system.radius * 0.64, 4.0, system.radius * 0.64, 0.055);
+                WeatherVisuals.emitDriftingParticles(
+                        level,
+                        SAND_DUST,
+                        system.x,
+                        system.baseY + 6.0,
+                        system.z,
+                        7,
+                        system.radius * 0.72,
+                        6.0,
+                        system.travelX,
+                        system.travelZ,
+                        intensity);
             }
             case NONE -> {
             }
         }
     }
 
-    private static void emitCloudLayers(class_3218 level, SystemCell system, double cloudY, double intensity) {
-        double cloudRadius = system.radius * (system.kind == SevereWeatherModel.Kind.TORNADO ? 0.9 : 0.78);
-        int cloudCount = 8 + (int)Math.round(12.0 * intensity);
-        for (int layer = 0; layer < 3; ++layer) {
-            double y = cloudY + layer * 2.2;
-            level.method_65096(CLOUD,
-                    system.x + system.travelX * layer * 2.0, y, system.z + system.travelZ * layer * 2.0,
-                    cloudCount, cloudRadius, 1.5, cloudRadius, 0.004);
-            level.method_65096(STORM_CLOUD,
-                    system.x - system.travelX * layer * 1.5, y - 1.0, system.z - system.travelZ * layer * 1.5,
-                    Math.max(4, cloudCount / 2), cloudRadius * 0.84, 1.3, cloudRadius * 0.84, 0.002);
-        }
+    private static void emitCloudLayers(
+            class_3218 level,
+            SystemCell system,
+            double cloudY,
+            double intensity,
+            long now) {
+        double cloudRadius = system.radius * (system.kind == SevereWeatherModel.Kind.TORNADO ? 0.82 : 0.68);
+        WeatherVisuals.emitCloudDeck(
+                level,
+                system.x,
+                cloudY,
+                system.z,
+                cloudRadius,
+                Math.min(1.0, 0.68 + intensity * 0.32),
+                system.travelX,
+                system.travelZ,
+                now,
+                true);
     }
 
     private static void emitHurricaneBands(
@@ -374,19 +405,19 @@ public final class SevereWeatherManager {
             long now,
             double cloudY,
             double intensity) {
-        double rotation = now * 0.018 + system.phase;
+        double rotation = now * 0.02 + system.phase;
         for (int band = 0; band < 4; ++band) {
-            double ringRadius = system.radius * (0.28 + band * 0.15);
-            double y = cloudY - 5.0 + band * 2.4;
-            for (int segment = 0; segment < 8; ++segment) {
-                double angle = rotation + band * 0.9 + segment * (Math.PI * 2.0 / 8.0);
+            double ringRadius = system.radius * (0.24 + band * 0.165);
+            double y = cloudY - 5.5 + band * 2.1;
+            for (int segment = 0; segment < 12; ++segment) {
+                double angle = rotation + band * 0.82 + segment * (Math.PI * 2.0 / 12.0);
                 double x = system.x + Math.cos(angle) * ringRadius;
                 double z = system.z + Math.sin(angle) * ringRadius;
                 level.method_65096(STORM_CLOUD,
                         x, y, z,
-                        1 + (int)Math.round(intensity * 2.0), 2.2, 1.3, 2.2, 0.005);
-                if (segment % 2 == 0) {
-                    level.method_65096(CLOUD, x, y + 0.5, z, 1, 3.0, 1.0, 3.0, 0.003);
+                        1 + (int)Math.round(intensity * 2.0), 2.5, 1.45, 2.5, 0.006);
+                if (segment % 3 != 1) {
+                    level.method_65096(CLOUD, x, y + 0.55, z, 1, 2.6, 1.1, 2.6, 0.004);
                 }
             }
         }
@@ -394,31 +425,34 @@ public final class SevereWeatherManager {
 
     private static void emitTornadoFunnel(class_3218 level, SystemCell system, long now, double intensity) {
         double rotation = now * (0.075 + intensity * 0.035) + system.phase;
-        for (int layer = 0; layer < 7; ++layer) {
-            double progress = (double)layer / 6.0;
-            double y = system.baseY + 2.0 + progress * system.height;
-            double ringRadius = (1.6 + progress * 6.5) * (0.55 + intensity * 0.45);
-            for (int segment = 0; segment < 5; ++segment) {
-                double angle = rotation + layer * 0.72 + segment * (Math.PI * 2.0 / 5.0);
+        for (int layer = 0; layer < 10; ++layer) {
+            double progress = (double)layer / 9.0;
+            double y = system.baseY + 1.5 + progress * system.height;
+            double ringRadius = (1.5 + progress * 8.2) * (0.55 + intensity * 0.45);
+            for (int segment = 0; segment < 7; ++segment) {
+                double angle = rotation + layer * 0.58 + segment * (Math.PI * 2.0 / 7.0);
                 double x = system.x + Math.cos(angle) * ringRadius;
                 double z = system.z + Math.sin(angle) * ringRadius;
                 level.method_65096(TORNADO_DUST,
                         x, y, z,
-                        1, 0.35, 0.55, 0.35, 0.035 + intensity * 0.02);
-                if (segment % 2 == 0) {
+                        1, 0.42, 0.62, 0.42, 0.045 + intensity * 0.025);
+                if ((segment + layer) % 2 == 0) {
                     level.method_65096(CLOUD,
-                            x, y + 0.5, z,
-                            1, 0.55, 0.4, 0.55, 0.018);
+                            x, y + 0.55, z,
+                            1, 0.62, 0.48, 0.62, 0.024);
                 }
             }
         }
         if (now % 10L == 0L) {
             level.method_65096((class_2394)class_2398.field_11242,
                     system.x, system.baseY + system.height * 0.55, system.z,
-                    26 + (int)Math.round(22.0 * intensity), system.radius * 0.58, system.height * 0.42, system.radius * 0.58, 0.09);
+                    26 + (int)Math.round(22.0 * intensity), system.radius * 0.58, system.height * 0.42, system.radius * 0.58, 0.11);
             level.method_65096(SAND_DUST,
                     system.x, system.baseY + 1.0, system.z,
-                    12 + (int)Math.round(18.0 * intensity), system.radius * 0.4, 1.0, system.radius * 0.4, 0.08);
+                    18 + (int)Math.round(20.0 * intensity), system.radius * 0.44, 1.2, system.radius * 0.44, 0.1);
+            level.method_65096((class_2394)class_2398.field_46763,
+                    system.x, system.baseY + 1.2, system.z,
+                    6 + (int)Math.round(10.0 * intensity), system.radius * 0.36, 0.8, system.radius * 0.36, 0.06);
         }
     }
 
