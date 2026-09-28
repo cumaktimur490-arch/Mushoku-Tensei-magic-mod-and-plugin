@@ -1,0 +1,11 @@
+{
+	"type": "minecraft:crafting_shapeless",
+	"category": "misc",
+	"group": "mushoku_magic",
+	"ingredients": [
+		{ "item": "mushoku_magic:enchanted_stick_1" },
+		{ "item": "mushoku_magic:magic_stone_1" },
+		{ "item": "mushoku_magic:magic_stone_1" }
+	],
+	"result": { "id": "mushoku_magic:wand_1", "count": 1 }
+}

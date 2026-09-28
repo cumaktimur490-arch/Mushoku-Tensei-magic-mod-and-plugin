@@ -20,7 +20,17 @@ Building requires JDK 25 because the recovered Fabric Loom version runs on Java 
 ./gradlew clean build
 ```
 
-Version 2.2.10 is built as `build/libs/mushoku-magic-2.2.10.jar`; its Fabric metadata version is generated from `mod_version` in `gradle.properties`. The three supplied wand textures are alpha-trimmed but not resized, preserving their original pixel detail at 103×123, 242×604, and 117×85 pixels.
+Version 2.3.0 is built as `build/libs/mushoku-magic-2.3.0.jar`; its Fabric metadata version is generated from `mod_version` in `gradle.properties`. The three supplied wand textures are alpha-trimmed but not resized, preserving their original pixel detail at 103×123, 242×604, and 117×85 pixels.
+
+## Native Minecraft 1.20.1 loader ports
+
+The existing Fabric 1.21.11 build remains unchanged. Separate, native Minecraft 1.20.1 builds are maintained under `ports/forge` and `ports/neoforge`; both target Java 17 bytecode and share the gameplay implementation while using each loader's own dependency and mod metadata. Build them from the repository root with:
+
+```sh
+./gradlew -p ports :forge:build :neoforge:build
+```
+
+The resulting jars are `ports/forge/build/libs/mushoku-magic-forge-1.20.1-2.3.0.jar` and `ports/neoforge/build/libs/mushoku-magic-neoforge-1.20.1-2.3.0.jar`. Install only the jar matching the loader in an instance. The Forge artifact declares Embeddium and Luxium as optional client dependencies; the mod does not require either to load. It continues to use Minecraft's own local weather effects rather than patching Luxium's renderer, whose project page notes that rain and thunder rendering is not ready yet.
 
 ## Regional meteorology
 

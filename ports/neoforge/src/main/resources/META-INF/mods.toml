@@ -1,0 +1,20 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="MIT"
+issueTrackerURL="https://github.com/cumaktimur490-arch/Mushoku-Tensei-magic-mod-and-plugin/issues"
+
+[[mods]]
+modId="mushoku_magic"
+version="${version}"
+displayName="Mushoku Tensei: Magic"
+authors="mushoku_magic"
+description='''
+Anime-inspired magic, mana progression, elemental spells, wands, and localized severe weather for Minecraft 1.20.1.
+'''
+
+[[dependencies.mushoku_magic]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.20.1,1.20.2)"
+ordering="NONE"
+side="BOTH"

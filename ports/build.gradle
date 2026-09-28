@@ -1,0 +1,87 @@
+plugins {
+    id 'dev.architectury.loom' version "${loom_version}" apply false
+}
+
+allprojects {
+    group = 'com.mushokumagic'
+    version = port_version
+}
+
+subprojects {
+    apply plugin: 'dev.architectury.loom'
+
+    base {
+        archivesName = "mushoku-magic-${project.name}-1.20.1"
+    }
+
+    java {
+        withSourcesJar()
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    sourceSets {
+        main {
+            java.srcDirs = [file('../common/src/main/java'), file('src/main/java')]
+            resources.srcDirs = [file('../common/src/main/resources'), file('src/main/resources'), layout.buildDirectory.dir('generated/legacy-resources')]
+        }
+        test {
+            java.srcDirs = [file('../../src/test/java')]
+        }
+    }
+
+    repositories {
+        maven { url = 'https://maven.architectury.dev/' }
+        maven { url = 'https://maven.fabricmc.net/' }
+        maven { url = 'https://maven.minecraftforge.net/' }
+        maven { url = 'https://maven.neoforged.net/releases/' }
+        mavenCentral()
+    }
+
+    dependencies {
+        minecraft "com.mojang:minecraft:${minecraft_version}"
+        mappings "net.fabricmc:intermediary:${minecraft_version}:v2"
+        testImplementation 'org.junit.jupiter:junit-jupiter:5.12.2'
+        testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.12.2'
+    }
+
+    tasks.withType(JavaCompile).configureEach {
+        options.encoding = 'UTF-8'
+        options.release = java_release.toInteger()
+    }
+
+    tasks.named('test') {
+        useJUnitPlatform()
+    }
+
+    tasks.register('prepareLegacyResources') {
+        inputs.dir('../common/src/main/resources/data/mushoku_magic/recipe')
+        outputs.dir(layout.buildDirectory.dir('generated/legacy-resources/data/mushoku_magic/recipes'))
+        doLast {
+            def inputDir = file('../common/src/main/resources/data/mushoku_magic/recipe')
+            def outputDir = layout.buildDirectory.dir('generated/legacy-resources/data/mushoku_magic/recipes').get().asFile
+            outputDir.mkdirs()
+            inputDir.eachFileMatch(~/.*\.json/) { source ->
+                def recipe = new groovy.json.JsonSlurper().parse(source)
+                if (recipe.result instanceof Map && recipe.result.id != null) {
+                    recipe.result.item = recipe.result.remove('id')
+                }
+                def output = new File(outputDir, source.name)
+                output.withWriter('UTF-8') { writer ->
+                    new groovy.json.JsonBuilder(recipe).writeTo(writer)
+                    writer.println()
+                }
+            }
+        }
+    }
+
+    tasks.named('processResources').configure {
+        dependsOn tasks.named('prepareLegacyResources')
+        exclude 'fabric.mod.json'
+        exclude 'assets/mushoku_magic/items/**'
+        inputs.property 'version', project.version
+        filesMatching('META-INF/mods.toml') {
+            expand version: project.version
+        }
+    }
+}

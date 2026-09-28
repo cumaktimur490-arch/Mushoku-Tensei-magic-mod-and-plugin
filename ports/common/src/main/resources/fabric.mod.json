@@ -1,0 +1,31 @@
+{
+	"schemaVersion": 1,
+	"id": "mushoku_magic",
+	"version": "${version}",
+	"name": "Mushoku Tensei: Magic",
+	"description": "Магическая система в духе Mushoku Tensei: мана, ранги, перегрузка, изучение заклинаний через чат, посохи и крафт.",
+	"authors": [
+		"mushoku_magic"
+	],
+	"contact": {
+		"homepage": "https://github.com/cumaktimur490-arch/Mushoku-Tensei-magic-mod-and-plugin",
+		"sources": "https://github.com/cumaktimur490-arch/Mushoku-Tensei-magic-mod-and-plugin"
+	},
+	"license": "MIT",
+	"icon": "assets/mushoku_magic/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.mushokumagic.MushokuMagic"
+		],
+		"client": [
+			"com.mushokumagic.client.MushokuMagicClient"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=0.19.5",
+		"minecraft": "~1.21.11",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}
