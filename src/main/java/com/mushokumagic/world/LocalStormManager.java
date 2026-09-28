@@ -106,6 +106,52 @@ public final class LocalStormManager {
         STORMS.clear();
     }
 
+    /** Samples the storm's cyclonic wind and convective lift inside its fixed 20x20 chunk sector. */
+    public static StormWeather weatherAt(class_3218 level, double x, double z) {
+        List<Storm> storms = STORMS.get(level);
+        if (storms == null || storms.isEmpty()) {
+            return StormWeather.NONE;
+        }
+        long now = level.method_75260();
+        StormWeather strongest = StormWeather.NONE;
+        for (Storm storm : storms) {
+            if (!storm.sector.contains(x, z)) {
+                continue;
+            }
+            double halfExtent = storm.sector.widthChunks() * 8.0;
+            double centerX = (storm.sector.minChunkX() + storm.sector.widthChunks() * 0.5) * 16.0;
+            double centerZ = (storm.sector.minChunkZ() + storm.sector.widthChunks() * 0.5) * 16.0;
+            double normalizedDistance = Math.max(Math.abs(x - centerX), Math.abs(z - centerZ)) / halfExtent;
+            double strength = storm.strengthAt(now)
+                    * WeatherPhysicsModel.sectorEdgeFalloff(normalizedDistance);
+            if (strength <= strongest.intensity()) {
+                continue;
+            }
+
+            double offsetX = x - centerX;
+            double offsetZ = z - centerZ;
+            double distance = Math.hypot(offsetX, offsetZ);
+            if (distance < 1.0E-6) {
+                long orientation = ((long)storm.sector.minChunkX() * 31L + storm.sector.minChunkZ()) & 3L;
+                offsetX = orientation == 0L || orientation == 2L ? 1.0 : 0.0;
+                offsetZ = orientation == 1L || orientation == 3L ? 1.0 : 0.0;
+                distance = 1.0;
+            }
+            // A rotating storm has tangential flow with a modest inward component.
+            double windX = (-offsetZ / distance) * 0.85 - (offsetX / distance) * 0.15;
+            double windZ = (offsetX / distance) * 0.85 - (offsetZ / distance) * 0.15;
+            double windLength = Math.hypot(windX, windZ);
+            strongest = new StormWeather(
+                    strength,
+                    windX / windLength,
+                    windZ / windLength,
+                    0.25 + strength * 0.75,
+                    0.12 + strength * 0.46,
+                    strength >= 0.72);
+        }
+        return strongest;
+    }
+
     private static Storm findStorm(List<Storm> storms, class_243 position) {
         for (Storm storm : storms) {
             if (storm.sector.contains(position.method_10216(), position.method_10215())) {
@@ -134,17 +180,25 @@ public final class LocalStormManager {
         double rainY = cell.minY() + 24.0;
         double cloudY = cell.minY() + 27.0;
         double z = cell.centerZ();
-        double windPhase = now * 0.018 + storm.sector.minChunkX() * 0.17 + storm.sector.minChunkZ() * 0.11;
-        double driftX = Math.sin(windPhase) * 2.5;
-        double driftZ = Math.cos(windPhase) * 2.5;
+        StormWeather flow = LocalStormManager.weatherAt(level, x, z);
+        double driftX = flow.windX() * flow.windStrength() * 3.0;
+        double driftZ = flow.windZ() * flow.windStrength() * 3.0;
+        RegionalWeatherModel.WeatherState climate = RegionalWeatherManager.sampleAt(level, x, rainY, z);
+        boolean snowing = climate.temperature() <= 0.15;
+        class_2394 precipitation = snowing
+                ? (class_2394)class_2398.field_28013
+                : (class_2394)class_2398.field_11242;
         double rainSpread = 15.0 + strength * 6.0;
         int rainCount = 12 + (int)Math.round(56.0 * strength);
+        if (snowing) {
+            rainCount = Math.max(4, rainCount / 2);
+        }
         int cloudCount = 2 + (int)Math.round(8.0 * strength);
         int darkCloudCount = 4 + (int)Math.round(10.0 * strength);
 
-        level.method_65096((class_2394)class_2398.field_11242,
+        level.method_65096(precipitation,
                 x + driftX, rainY, z + driftZ,
-                rainCount, rainSpread, 8.0, rainSpread, 0.06);
+                rainCount, rainSpread, snowing ? 2.5 : 8.0, rainSpread, snowing ? 0.018 : 0.06);
         level.method_65096((class_2394)class_2398.field_11204,
                 x + driftX, cloudY, z + driftZ,
                 cloudCount, 22.0, 2.5, 22.0, 0.008);
@@ -205,6 +259,16 @@ public final class LocalStormManager {
         private int centerZ() {
             return this.cellZ * 16 + 8;
         }
+    }
+
+    public record StormWeather(
+            double intensity,
+            double windX,
+            double windZ,
+            double windStrength,
+            double verticalLift,
+            boolean thunderstorm) {
+        private static final StormWeather NONE = new StormWeather(0.0, 1.0, 0.0, 0.0, 0.0, false);
     }
 
     private static final class Storm {

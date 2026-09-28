@@ -13,6 +13,7 @@ import com.mushokumagic.util.Msg;
 import com.mushokumagic.world.LocalStormManager;
 import com.mushokumagic.world.MagicHitTracker;
 import com.mushokumagic.world.TemporaryBlocks;
+import com.mushokumagic.world.WeatherPhysics;
 import java.util.List;
 import net.minecraft.class_1293;
 import net.minecraft.class_1294;
@@ -235,12 +236,12 @@ public final class SpellEffects {
     }
 
     private static void fireBolt(class_3222 caster, class_3218 level, Spell spell, CastParams params, double power) {
-        class_243 point = SpellCasting.aimPoint(caster, MagicScaling.range(48.0, power));
+        class_243 point = SpellCasting.weatherAdjustedAimPoint(caster, MagicScaling.range(48.0, power), "fire_bolt");
         SpellEffects.impact(caster, level, point, spell.radius(), spell.power() * power, 5.0 * power, params, power);
     }
 
     private static void explosiveFireball(class_3222 caster, class_3218 level, Spell spell, CastParams params, double power) {
-        class_243 point = SpellCasting.aimPoint(caster, MagicScaling.range(48.0, power));
+        class_243 point = SpellCasting.weatherAdjustedAimPoint(caster, MagicScaling.range(48.0, power), "explosive_fireball");
         double radius = MagicScaling.radius(spell.radius(), power, params.radiusMultiplier());
         List<class_1309> targets = level.method_18467(class_1309.class, SpellEffects.boxAround(point, radius));
         for (class_1309 target : targets) {
@@ -248,7 +249,8 @@ public final class SpellEffects {
             MagicHitTracker.mark(target, caster, level.method_75260());
         }
         boolean modifyBlocks = MagicConfig.get().fireSpellsModifyBlocks;
-        level.method_8537((class_1297)caster, point.method_10216(), point.method_10214(), point.method_10215(), (float)radius, modifyBlocks, modifyBlocks ? class_1937.class_7867.field_40889 : class_1937.class_7867.field_40888);
+        boolean allowFire = modifyBlocks && WeatherPhysics.ignitionMultiplier(level, point) >= 0.2;
+        level.method_8537((class_1297)caster, point.method_10216(), point.method_10214(), point.method_10215(), (float)radius, allowFire, modifyBlocks ? class_1937.class_7867.field_40889 : class_1937.class_7867.field_40888);
         if (modifyBlocks) {
             SpellEffects.igniteAround(level, point, SpellEffects.fireAttemptCount(radius), radius);
         }
@@ -280,7 +282,7 @@ public final class SpellEffects {
     }
 
     private static void waterBall(class_3222 caster, class_3218 level, Spell spell, CastParams params, double power) {
-        class_243 point = SpellCasting.aimPoint(caster, MagicScaling.range(32.0, power));
+        class_243 point = SpellCasting.weatherAdjustedAimPoint(caster, MagicScaling.range(32.0, power), "water_ball");
         double radius = Math.max(1.0, MagicScaling.radius(spell.radius(), power, params.radiusMultiplier()));
         SpellEffects.extinguish(level, point, radius);
         if (!params.silent()) {
@@ -291,7 +293,7 @@ public final class SpellEffects {
 
     private static void waterCannon(class_3222 caster, class_3218 level, Spell spell, CastParams params, double power) {
         class_243 start = caster.method_33571();
-        class_243 point = SpellCasting.aimPoint(caster, MagicScaling.range(64.0, power));
+        class_243 point = SpellCasting.weatherAdjustedAimPoint(caster, MagicScaling.range(64.0, power), "water_cannon");
         class_243 segment = point.method_1020(start);
         double lengthSquared = segment.method_1027();
         if (lengthSquared < 1.0E-6) return;
@@ -311,7 +313,8 @@ public final class SpellEffects {
             double progress = Math.max(0.0, Math.min(1.0, fromStart.method_1026(segment) / lengthSquared));
             class_243 closest = start.method_1019(segment.method_1021(progress));
             if (target.method_73189().method_1025(closest) > radius * radius) continue;
-            SpellEffects.magicDamage(caster, level, target, spell.power() * power, 0.0);
+            double waterPower = WeatherPhysics.elementalPowerMultiplier(level, target.method_73189(), "water", target);
+            SpellEffects.magicDamage(caster, level, target, spell.power() * power * waterPower, 0.0);
             class_243 push = segment.method_1029().method_1021(Math.min(2.25, 0.9 + Math.sqrt(power) * 0.12));
             target.method_5762(push.field_1352, Math.min(0.8, 0.2 + power * 0.01), push.field_1350);
             target.field_6037 = true;
@@ -335,14 +338,15 @@ public final class SpellEffects {
     }
 
     private static void iceNeedle(class_3222 caster, class_3218 level, Spell spell, CastParams params, double power) {
-        class_243 point = SpellCasting.aimPoint(caster, MagicScaling.range(32.0, power));
+        class_243 point = SpellCasting.weatherAdjustedAimPoint(caster, MagicScaling.range(32.0, power), "ice_needle");
         double radius = Math.max(2.0, MagicScaling.radius(spell.radius(), power, params.radiusMultiplier()));
         int maxTargets = MagicScaling.intensity(power);
         int affected = 0;
         for (class_1309 target : level.method_18467(class_1309.class, SpellEffects.boxAround(point, radius))) {
             if (target == caster || target.method_73189().method_1025(point) > radius * radius) continue;
-            SpellEffects.magicDamage(caster, level, target, 2.0 * power, 0.0);
-            target.method_6092(new class_1293(class_1294.field_5909, (int)Math.max((long)20L, (long)Math.round((double)(40.0 * power))), 0));
+            double coldPower = WeatherPhysics.elementalPowerMultiplier(level, target.method_73189(), "ice", target);
+            SpellEffects.magicDamage(caster, level, target, 2.0 * power * coldPower, 0.0);
+            target.method_6092(new class_1293(class_1294.field_5909, (int)Math.max((long)20L, (long)Math.round((double)(40.0 * power * coldPower))), 0));
             MagicHitTracker.mark(target, caster, level.method_75260());
             if (++affected >= maxTargets) break;
         }
@@ -452,7 +456,7 @@ public final class SpellEffects {
     }
 
     private static void stoneBall(class_3222 caster, class_3218 level, Spell spell, CastParams params, double power) {
-        class_243 point = SpellCasting.aimPoint(caster, MagicScaling.range(32.0, power));
+        class_243 point = SpellCasting.weatherAdjustedAimPoint(caster, MagicScaling.range(32.0, power), "stone_ball");
         double radius = Math.max(1.0, MagicScaling.radius(spell.radius(), power, params.radiusMultiplier()));
         for (class_1309 target : level.method_18467(class_1309.class, SpellEffects.boxAround(point, radius))) {
             if (target == caster || target.method_73189().method_1025(point) > radius * radius) continue;
@@ -518,7 +522,23 @@ public final class SpellEffects {
 
     private static void gust(class_3222 caster, class_3218 level, Spell spell, CastParams params, double power) {
         double radius = Math.max(2.0, MagicScaling.radius(spell.radius(), power, params.radiusMultiplier()));
-        double pushStrength = Math.min(2.75, 0.75 + Math.sqrt(Math.max(1.0, power)) * 0.15) * params.damageMultiplier();
+        double pushStrength = Math.min(2.75, 0.75 + Math.sqrt(Math.max(1.0, power)) * 0.15)
+                * params.damageMultiplier()
+                * WeatherPhysics.elementalPowerMultiplier(level, caster.method_73189(), "wind", caster);
+        class_243 horizontalWind = new class_243(caster.method_5720().field_1352, 0.0, caster.method_5720().field_1350);
+        if (horizontalWind.method_1027() < 1.0E-4) {
+            horizontalWind = new class_243(0.0, 0.0, 1.0);
+        } else {
+            horizontalWind = horizontalWind.method_1029();
+        }
+        WeatherPhysics.addGust(
+                level,
+                caster.method_73189(),
+                horizontalWind.field_1352,
+                horizontalWind.field_1350,
+                Math.min(1.1, 0.25 + Math.sqrt(Math.max(1.0, power)) * 0.045),
+                Math.min(24.0, Math.max(4.0, radius * 1.5)),
+                100);
         int affected = 0;
         for (class_1309 target : level.method_18467(class_1309.class, caster.method_5829().method_1014(radius))) {
             if (target == caster) continue;
@@ -546,7 +566,14 @@ public final class SpellEffects {
     }
 
     private static void updraft(class_3222 caster, class_3218 level, CastParams params, double power) {
-        double lift = Math.min(2.5, 0.75 + Math.sqrt(Math.max(1.0, power)) * 0.17);
+        double lift = Math.min(2.5, (0.75 + Math.sqrt(Math.max(1.0, power)) * 0.17)
+                * WeatherPhysics.elementalPowerMultiplier(level, caster.method_73189(), "wind", caster));
+        WeatherPhysics.addUpdraft(
+                level,
+                caster.method_73189(),
+                Math.min(1.1, 0.25 + Math.sqrt(Math.max(1.0, power)) * 0.045),
+                Math.min(24.0, Math.max(4.0, 4.0 + Math.sqrt(Math.max(1.0, power)) * 2.0)),
+                100);
         caster.method_5762(0.0, lift, 0.0);
         caster.field_6037 = true;
         caster.method_6016(class_1294.field_5909);
@@ -736,7 +763,12 @@ public final class SpellEffects {
         } else {
             for (class_1309 target : targets) {
                 if (target == caster || target.method_73189().method_1025(point) > finalRadius * finalRadius) continue;
-                SpellEffects.magicDamage(caster, level, target, damage, fireSeconds);
+                class_243 targetPosition = target.method_73189();
+                double weatherDamage = WeatherPhysics.elementalPowerMultiplier(level, targetPosition, "fire", target);
+                double wetFireDuration = fireSeconds > 0.0
+                        ? fireSeconds * WeatherPhysics.fireDurationMultiplier(level, targetPosition, target)
+                        : 0.0;
+                SpellEffects.magicDamage(caster, level, target, damage * weatherDamage, wetFireDuration);
             }
         }
         if (MagicConfig.get().fireSpellsModifyBlocks) {
@@ -754,6 +786,8 @@ public final class SpellEffects {
     }
 
     private static void igniteAround(class_3218 level, class_243 center, int attempts, double radius) {
+        double ignitionScale = WeatherPhysics.ignitionMultiplier(level, center);
+        attempts = (int)Math.round(attempts * ignitionScale);
         if (radius <= 0.0 || attempts <= 0) {
             return;
         }

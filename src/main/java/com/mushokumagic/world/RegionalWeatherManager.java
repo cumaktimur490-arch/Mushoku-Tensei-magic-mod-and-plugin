@@ -63,7 +63,7 @@ public final class RegionalWeatherManager {
                 if (!emittedCells.add(cell)) {
                     continue;
                 }
-                RegionalWeatherManager.emitForCell(level, cell, worldState.seed, now);
+                RegionalWeatherManager.emitForCell(level, cell, now);
             }
         }
     }
@@ -71,6 +71,49 @@ public final class RegionalWeatherManager {
     public static void clear() {
         RegionalWeatherManager.releaseVanillaWeather();
         WORLDS.clear();
+    }
+
+    /** Samples the same regional climate used by particles, or vanilla rain when the feature is disabled. */
+    public static RegionalWeatherModel.WeatherState sampleAt(class_3218 level, double x, double y, double z) {
+        class_2338 samplePos = class_2338.method_49637(Math.floor(x), Math.floor(y), Math.floor(z));
+        class_1959 biome = (class_1959)level.method_23753(samplePos).comp_349();
+        float biomeTemperature = biome.method_8712();
+        boolean hasPrecipitation = biome.method_48163();
+        WorldState state = WORLDS.computeIfAbsent(
+                level,
+                ignored -> new WorldState(ThreadLocalRandom.current().nextLong()));
+        RegionalWeatherModel.WeatherState regional = RegionalWeatherModel.sample(
+                state.seed,
+                x,
+                y,
+                z,
+                level.method_75260(),
+                biomeTemperature,
+                hasPrecipitation);
+        if (MagicConfig.get().regionalWeatherEnabled) {
+            return regional;
+        }
+
+        class_5217 properties = level.method_8401();
+        boolean raining = properties.method_156();
+        boolean thunder = properties.method_203();
+        double precipitation = raining ? (thunder ? 0.9 : 0.72) : 0.0;
+        RegionalWeatherModel.Precipitation kind = precipitation <= 0.0
+                ? RegionalWeatherModel.Precipitation.NONE
+                : regional.temperature() <= 0.15
+                        ? RegionalWeatherModel.Precipitation.SNOW
+                        : RegionalWeatherModel.Precipitation.RAIN;
+        return new RegionalWeatherModel.WeatherState(
+                regional.pressure(),
+                raining ? 0.72 : 0.25,
+                raining ? 0.9 : 0.12,
+                precipitation,
+                regional.temperature(),
+                regional.windX(),
+                regional.windZ(),
+                raining ? (thunder ? 0.75 : 0.4) : 0.0,
+                kind,
+                thunder && kind == RegionalWeatherModel.Precipitation.RAIN);
     }
 
     private static void releaseVanillaWeather() {
@@ -98,7 +141,10 @@ public final class RegionalWeatherManager {
         level.method_27910(0, 0, false, false);
     }
 
-    private static void emitForCell(class_3218 level, WeatherCell cell, long seed, long now) {
+    private static void emitForCell(class_3218 level, WeatherCell cell, long now) {
+        WorldState worldState = WORLDS.computeIfAbsent(
+                level,
+                ignored -> new WorldState(ThreadLocalRandom.current().nextLong()));
         double sampleX = cell.centerX();
         double sampleY = cell.minY() + 8.0;
         double sampleZ = cell.centerZ();
@@ -109,14 +155,11 @@ public final class RegionalWeatherManager {
         class_1959 biome = (class_1959)level.method_23753(samplePos).comp_349();
         float biomeTemperature = biome.method_8712();
         boolean hasPrecipitation = biome.method_48163();
-        RegionalWeatherModel.WeatherState weather = RegionalWeatherModel.sample(
-                seed,
+        RegionalWeatherModel.WeatherState weather = RegionalWeatherManager.sampleAt(
+                level,
                 sampleX,
                 sampleY,
-                sampleZ,
-                now,
-                biomeTemperature,
-                hasPrecipitation);
+                sampleZ);
 
         double driftX = weather.windX() * weather.windStrength() * 3.0;
         double driftZ = weather.windZ() * weather.windStrength() * 3.0;
@@ -164,7 +207,7 @@ public final class RegionalWeatherManager {
                     1, 5.0, 2.5, 5.0, 0.04);
         }
 
-        if (weather.thunderstorm() && RegionalWeatherManager.isLightningTick(seed, cell, now)) {
+        if (weather.thunderstorm() && RegionalWeatherManager.isLightningTick(worldState.seed, cell, now)) {
             RegionalWeatherManager.spawnLightning(level, cell);
         }
     }

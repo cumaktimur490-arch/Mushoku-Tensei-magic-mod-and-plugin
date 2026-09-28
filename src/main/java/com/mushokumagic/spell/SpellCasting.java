@@ -9,6 +9,7 @@ import com.mushokumagic.mana.ManaManager;
 import com.mushokumagic.spell.CastParams;
 import com.mushokumagic.spell.Spell;
 import com.mushokumagic.util.Msg;
+import com.mushokumagic.world.WeatherPhysics;
 import java.util.List;
 import java.util.Locale;
 import net.minecraft.class_1309;
@@ -107,6 +108,15 @@ public final class SpellCasting {
         return hit.method_17784();
     }
 
+    public static class_243 weatherAdjustedAimPoint(class_3222 player, double range, String spellId) {
+        class_243 origin = player.method_33571();
+        class_243 target = SpellCasting.aimPoint(player, range);
+        if (!(player.method_51469() instanceof class_3218 level)) {
+            return target;
+        }
+        return WeatherPhysics.driftProjectileAimPoint(level, origin, target, spellId, range);
+    }
+
     public static void drawTrail(class_3222 player, Spell spell, CastParams params, double progress) {
         class_3218 class_32182;
         if (params.silent() || !((class_32182 = player.method_51469()) instanceof class_3218)) {
@@ -126,10 +136,14 @@ public final class SpellCasting {
             case "water_ball", "ice_needle", "stone_ball", "earth_hedgehog" -> 32.0;
             default -> 48.0;
         };
-        class_243 to = SpellCasting.aimPoint(player, MagicScaling.range(baseRange, power));
+        double castRange = MagicScaling.range(baseRange, power);
+        boolean projectile = SpellCasting.isProjectileSpell(spellId) || "water_cannon".equals(spellId);
+        class_243 to = projectile
+                ? SpellCasting.weatherAdjustedAimPoint(player, castRange, spellId)
+                : SpellCasting.aimPoint(player, castRange);
         long now = level.method_75260();
 
-        if (SpellCasting.isProjectileSpell(spellId) || "water_cannon".equals(spellId)) {
+        if (projectile) {
             class_243 focus = from.method_1019(player.method_5720().method_1021(0.62)).method_1019(new class_243(0.0, -0.28, 0.0));
             if (progressClamped < SpellVisualMotion.RELEASE_START) {
                 SpellCasting.drawFocus(level, player, focus, visualElement, intensity,

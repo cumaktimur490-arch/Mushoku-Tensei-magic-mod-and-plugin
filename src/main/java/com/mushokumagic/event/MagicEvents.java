@@ -13,6 +13,7 @@ import com.mushokumagic.world.LocalStormManager;
 import com.mushokumagic.world.MagicHitTracker;
 import com.mushokumagic.world.RegionalWeatherManager;
 import com.mushokumagic.world.TemporaryBlocks;
+import com.mushokumagic.world.WeatherPhysics;
 import java.util.Locale;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
@@ -51,6 +52,7 @@ public final class MagicEvents {
             TemporaryBlocks.restoreAll(server);
             RegionalWeatherManager.clear();
             LocalStormManager.clear();
+            WeatherPhysics.clear();
         });
     }
 
@@ -98,6 +100,7 @@ public final class MagicEvents {
         }
         RegionalWeatherManager.tick(server);
         LocalStormManager.tick(server);
+        WeatherPhysics.tick(server);
         for (class_3222 player : server.method_3760().method_14571()) {
             ManaManager.tickPlayer(player);
         }
