@@ -42,30 +42,52 @@ public final class WeatherPhysics {
                 level,
                 position.method_10216(),
                 position.method_10215());
+        SevereWeatherManager.WeatherSample severe = SevereWeatherManager.weatherAt(
+                level,
+                position.method_10216(),
+                position.method_10214(),
+                position.method_10215());
         class_2338 blockPos = class_2338.method_49638((class_2374)position);
         boolean exposed = level.method_8311(blockPos);
-        double stormInfluence = exposed ? storm.intensity() : 0.0;
+        double localStormInfluence = exposed ? storm.intensity() : 0.0;
+        double severeInfluence = exposed ? severe.intensity() : 0.0;
+        double stormInfluence = Math.max(localStormInfluence, severeInfluence);
         double regionalWindStrength = exposed ? regional.windStrength() : 0.0;
+        double stormForceX = storm.windX() * storm.windStrength() * localStormInfluence
+                + severe.windX() * severe.windStrength() * severeInfluence;
+        double stormForceZ = storm.windZ() * storm.windStrength() * localStormInfluence
+                + severe.windZ() * severe.windStrength() * severeInfluence;
+        double stormForceLength = Math.hypot(stormForceX, stormForceZ);
+        double stormWindX = stormForceLength > 1.0E-8 ? stormForceX / stormForceLength : 1.0;
+        double stormWindZ = stormForceLength > 1.0E-8 ? stormForceZ / stormForceLength : 0.0;
+        double stormWindStrength = stormInfluence > 1.0E-8
+                ? Math.min(1.25, stormForceLength / stormInfluence)
+                : 0.0;
+        double stormLift = storm.verticalLift() * localStormInfluence + severe.verticalLift();
         PulseInfluence pulse = WeatherPhysics.pulseAt(level, position);
         double lift = (exposed
-                ? regional.cloudCover() * regional.humidity() * 0.16 + storm.verticalLift() * stormInfluence
+                ? regional.cloudCover() * regional.humidity() * 0.16 + stormLift
                 : 0.0) + pulse.verticalLift();
         WeatherPhysicsModel.Wind wind = WeatherPhysicsModel.combineWind(
                 regional.windX(),
                 regional.windZ(),
                 regionalWindStrength,
-                storm.windX(),
-                storm.windZ(),
-                exposed ? storm.windStrength() : 0.0,
+                stormWindX,
+                stormWindZ,
+                exposed ? stormWindStrength : 0.0,
                 stormInfluence,
                 pulse.x(),
                 pulse.z(),
                 lift);
         double precipitation = exposed
-                ? Math.max(regional.precipitationIntensity(), storm.intensity())
+                ? Math.max(regional.precipitationIntensity(),
+                        Math.max(storm.intensity(), severe.precipitationIntensity()))
                 : 0.0;
-        double humidity = Math.max(regional.humidity(), 0.72 * storm.intensity());
+        double humidity = Math.max(regional.humidity(),
+                0.72 * Math.max(storm.intensity(), severe.intensity()));
+        boolean hailing = exposed && severe.hailing();
         boolean snowing = precipitation > 0.02
+                && !hailing
                 && (regional.precipitation() == RegionalWeatherModel.Precipitation.SNOW
                         || regional.temperature() <= 0.15);
         return new Conditions(
@@ -77,8 +99,13 @@ public final class WeatherPhysics {
                 precipitation,
                 regional.temperature(),
                 stormInfluence,
+                exposed ? severe.tornadoIntensity() : 0.0,
                 snowing,
-                exposed && (regional.thunderstorm() || storm.thunderstorm()));
+                hailing,
+                exposed && (regional.thunderstorm() || storm.thunderstorm()
+                        || severe.kind() == SevereWeatherModel.Kind.TORNADO
+                        || severe.kind() == SevereWeatherModel.Kind.HAIL
+                        || severe.kind() == SevereWeatherModel.Kind.HURRICANE));
     }
 
     /**
@@ -216,7 +243,7 @@ public final class WeatherPhysics {
                     if (conditions.precipitationIntensity() <= 0.02) {
                         continue;
                     }
-                    double wetting = conditions.snowing()
+                    double wetting = conditions.snowing() || conditions.hailing()
                             ? conditions.precipitationIntensity() * 0.35
                             : conditions.precipitationIntensity();
                     double wetness = WeatherPhysicsModel.wetnessAfterRain(
@@ -337,12 +364,17 @@ public final class WeatherPhysics {
     }
 
     private static void applyAirflow(class_1309 entity, Conditions conditions) {
-        if (conditions.windStrength() < 0.85) {
+        double tornado = conditions.tornadoIntensity();
+        if (conditions.windStrength() < 0.85 && tornado < 0.05) {
             return;
         }
-        double playerFactor = entity instanceof class_3222 ? 0.2 : 1.0;
-        double horizontalImpulse = (conditions.windStrength() - 0.85) * 0.025 * playerFactor;
-        double verticalImpulse = conditions.verticalLift() * 0.003 * playerFactor;
+        double playerFactor = entity instanceof class_3222
+                ? (tornado > 0.05 ? 0.65 : conditions.stormIntensity() > 0.65 ? 0.55 : 0.2)
+                : 1.0;
+        double windImpulse = Math.max(0.0, conditions.windStrength() - 0.85) * 0.025;
+        double stormGust = conditions.stormIntensity() * 0.045;
+        double horizontalImpulse = Math.max(Math.max(windImpulse, stormGust), tornado * 0.14) * playerFactor;
+        double verticalImpulse = Math.max(conditions.verticalLift() * 0.003, tornado * 0.22) * playerFactor;
         entity.method_5762(
                 conditions.windX() * horizontalImpulse,
                 verticalImpulse,
@@ -391,7 +423,9 @@ public final class WeatherPhysics {
             double precipitationIntensity,
             double temperature,
             double stormIntensity,
+            double tornadoIntensity,
             boolean snowing,
+            boolean hailing,
             boolean thunderstorm) {
     }
 

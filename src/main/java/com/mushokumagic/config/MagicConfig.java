@@ -50,6 +50,10 @@ public final class MagicConfig {
     public boolean fireSpellsModifyBlocks = true;
     /** Replace dimension-wide vanilla weather with regional weather fronts. */
     public boolean regionalWeatherEnabled = true;
+    /** Allow local cyclones, tornadoes, hailstorms, and hot-desert sandstorms to form. */
+    public boolean severeWeatherEnabled = true;
+    /** Let tornadoes and cyclones break only very fragile blocks; visuals stay enabled when false. */
+    public boolean weatherBlockDamage = false;
     public boolean announceOnJoin = true;
     /** One-time migration marker for the anime spell pack. */
     public int spellPackVersion = 0;

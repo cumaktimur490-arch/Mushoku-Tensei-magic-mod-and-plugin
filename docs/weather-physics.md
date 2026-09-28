@@ -1,13 +1,16 @@
-# Local weather physics and spell interactions
+# Local weather physics and severe weather
 
-This simulation is server-side and local to exposed, loaded areas near players. It does not turn on dimension-wide vanilla rain. Natural regional fronts use the mod's existing biome-, temperature-, pressure-, and wind-aware model; Cumulonimbus adds a cyclonic storm field that remains within its 20×20-chunk sector.
+The server simulates climate and hazards only in loaded areas near players. It does not enable dimension-wide vanilla rain. Broad regional fronts continue to use the mod's biome-, temperature-, pressure-, and wind-aware climate model; particles are emitted around players rather than across the whole dimension.
 
-## Physical effects
+## Regional weather and moving hazards
 
-- Exposed living entities accumulate temporary wetness during rain. Rain fills the wetness meter gradually; warmer air dries it faster, while snow wets more slowly.
-- Heavy rain extinguishes burning creatures and uncovered fire blocks near active players. Sheltered entities and fire are not treated as exposed to rain.
-- Strong exposed wind gently pushes nearby creatures; storm conditions combine with regional wind, humidity, precipitation, and convective lift. Storm intensity fades smoothly near the sector edge.
-- Weather physics only processes loaded areas around active players. It does not wet blocks, fill cauldrons, accelerate crop growth, or change global weather.
+- Exposed living entities accumulate temporary wetness in rain and dry over time; snow and hail wet them more slowly. Heavy precipitation extinguishes exposed flames and can put out uncovered fire blocks.
+- Strong regional wind nudges exposed creatures. Tornado cores add a rotating, inward-flowing wind field and a vertical updraft that can lift nearby creatures.
+- Warm, humid low-pressure storms can form large moving cyclones, strong thunderstorms can produce localized tornadoes, cool thunderstorms can produce hail, and hot, dry biomes can form drifting sandstorms. Systems pass through smooth forming, mature, and dissipating phases, then expire. Their weather fields and particles are local and do not load chunks.
+- Severe weather creates stacked cloud and precipitation particle layers, hail grains, blown dust, and a rotating funnel. This is a lightweight particle-based rendering effect, not a custom volumetric-cloud renderer or a full atmospheric fluid solver.
+- `severeWeatherEnabled` controls natural cyclones, tornadoes, hailstorms, and sandstorms. `weatherBlockDamage` defaults to `false`; when enabled, tornadoes and cyclones may remove at most 24 fragile blocks per storm system near their path. Weather visuals and entity effects still work with block damage disabled.
+- Cumulonimbus remains a separate player-cast storm limited to its 20×20-chunk sector. Severe weather never changes dimension-wide weather. Set `regionalWeatherEnabled` to `false` to use vanilla weather instead.
+- The simulation does not wet blocks, fill cauldrons, or apply crop-weather ticks.
 
 ## Spell interactions
 
@@ -16,4 +19,4 @@ This simulation is server-side and local to exposed, loaded areas near players. 
 - Rain and accumulated wetness modestly reduce Fire Bolt damage, sharply shorten its burn duration, and suppress fire-spell ignition. Heavy rain also dampens explosive fire ignition without disabling the configured block-destruction setting.
 - Humid/rainy air modestly strengthens Water Cannon hits; low temperatures favor Ice Needle. These elemental adjustments are capped and multiply, rather than replace, the existing staff and spell scaling.
 
-The effects are deliberately bounded so weather adds tactical feedback without overwhelming the mod's existing ×2, ×15, and ×50 staff multipliers.
+The effects are deliberately bounded around loaded player areas so weather adds visible and tactical feedback without overwhelming the mod's ×2, ×15, and ×50 staff multipliers or creating unbounded server work.
