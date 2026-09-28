@@ -4,6 +4,12 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+    inputs:
+      publish_release:
+        description: Publish the verified Fabric, Forge, and NeoForge jars as a GitHub Release
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: read
@@ -135,3 +141,116 @@ jobs:
             ports/forge/build/libs/mushoku-magic-forge-1.20.1-*.jar
             ports/neoforge/build/libs/mushoku-magic-neoforge-1.20.1-*.jar
           if-no-files-found: error
+
+  publish-release:
+    name: Publish verified release
+    if: github.event_name == 'workflow_dispatch' && inputs.publish_release
+    needs:
+      - build
+      - loader-ports
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out release source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Download Fabric jar
+        uses: actions/download-artifact@v4
+        with:
+          name: mushoku-magic-fabric-${{ github.sha }}
+          path: release-assets
+
+      - name: Download Forge and NeoForge jars
+        uses: actions/download-artifact@v4
+        with:
+          name: mushoku-magic-ports-${{ github.sha }}
+          path: release-assets
+
+      - name: Verify release jars
+        id: release-jars
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+
+          def properties(path):
+              return dict(
+                  line.split("=", 1)
+                  for line in Path(path).read_text(encoding="utf-8").splitlines()
+                  if line and not line.startswith("#") and "=" in line
+              )
+
+          fabric_version = properties("gradle.properties")["mod_version"]
+          port_version = properties("ports/gradle.properties")["port_version"]
+          if fabric_version != port_version:
+              raise SystemExit(f"Fabric {fabric_version} and port {port_version} versions differ")
+
+          assets = {
+              "Fabric": (f"mushoku-magic-{fabric_version}.jar", "fabric"),
+              "Forge": (f"mushoku-magic-forge-1.20.1-{port_version}.jar", "forge"),
+              "NeoForge": (f"mushoku-magic-neoforge-1.20.1-{port_version}.jar", "neoforge"),
+          }
+          root = Path("release-assets")
+          for loader, (filename, metadata_kind) in assets.items():
+              matches = list(root.rglob(filename))
+              if len(matches) != 1:
+                  raise SystemExit(f"Expected one {loader} jar named {filename}; found {matches}")
+              jar_path = matches[0]
+              with ZipFile(jar_path) as jar:
+                  names = set(jar.namelist())
+                  if metadata_kind == "fabric":
+                      if "fabric.mod.json" not in names:
+                          raise SystemExit(f"{jar_path} is missing Fabric metadata")
+                  else:
+                      if "fabric.mod.json" in names or "META-INF/mods.toml" not in names:
+                          raise SystemExit(f"{jar_path} is not a native loader jar")
+                      metadata = jar.read("META-INF/mods.toml").decode("utf-8")
+                      has_luxium = 'modId="luxium"' in metadata
+                      if has_luxium != (metadata_kind == "forge"):
+                          raise SystemExit(f"Luxium dependency metadata is incorrect in {jar_path}")
+              print(jar_path)
+              print(f"Verified {loader}: {jar_path}")
+          PY
+          version="$(sed -n 's/^mod_version=//p' gradle.properties)"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          mapfile -t assets < <(find release-assets -type f -name '*.jar' ! -name '*-sources.jar' | sort)
+          if [[ "${#assets[@]}" -ne 3 ]]; then
+            echo "Expected exactly three runtime jars, found ${#assets[@]}: ${assets[*]}" >&2
+            exit 1
+          fi
+          printf '%s\n' "${assets[@]}" > "$RUNNER_TEMP/release-assets.txt"
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.release-jars.outputs.version }}
+        shell: bash
+        run: |
+          tag="v${VERSION}"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $tag already exists" >&2
+            exit 1
+          fi
+          cat > "$RUNNER_TEMP/release-notes.md" <<'EOF'
+          ## Highlights
+
+          - Adds separate native Forge and NeoForge mod jars for Minecraft 1.20.1; the existing Fabric 1.21.11 build remains available.
+          - The Forge jar declares Luxium and Embeddium as optional client-side dependencies. Luxium-specific weather rendering is not claimed; effects continue to use Minecraft particles.
+          - Includes the shared magic, spell, and regional weather systems. Install only the jar matching the instance's loader.
+
+          ## Verification
+
+          - GitHub Actions passed for Fabric, Forge, and NeoForge builds and tests.
+          - Loader metadata and the Forge-only optional Luxium declaration were verified in the published jars.
+          EOF
+          mapfile -t assets < "$RUNNER_TEMP/release-assets.txt"
+          gh release create "$tag" "${assets[@]}" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Mushoku Tensei: Magic v${VERSION} — Native 1.20.1 ports" \
+            --notes-file "$RUNNER_TEMP/release-notes.md" \
+            --latest
