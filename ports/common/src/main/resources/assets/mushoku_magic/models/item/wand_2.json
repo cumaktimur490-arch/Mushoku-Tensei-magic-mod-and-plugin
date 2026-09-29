@@ -1,5 +1,5 @@
 {
-	"parent": "minecraft:item/generated",
+	"parent": "minecraft:item/handheld",
 	"textures": {
 		"layer0": "mushoku_magic:item/wand_2"
 	}

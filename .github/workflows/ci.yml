@@ -151,6 +151,15 @@ jobs:
                   pack_metadata = json.loads(jar.read("pack.mcmeta"))
                   if pack_metadata.get("pack", {}).get("pack_format") != 15:
                       raise SystemExit(f"{jars[0]} has invalid Minecraft 1.20.1 pack metadata")
+                  held_item_ids = [
+                      "wand_1", "wand_2", "wand_3",
+                      "enchanted_stick_1", "enchanted_stick_2", "enchanted_stick_3",
+                  ]
+                  for item_id in held_item_ids:
+                      model_path = f"assets/mushoku_magic/models/item/{item_id}.json"
+                      model = json.loads(jar.read(model_path))
+                      if model.get("parent") != "minecraft:item/handheld":
+                          raise SystemExit(f"{jars[0]} model {model_path} is not sword-held")
               print(f"Verified {jars[0]}")
           PY
 
@@ -260,6 +269,7 @@ jobs:
 
           - Fixes Forge startup by deferring item construction until the item registry event.
           - Adds valid Minecraft 1.20.1 pack metadata and verifies that item models, textures, translations, and recipes ship in both native jars.
+          - Wands and enchanted sticks use Minecraft's handheld model parent, so they are presented in the hand like swords.
           - Provides separate native Forge and NeoForge jars for Minecraft 1.20.1; the unchanged Fabric 1.21.11 jar is included for convenience.
           - The Forge jar declares Luxium and Embeddium as optional client-side dependencies. Luxium-specific weather rendering is not claimed; effects continue to use Minecraft particles.
           - Install only the jar matching the instance's loader.
