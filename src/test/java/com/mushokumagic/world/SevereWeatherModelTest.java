@@ -81,6 +81,19 @@ class SevereWeatherModelTest {
         assertTrue(core.windStrength() <= 1.25);
     }
 
+    @Test
+    void smokeVortexVelocityRotatesConvergesAndRises() {
+        SevereWeatherModel.VortexFlow eastSide = SevereWeatherModel.vortexFlow(8.0, 0.0, 0.0, 1.0, 1.0, 1.0);
+        SevereWeatherModel.VortexFlow westSide = SevereWeatherModel.vortexFlow(-8.0, 0.0, 0.0, 1.0, 1.0, 1.0);
+
+        assertTrue(eastSide.z() > 0.0);
+        assertTrue(westSide.z() < 0.0);
+        assertTrue(8.0 * eastSide.x() < 0.0);
+        assertTrue(-8.0 * westSide.x() < 0.0);
+        assertTrue(eastSide.y() > 0.0);
+        assertTrue(eastSide.y() <= 0.22);
+    }
+
     private static RegionalWeatherModel.WeatherState weather(
             double pressure,
             double humidity,

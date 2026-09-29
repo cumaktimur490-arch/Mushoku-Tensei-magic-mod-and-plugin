@@ -1,6 +1,7 @@
 package com.mushokumagic.client;
 
 import com.mushokumagic.MushokuMagic;
+import com.mushokumagic.world.ClientStormWeather;
 import net.minecraft.class_304;
 import net.minecraft.class_310;
 import net.minecraft.class_3675;
@@ -39,7 +40,11 @@ public final class MushokuMagicClient {
 
         @SubscribeEvent
         public static void onClientTick(TickEvent.ClientTickEvent event) {
-            if (event.phase != TickEvent.Phase.END || keySpells == null) {
+            if (event.phase != TickEvent.Phase.END) {
+                return;
+            }
+            ClientStormWeather.tick();
+            if (keySpells == null) {
                 return;
             }
             class_310 client = class_310.method_1551();

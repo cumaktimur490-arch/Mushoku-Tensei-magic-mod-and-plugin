@@ -416,6 +416,15 @@ public final class SevereWeatherManager {
                 level.method_65096(STORM_CLOUD,
                         x, y, z,
                         1 + (int)Math.round(intensity * 2.0), 2.5, 1.45, 2.5, 0.006);
+                if (segment % 3 == 0 && band % 2 == 0) {
+                    SevereWeatherModel.VortexFlow flow = SevereWeatherModel.vortexFlow(
+                            x - system.x, z - system.z,
+                            system.travelX, system.travelZ,
+                            intensity, 0.38);
+                    level.method_65096((class_2394)class_2398.field_46763,
+                            x, y, z,
+                            0, flow.x(), flow.y(), flow.z(), 1.0);
+                }
                 if (segment % 3 != 1) {
                     level.method_65096(CLOUD, x, y + 0.55, z, 1, 2.6, 1.1, 2.6, 0.004);
                 }
@@ -437,6 +446,13 @@ public final class SevereWeatherManager {
                         x, y, z,
                         1, 0.42, 0.62, 0.42, 0.045 + intensity * 0.025);
                 if ((segment + layer) % 2 == 0) {
+                    SevereWeatherModel.VortexFlow flow = SevereWeatherModel.vortexFlow(
+                            x - system.x, z - system.z,
+                            system.travelX, system.travelZ,
+                            intensity, 1.0 - progress * 0.24);
+                    level.method_65096((class_2394)class_2398.field_46763,
+                            x, y, z,
+                            0, flow.x(), flow.y(), flow.z(), 1.0);
                     level.method_65096(CLOUD,
                             x, y + 0.55, z,
                             1, 0.62, 0.48, 0.62, 0.024);

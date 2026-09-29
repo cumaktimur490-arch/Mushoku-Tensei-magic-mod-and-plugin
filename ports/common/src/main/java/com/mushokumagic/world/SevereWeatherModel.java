@@ -166,6 +166,34 @@ public final class SevereWeatherModel {
         };
     }
 
+    /**
+     * Initial smoke-particle velocity for a rising vortex. Tangential circulation
+     * makes the funnel visibly rotate; inward flow gathers wisps into the core.
+     */
+    public static VortexFlow vortexFlow(
+            double offsetX,
+            double offsetZ,
+            double travelX,
+            double travelZ,
+            double intensity,
+            double updraft) {
+        double safeIntensity = clamp(intensity, 0.0, 1.0);
+        double radialLength = Math.hypot(offsetX, offsetZ);
+        double nx = radialLength > 1.0E-8 ? offsetX / radialLength : 1.0;
+        double nz = radialLength > 1.0E-8 ? offsetZ / radialLength : 0.0;
+        double travelLength = Math.hypot(travelX, travelZ);
+        double tx = travelLength > 1.0E-8 ? travelX / travelLength : 1.0;
+        double tz = travelLength > 1.0E-8 ? travelZ / travelLength : 0.0;
+        double tangential = 0.035 + safeIntensity * 0.085;
+        double inward = 0.015 + safeIntensity * 0.035;
+        double drift = 0.01 + safeIntensity * 0.025;
+        double vertical = clamp(0.035 + safeIntensity * 0.075 + clamp(updraft, 0.0, 1.25) * 0.08, 0.02, 0.22);
+        return new VortexFlow(
+                -nz * tangential - nx * inward + tx * drift,
+                vertical,
+                nx * tangential - nz * inward + tz * drift);
+    }
+
     private static double smooth(double value) {
         double amount = clamp(value, 0.0, 1.0);
         return amount * amount * (3.0 - 2.0 * amount);
@@ -184,6 +212,9 @@ public final class SevereWeatherModel {
         HAIL,
         TORNADO,
         SANDSTORM
+    }
+
+    public record VortexFlow(double x, double y, double z) {
     }
 
     public record Forces(

@@ -16,6 +16,7 @@ import com.mushokumagic.world.SevereWeatherManager;
 import com.mushokumagic.world.TemporaryBlocks;
 import com.mushokumagic.world.WeatherPhysics;
 import java.util.Locale;
+import net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -44,7 +45,13 @@ public final class MagicEvents {
     public static void init() {
         ServerMessageEvents.ALLOW_CHAT_MESSAGE.register((message, sender, params) -> !CastManager.handleChat(sender, message.method_44862()));
         ServerLivingEntityEvents.AFTER_DEATH.register(MagicEvents::onDeath);
-        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> MagicEvents.onJoin(handler.method_32311()));
+        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+            class_3222 player = handler.method_32311();
+            MagicEvents.onJoin(player);
+            LocalStormManager.syncToPlayer(player);
+        });
+        ServerEntityWorldChangeEvents.AFTER_PLAYER_CHANGE_WORLD.register(
+                (player, origin, destination) -> LocalStormManager.syncToPlayer(player));
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> CastManager.cancel(handler.method_32311()));
         ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> CastManager.cancel(newPlayer));
         UseItemCallback.EVENT.register(MagicEvents::onUseItem);

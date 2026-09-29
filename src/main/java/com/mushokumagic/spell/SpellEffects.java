@@ -395,18 +395,16 @@ public final class SpellEffects {
             ++affected;
         }
         SpellEffects.extinguish(level, point, radius);
+        LocalStormManager.start(level, point, stormDuration);
         if (!params.silent()) {
-            LocalStormManager.start(level, point, stormDuration);
             int intensity = MagicScaling.intensity(power);
             double cloudRadius = Math.min(24.0, Math.max(4.0, radius * 0.75));
             if (params.largeVisuals()) cloudRadius = Math.min(36.0, cloudRadius * 1.65);
             class_243 cloud = point.method_1019(new class_243(0.0, Math.max(5.0, Math.min(12.0, radius * 0.25)), 0.0));
             int cloudCount = Math.min(params.largeVisuals() ? 360 : 260, 50 + intensity * 16 + (params.largeVisuals() ? 80 : 0));
-            int rainCount = Math.min(params.largeVisuals() ? 600 : 420, 80 + intensity * 22 + (params.largeVisuals() ? 140 : 0));
             SpellEffects.coloredBurst(level, cloud, "water", Math.min(8.0, cloudRadius * 0.4), power, false, params.largeVisuals());
             level.method_65096((class_2394)class_2398.field_11204, cloud.method_10216(), cloud.method_10214(), cloud.method_10215(), cloudCount, cloudRadius, 2.5, cloudRadius, 0.015);
             level.method_65096(MagicPalette.body("water", 0.7f), cloud.method_10216(), cloud.method_10214(), cloud.method_10215(), 18 + intensity * 5 + (params.largeVisuals() ? 30 : 0), cloudRadius * 0.7, 1.5, cloudRadius * 0.7, 0.01);
-            level.method_65096((class_2394)class_2398.field_11242, cloud.method_10216(), cloud.method_10214(), cloud.method_10215(), rainCount, cloudRadius, 1.5, cloudRadius, 0.12);
             level.method_65096((class_2394)class_2398.field_11202, point.method_10216(), point.method_10214(), point.method_10215(), 28 + intensity * 8 + (params.largeVisuals() ? 48 : 0), radius * 0.55, 0.4, radius * 0.55, 0.04);
             SpellEffects.waterBurst(level, point, Math.min(6.0, radius * 0.25), power, params.largeVisuals());
             level.method_43128(null, point.method_10216(), point.method_10214(), point.method_10215(), class_3417.field_14843, class_3419.field_15248, 1.4f, 0.65f);

@@ -1,14 +1,13 @@
 package com.mushokumagic.world;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import net.minecraft.class_2394;
-import net.minecraft.class_2398;
 import net.minecraft.class_243;
 import net.minecraft.class_3218;
 import net.minecraft.class_3222;
@@ -19,9 +18,11 @@ public final class LocalStormManager {
     private static final int TICK_INTERVAL = 5;
     private static final int MAX_STORMS_PER_WORLD = 8;
     private static final long FADE_TICKS = 100L;
+    private static final long CLIENT_SYNC_INTERVAL = 100L;
     private static final long MIN_LIGHTNING_DELAY = 240L;
     private static final long LIGHTNING_DELAY_VARIANCE = 360L;
     private static final Map<class_3218, List<Storm>> STORMS = new IdentityHashMap<>();
+    private static final Set<class_3218> DIRTY_CLIENT_SNAPSHOTS = Collections.newSetFromMap(new IdentityHashMap<>());
 
     private LocalStormManager() {
     }
@@ -38,13 +39,52 @@ public final class LocalStormManager {
             if (!storm.sector.equals(sector)) {
                 continue;
             }
-            storm.endTick = Math.max(storm.endTick, endTick);
+            if (endTick > storm.endTick) {
+                storm.endTick = endTick;
+                DIRTY_CLIENT_SNAPSHOTS.add(level);
+            }
             return;
         }
         if (storms.size() >= MAX_STORMS_PER_WORLD) {
             storms.remove(0);
         }
         storms.add(new Storm(sector, now, endTick, now + LocalStormManager.lightningDelay(level)));
+        DIRTY_CLIENT_SNAPSHOTS.add(level);
+    }
+
+    /** Sends active sectors after a player joins or changes dimensions. */
+    public static void syncToPlayer(class_3222 player) {
+        if (player == null) {
+            return;
+        }
+        class_3218 level = player.method_51469();
+        LocalWeatherNetwork.syncToPlayer(player, level, LocalStormManager.snapshots(level));
+    }
+
+    private static List<StormSnapshot> snapshots(class_3218 level) {
+        List<Storm> storms = STORMS.get(level);
+        if (storms == null || storms.isEmpty()) {
+            return List.of();
+        }
+        ArrayList<StormSnapshot> snapshots = new ArrayList<>(storms.size());
+        for (Storm storm : storms) {
+            snapshots.add(new StormSnapshot(
+                    storm.sector.minChunkX(),
+                    storm.sector.minChunkZ(),
+                    storm.sector.widthChunks(),
+                    storm.startTick,
+                    storm.endTick));
+        }
+        return List.copyOf(snapshots);
+    }
+
+    private static void syncWorld(class_3218 level, List<class_3222> players) {
+        List<StormSnapshot> snapshots = LocalStormManager.snapshots(level);
+        for (class_3222 player : players) {
+            if (player.method_51469() == level) {
+                LocalWeatherNetwork.syncToPlayer(player, level, snapshots);
+            }
+        }
     }
 
     public static void tick(MinecraftServer server) {
@@ -58,9 +98,16 @@ public final class LocalStormManager {
             class_3218 level = entry.getKey();
             List<Storm> storms = entry.getValue();
             long now = level.method_75260();
+            int previousStormCount = storms.size();
             storms.removeIf(storm -> now >= storm.endTick);
+            boolean dirtySnapshot = DIRTY_CLIENT_SNAPSHOTS.remove(level);
+            boolean snapshotChanged = storms.size() != previousStormCount || dirtySnapshot;
+            if (snapshotChanged || now % CLIENT_SYNC_INTERVAL == 0L) {
+                LocalStormManager.syncWorld(level, players);
+            }
             if (storms.isEmpty()) {
                 worlds.remove();
+                DIRTY_CLIENT_SNAPSHOTS.remove(level);
                 continue;
             }
             if (now % TICK_INTERVAL != 0L) {
@@ -101,6 +148,7 @@ public final class LocalStormManager {
 
     public static void clear() {
         STORMS.clear();
+        DIRTY_CLIENT_SNAPSHOTS.clear();
     }
 
     /** Samples the storm's cyclonic wind and convective lift inside its fixed 20x20 chunk sector. */
@@ -174,39 +222,11 @@ public final class LocalStormManager {
     private static void spawnWeather(class_3218 level, WeatherCell cell, Storm storm, long now) {
         double strength = storm.strengthAt(now);
         double x = cell.centerX();
-        double rainY = cell.minY() + 24.0;
         double cloudY = cell.minY() + 27.0;
         double z = cell.centerZ();
         StormWeather flow = LocalStormManager.weatherAt(level, x, z);
         double driftX = flow.windX() * flow.windStrength() * 3.0;
         double driftZ = flow.windZ() * flow.windStrength() * 3.0;
-        RegionalWeatherModel.WeatherState climate = RegionalWeatherManager.sampleAt(level, x, rainY, z);
-        boolean snowing = climate.temperature() <= 0.15;
-        class_2394 precipitation = snowing
-                ? (class_2394)class_2398.field_28013
-                : (class_2394)class_2398.field_11242;
-        double rainSpread = 15.0 + strength * 7.0;
-        int rainCount = 14 + (int)Math.round(70.0 * strength);
-        if (snowing) {
-            rainCount = Math.max(8, rainCount / 2);
-        }
-
-        level.method_65096(precipitation,
-                x + driftX, rainY, z + driftZ,
-                rainCount, rainSpread, snowing ? 3.0 : 8.0, rainSpread, snowing ? 0.025 : 0.075);
-        WeatherVisuals.emitDirectionalPrecipitation(
-                level,
-                precipitation,
-                x + driftX,
-                rainY - 1.0,
-                z + driftZ,
-                snowing ? 5 : 8,
-                rainSpread * 0.7,
-                9.0,
-                flow.windX(),
-                flow.windZ(),
-                flow.windStrength(),
-                snowing);
         if (now % 10L == 0L) {
             WeatherVisuals.emitCloudDeck(
                     level,
@@ -272,6 +292,14 @@ public final class LocalStormManager {
         private int centerZ() {
             return this.cellZ * 16 + 8;
         }
+    }
+
+    public record StormSnapshot(
+            int minChunkX,
+            int minChunkZ,
+            int widthChunks,
+            long startTick,
+            long endTick) {
     }
 
     public record StormWeather(

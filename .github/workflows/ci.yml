@@ -59,6 +59,42 @@ jobs:
         shell: bash
         run: echo "version=$(sed -n 's/^mod_version=//p' gradle.properties)" >> "$GITHUB_OUTPUT"
 
+      - name: Verify Fabric staff display transforms
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          from zipfile import ZipFile
+
+          jars = [path for path in Path("build/libs").glob("mushoku-magic-*.jar") if not path.stem.endswith("-sources")]
+          if len(jars) != 1:
+              raise SystemExit(f"Expected one Fabric runtime jar, found {jars}")
+          required_hands = (
+              "firstperson_righthand", "firstperson_lefthand",
+              "thirdperson_righthand", "thirdperson_lefthand",
+          )
+          with ZipFile(jars[0]) as jar:
+              for item_id in (
+                  "wand_1", "wand_2", "wand_3",
+                  "enchanted_stick_1", "enchanted_stick_2", "enchanted_stick_3",
+              ):
+                  path = f"assets/mushoku_magic/models/item/{item_id}.json"
+                  model = json.loads(jar.read(path))
+                  if model.get("parent") != "minecraft:item/handheld":
+                      raise SystemExit(f"{jars[0]} model {path} is not handheld")
+                  display = model.get("display", {})
+                  for hand in required_hands:
+                      transform = display.get(hand)
+                      if transform is None:
+                          raise SystemExit(f"{jars[0]} model {path} has no {hand} transform")
+                      if any(len(transform.get(field, [])) != 3 for field in ("rotation", "translation", "scale")):
+                          raise SystemExit(f"{jars[0]} model {path} has an incomplete {hand} transform")
+                      if any(not 0.0 < value <= 1.0 for value in transform["scale"]):
+                          raise SystemExit(f"{jars[0]} model {path} has an invalid {hand} scale")
+          print(f"Verified staff hand transforms in {jars[0]}")
+          PY
+
       - name: Upload the Fabric mod jar
         uses: actions/upload-artifact@v4
         with:
@@ -155,11 +191,24 @@ jobs:
                       "wand_1", "wand_2", "wand_3",
                       "enchanted_stick_1", "enchanted_stick_2", "enchanted_stick_3",
                   ]
+                  required_hands = (
+                      "firstperson_righthand", "firstperson_lefthand",
+                      "thirdperson_righthand", "thirdperson_lefthand",
+                  )
                   for item_id in held_item_ids:
                       model_path = f"assets/mushoku_magic/models/item/{item_id}.json"
                       model = json.loads(jar.read(model_path))
                       if model.get("parent") != "minecraft:item/handheld":
-                          raise SystemExit(f"{jars[0]} model {model_path} is not sword-held")
+                          raise SystemExit(f"{jars[0]} model {model_path} is not handheld")
+                      display = model.get("display", {})
+                      for hand in required_hands:
+                          transform = display.get(hand)
+                          if transform is None:
+                              raise SystemExit(f"{jars[0]} model {model_path} has no {hand} transform")
+                          if any(len(transform.get(field, [])) != 3 for field in ("rotation", "translation", "scale")):
+                              raise SystemExit(f"{jars[0]} model {model_path} has an incomplete {hand} transform")
+                          if any(not 0.0 < value <= 1.0 for value in transform["scale"]):
+                              raise SystemExit(f"{jars[0]} model {model_path} has an invalid {hand} scale")
               print(f"Verified {jars[0]}")
           PY
 
@@ -267,17 +316,16 @@ jobs:
           cat > "$RUNNER_TEMP/release-notes.md" <<'EOF'
           ## Highlights
 
-          - Fixes Forge startup by deferring item construction until the item registry event.
-          - Adds valid Minecraft 1.20.1 pack metadata and verifies that item models, textures, translations, and recipes ship in both native jars.
-          - Wands and enchanted sticks use Minecraft's handheld model parent, so they are presented in the hand like swords.
-          - Provides separate native Forge and NeoForge jars for Minecraft 1.20.1; the unchanged Fabric 1.21.11 jar is included for convenience.
-          - The Forge jar declares Luxium and Embeddium as optional client-side dependencies. Luxium-specific weather rendering is not claimed; effects continue to use Minecraft particles.
-          - Install only the jar matching the instance's loader.
+          - Cumulonimbus now synchronizes a real 20×20-chunk local storm state; vanilla rain is rendered only for modded clients inside the sector and their previous weather state is restored on exit. Server-wide weather is never switched.
+          - Tornado and cyclone smoke particles receive bounded inward, rotational, and upward velocities, creating rising vortex streams without expensive all-pairs particle collisions.
+          - Staff and enchanted-stick models now have per-item hand orientation, scale, translation, and left/right first- and third-person transforms.
+          - Includes Fabric 1.21.11 and separate native Forge and NeoForge jars for Minecraft 1.20.1. Install only the jar matching the instance's loader.
+          - The Forge jar declares Luxium and Embeddium as optional client-side dependencies. No Luxium-specific renderer patch is claimed.
 
           ## Verification
 
           - GitHub Actions passed for Fabric, Forge, and NeoForge builds and tests.
-          - Loader metadata and the Forge-only optional Luxium declaration were verified in the published jars.
+          - CI verified native metadata and required resources, Forge-only optional Luxium metadata, and all six models' hand transforms in each loader jar.
           EOF
           mapfile -t assets < "$RUNNER_TEMP/release-assets.txt"
           gh release create "$tag" "${assets[@]}" \
