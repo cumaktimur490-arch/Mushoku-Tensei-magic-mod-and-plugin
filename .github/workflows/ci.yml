@@ -109,6 +109,7 @@ jobs:
         shell: bash
         run: |
           python3 - <<'PY'
+          import json
           from pathlib import Path
           from zipfile import ZipFile
 
@@ -147,6 +148,9 @@ jobs:
                   missing_resources = required_resources - names
                   if missing_resources:
                       raise SystemExit(f"{jars[0]} is missing resources: {sorted(missing_resources)}")
+                  pack_metadata = json.loads(jar.read("pack.mcmeta"))
+                  if pack_metadata.get("pack", {}).get("pack_format") != 15:
+                      raise SystemExit(f"{jars[0]} has invalid Minecraft 1.20.1 pack metadata")
               print(f"Verified {jars[0]}")
           PY
 
