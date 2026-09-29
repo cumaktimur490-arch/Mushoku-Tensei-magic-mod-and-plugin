@@ -130,6 +130,23 @@ jobs:
                   has_luxium = 'modId="luxium"' in metadata
                   if has_luxium != luxium_expected:
                       raise SystemExit(f"Luxium dependency metadata is incorrect in {jars[0]}")
+                  item_ids = [
+                      "magic_stone_1", "magic_stone_2", "magic_stone_3",
+                      "enchanted_stick_1", "enchanted_stick_2", "enchanted_stick_3",
+                      "wand_1", "wand_2", "wand_3",
+                  ]
+                  required_resources = {
+                      "pack.mcmeta",
+                      "assets/mushoku_magic/lang/en_us.json",
+                      "assets/mushoku_magic/lang/ru_ru.json",
+                  }
+                  for item_id in item_ids:
+                      required_resources.add(f"assets/mushoku_magic/models/item/{item_id}.json")
+                      required_resources.add(f"assets/mushoku_magic/textures/item/{item_id}.png")
+                      required_resources.add(f"data/mushoku_magic/recipes/{item_id}.json")
+                  missing_resources = required_resources - names
+                  if missing_resources:
+                      raise SystemExit(f"{jars[0]} is missing resources: {sorted(missing_resources)}")
               print(f"Verified {jars[0]}")
           PY
 
@@ -238,6 +255,7 @@ jobs:
           ## Highlights
 
           - Fixes Forge startup by deferring item construction until the item registry event.
+          - Adds valid Minecraft 1.20.1 pack metadata and verifies that item models, textures, translations, and recipes ship in both native jars.
           - Provides separate native Forge and NeoForge jars for Minecraft 1.20.1; the unchanged Fabric 1.21.11 jar is included for convenience.
           - The Forge jar declares Luxium and Embeddium as optional client-side dependencies. Luxium-specific weather rendering is not claimed; effects continue to use Minecraft particles.
           - Install only the jar matching the instance's loader.
