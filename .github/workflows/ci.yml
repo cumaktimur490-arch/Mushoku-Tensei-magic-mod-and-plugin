@@ -188,9 +188,6 @@ jobs:
 
           fabric_version = properties("gradle.properties")["mod_version"]
           port_version = properties("ports/gradle.properties")["port_version"]
-          if fabric_version != port_version:
-              raise SystemExit(f"Fabric {fabric_version} and port {port_version} versions differ")
-
           assets = {
               "Fabric": (f"mushoku-magic-{fabric_version}.jar", "fabric"),
               "Forge": (f"mushoku-magic-forge-1.20.1-{port_version}.jar", "forge"),
@@ -217,7 +214,7 @@ jobs:
               print(jar_path)
               print(f"Verified {loader}: {jar_path}")
           PY
-          version="$(sed -n 's/^mod_version=//p' gradle.properties)"
+          version="$(sed -n 's/^port_version=//p' ports/gradle.properties)"
           echo "version=$version" >> "$GITHUB_OUTPUT"
           mapfile -t assets < <(find release-assets -type f -name '*.jar' ! -name '*-sources.jar' | sort)
           if [[ "${#assets[@]}" -ne 3 ]]; then
@@ -240,9 +237,10 @@ jobs:
           cat > "$RUNNER_TEMP/release-notes.md" <<'EOF'
           ## Highlights
 
-          - Adds separate native Forge and NeoForge mod jars for Minecraft 1.20.1; the existing Fabric 1.21.11 build remains available.
+          - Fixes Forge startup by deferring item construction until the item registry event.
+          - Provides separate native Forge and NeoForge jars for Minecraft 1.20.1; the unchanged Fabric 1.21.11 jar is included for convenience.
           - The Forge jar declares Luxium and Embeddium as optional client-side dependencies. Luxium-specific weather rendering is not claimed; effects continue to use Minecraft particles.
-          - Includes the shared magic, spell, and regional weather systems. Install only the jar matching the instance's loader.
+          - Install only the jar matching the instance's loader.
 
           ## Verification
 
