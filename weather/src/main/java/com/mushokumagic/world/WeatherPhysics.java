@@ -103,6 +103,8 @@ public final class WeatherPhysics {
                 snowing,
                 hailing,
                 exposed && (regional.thunderstorm() || storm.thunderstorm()
+                        || severe.kind() == SevereWeatherModel.Kind.SUPERCELL
+                        || severe.kind() == SevereWeatherModel.Kind.SQUALL
                         || severe.kind() == SevereWeatherModel.Kind.TORNADO
                         || severe.kind() == SevereWeatherModel.Kind.HAIL
                         || severe.kind() == SevereWeatherModel.Kind.HURRICANE));

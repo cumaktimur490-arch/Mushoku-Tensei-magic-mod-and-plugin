@@ -33,6 +33,44 @@ class SevereWeatherModelTest {
     }
 
     @Test
+    void rotatingThunderstormsCanBecomeSupercellsOrSquallLines() {
+        RegionalWeatherModel.WeatherState rotatingStorm = weather(0.42, 0.90, 0.94, 0.72, 0.88, true);
+        SevereWeatherModel.SpawnChances defaultOdds = new SevereWeatherModel.SpawnChances(
+                1.0, 0.22, 0.0, 0.0, 0.0, 0.0, 0.0);
+        SevereWeatherModel.SpawnChances squallOnly = new SevereWeatherModel.SpawnChances(
+                1.0, 0.0, 0.30, 0.0, 0.0, 0.0, 0.0);
+
+        assertEquals(
+                SevereWeatherModel.Kind.SUPERCELL,
+                SevereWeatherModel.chooseKind(rotatingStorm, 0.8f, true, 0.08, defaultOdds));
+        assertEquals(
+                SevereWeatherModel.Kind.SQUALL,
+                SevereWeatherModel.chooseKind(rotatingStorm, 0.8f, true, 0.20, squallOnly));
+
+        SevereWeatherModel.Forces supercell = SevereWeatherModel.forces(
+                SevereWeatherModel.Kind.SUPERCELL, 0.85, 0.8, 9.0, 0.0, 1.0, 0.0);
+        SevereWeatherModel.Forces squall = SevereWeatherModel.forces(
+                SevereWeatherModel.Kind.SQUALL, 0.85, 0.8, 0.0, 0.0, 1.0, 0.0);
+        assertTrue(supercell.verticalLift() > 0.4);
+        assertTrue(supercell.precipitationIntensity() > 0.8);
+        assertTrue(squall.windStrength() > 1.0);
+        assertTrue(squall.precipitationIntensity() > 0.8);
+    }
+
+    @Test
+    void naturalStormsCanIntensifyDuringMaturityThenDissipate() {
+        assertEquals(1.0, SevereWeatherModel.strengtheningMultiplier(0L, 2_000L, 0.5), 0.0);
+        assertTrue(SevereWeatherModel.strengtheningMultiplier(1_000L, 2_000L, 0.5) > 1.3);
+        assertTrue(SevereWeatherModel.strengtheningMultiplier(1_950L, 2_000L, 0.5) < 1.01);
+        assertEquals(SevereWeatherModel.DevelopmentStage.FORMING,
+                SevereWeatherModel.developmentStage(100L, 2_000L));
+        assertEquals(SevereWeatherModel.DevelopmentStage.MATURE,
+                SevereWeatherModel.developmentStage(1_000L, 2_000L));
+        assertEquals(SevereWeatherModel.DevelopmentStage.DISSIPATING,
+                SevereWeatherModel.developmentStage(1_800L, 2_000L));
+    }
+
+    @Test
     void coldThunderstormsCanProduceHail() {
         RegionalWeatherModel.WeatherState storm = weather(0.35, 0.83, 0.9, 0.3, 0.8, true);
 

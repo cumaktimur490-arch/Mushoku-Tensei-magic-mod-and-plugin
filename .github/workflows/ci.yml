@@ -409,6 +409,8 @@ jobs:
 
           - Weather is now a standalone mod and can run without Magic. Magic requires Weather; install both matching jars to use weather-interacting spells.
           - Cumulonimbus synchronizes its real 20×20-chunk local storm state; only clients inside the sector get the local vanilla rain view, and prior values are restored on exit. Server-wide weather is never switched.
+          - Adds moving supercells and fast squall lines with forming, mature, strengthening, and dissipating phases; layered anvils, rotating wall clouds, gust fronts, directional rain curtains, hail, and strong local winds.
+          - `/magicweather supercell` and `/magicweather squall` start local storms; spawn frequency, size, strength, active-system limits, and strengthening are configurable. Optional tornado/cyclone block damage is off by default and strictly capped.
           - Tornado and cyclone smoke receives bounded inward, rotational, and upward velocities without expensive all-pairs particle collisions.
           - Staff and enchanted-stick models have per-item hand orientation, scale, translation, and left/right first- and third-person transforms.
           - Includes separate Fabric 1.21.11 and native Forge/NeoForge 1.20.1 Weather and Magic jars. Install only the matching loader/version pair.

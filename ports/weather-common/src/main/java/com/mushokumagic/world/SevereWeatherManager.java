@@ -1,7 +1,6 @@
 package com.mushokumagic.world;
 
 import com.mushokumagic.config.WeatherConfig;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -28,7 +27,7 @@ public final class SevereWeatherManager {
     private static final long PARTICLE_INTERVAL = 5L;
     private static final long BLOCK_CHECK_INTERVAL = 40L;
     private static final long EVENT_CELL_COOLDOWN = 12_000L;
-    private static final int MAX_SYSTEMS_PER_WORLD = 4;
+    private static final int HARD_MAX_SYSTEMS_PER_WORLD = 10;
     private static final double MIN_PLAYER_DISTANCE = 320.0;
     private static final double PARTICLE_VIEW_PADDING = 96.0;
     private static final class_2394 CLOUD = WeatherPalette.dust(0xCFD9E0, 1.45f);
@@ -64,17 +63,18 @@ public final class SevereWeatherManager {
                 continue;
             }
 
+            WeatherConfig config = WeatherConfig.get();
             for (SystemCell system : state.systems) {
                 system.moveTo(now);
                 if (!SevereWeatherManager.hasNearbyPlayer(players, level, system)) {
                     continue;
                 }
                 SevereWeatherManager.emitWeather(level, system, now);
-                if (WeatherConfig.get().weatherBlockDamage
+                if (config.weatherBlockDamage
                         && (system.kind == SevereWeatherModel.Kind.TORNADO
                                 || system.kind == SevereWeatherModel.Kind.HURRICANE)
                         && now % BLOCK_CHECK_INTERVAL == 0L) {
-                    SevereWeatherManager.damageFragileBlock(level, system);
+                    SevereWeatherManager.damageFragileBlock(level, system, config);
                 }
             }
         }
@@ -101,8 +101,7 @@ public final class SevereWeatherManager {
             if (radial <= 0.0) {
                 continue;
             }
-            double life = SevereWeatherModel.lifecycleStrength(now - system.startTick, system.duration());
-            double intensity = system.baseIntensity * life * radial;
+            double intensity = system.intensityAt(now) * radial;
             if (intensity <= strongest.intensity() || intensity < 0.025) {
                 continue;
             }
@@ -152,30 +151,47 @@ public final class SevereWeatherManager {
         double windLength = Math.hypot(climate.windX(), climate.windZ());
         double travelX = windLength > 1.0E-8 ? climate.windX() / windLength : 1.0;
         double travelZ = windLength > 1.0E-8 ? climate.windZ() / windLength : 0.0;
+        WeatherConfig config = WeatherConfig.get();
+        double size = clamp(config.stormSizeMultiplier, 0.5, 2.5);
         double radius = switch (kind) {
+            case SUPERCELL -> 118.0;
+            case SQUALL -> 152.0;
             case HURRICANE -> 144.0;
             case TORNADO -> 38.0;
             case HAIL -> 58.0;
             case SANDSTORM -> 72.0;
             case NONE -> 0.0;
         };
+        radius = clamp(radius * size, 12.0, 360.0);
         double travelSpeed = switch (kind) {
+            case SUPERCELL -> 0.010;
+            case SQUALL -> 0.052;
             case HURRICANE -> 0.011;
             case TORNADO -> 0.034;
             case HAIL -> 0.018;
             case SANDSTORM -> 0.038;
             case NONE -> 0.0;
         };
-        int height = kind == SevereWeatherModel.Kind.TORNADO ? 48 : 28;
+        int height = (int)Math.round((kind == SevereWeatherModel.Kind.TORNADO ? 48 : switch (kind) {
+            case SUPERCELL -> 56;
+            case SQUALL -> 34;
+            default -> 28;
+        }) * Math.sqrt(size));
+        height = Math.max(20, Math.min(112, height));
         long now = level.method_8510();
         double offset = kind == SevereWeatherModel.Kind.TORNADO ? 26.0 : 18.0;
         if (kind == SevereWeatherModel.Kind.TORNADO || kind == SevereWeatherModel.Kind.HURRICANE) {
             offset += level.field_9229.method_43058() * 14.0;
         }
         WorldState state = WORLDS.computeIfAbsent(level, ignored -> new WorldState());
-        if (state.systems.size() >= MAX_SYSTEMS_PER_WORLD) {
+        if (state.systems.size() >= maxSystemsPerWorld()) {
             state.systems.remove(0);
         }
+        double intensity = clamp(
+                Math.max(0.78, SevereWeatherModel.initialIntensity(kind, climate)) * config.stormStrengthMultiplier,
+                0.0,
+                1.0);
+        double strengtheningBoost = level.field_9229.method_43058() < config.stormStrengtheningChance ? 0.35 : 0.0;
         state.systems.add(new SystemCell(
                 kind,
                 center.method_10216() + travelX * offset,
@@ -186,7 +202,8 @@ public final class SevereWeatherManager {
                 travelSpeed,
                 radius,
                 height,
-                Math.max(0.78, SevereWeatherModel.initialIntensity(kind, climate)),
+                intensity,
+                strengtheningBoost,
                 level.field_9229.method_43058() * Math.PI * 2.0,
                 now,
                 now + Math.min(72_000L, (long)durationTicks)));
@@ -218,18 +235,28 @@ public final class SevereWeatherManager {
                 position.method_10214(),
                 position.method_10215());
         double roll = level.field_9229.method_43058();
+        WeatherConfig config = WeatherConfig.get();
+        SevereWeatherModel.SpawnChances spawnChances = new SevereWeatherModel.SpawnChances(
+                config.severeWeatherSpawnMultiplier,
+                config.supercellSpawnChance,
+                config.squallSpawnChance,
+                config.tornadoSpawnChance,
+                config.cycloneSpawnChance,
+                config.hailSpawnChance,
+                config.sandstormSpawnChance);
         SevereWeatherModel.Kind kind = SevereWeatherModel.chooseKind(
                 climate,
                 biome.method_8712(),
                 biome.method_48163(),
-                roll);
+                roll,
+                spawnChances);
         if (kind == SevereWeatherModel.Kind.NONE) {
             return;
         }
 
         EventCell eventCell = EventCell.from(position);
         if (state.nextEventTick.getOrDefault(eventCell, 0L) > now
-                || state.systems.size() >= MAX_SYSTEMS_PER_WORLD
+                || state.systems.size() >= maxSystemsPerWorld()
                 || SevereWeatherManager.hasNearbySystem(state.systems, position.method_10216(), position.method_10215())) {
             return;
         }
@@ -238,7 +265,10 @@ public final class SevereWeatherManager {
         double offset = 16.0 + level.field_9229.method_43058() * 24.0;
         double centerX = position.method_10216() + Math.cos(angle) * offset;
         double centerZ = position.method_10215() + Math.sin(angle) * offset;
+        double size = clamp(config.stormSizeMultiplier, 0.5, 2.5);
         double duration = switch (kind) {
+            case SUPERCELL -> 9_000.0 + level.field_9229.method_43058() * 12_000.0;
+            case SQUALL -> 3_200.0 + level.field_9229.method_43058() * 3_600.0;
             case HURRICANE -> 12_000.0 + level.field_9229.method_43058() * 12_000.0;
             case TORNADO -> 3_200.0 + level.field_9229.method_43058() * 2_400.0;
             case HAIL -> 1_800.0 + level.field_9229.method_43058() * 1_800.0;
@@ -246,13 +276,18 @@ public final class SevereWeatherManager {
             case NONE -> 0.0;
         };
         double radius = switch (kind) {
+            case SUPERCELL -> 96.0 + level.field_9229.method_43058() * 56.0;
+            case SQUALL -> 118.0 + level.field_9229.method_43058() * 70.0;
             case HURRICANE -> 128.0 + level.field_9229.method_43058() * 64.0;
             case TORNADO -> 34.0 + level.field_9229.method_43058() * 10.0;
             case HAIL -> 48.0 + level.field_9229.method_43058() * 20.0;
             case SANDSTORM -> 60.0 + level.field_9229.method_43058() * 24.0;
             case NONE -> 0.0;
         };
+        radius = clamp(radius * size, 12.0, 360.0);
         double travelSpeed = switch (kind) {
+            case SUPERCELL -> 0.006 + level.field_9229.method_43058() * 0.008;
+            case SQUALL -> 0.045 + level.field_9229.method_43058() * 0.030;
             case HURRICANE -> 0.008 + level.field_9229.method_43058() * 0.007;
             case TORNADO -> 0.026 + level.field_9229.method_43058() * 0.018;
             case HAIL -> 0.012 + level.field_9229.method_43058() * 0.012;
@@ -264,9 +299,17 @@ public final class SevereWeatherManager {
         double travelZ = travelLength > 1.0E-8 ? climate.windZ() / travelLength : 0.0;
         int height = switch (kind) {
             case TORNADO -> 30 + (int)Math.round(26.0 * SevereWeatherModel.initialIntensity(kind, climate));
+            case SUPERCELL -> 48 + (int)Math.round(16.0 * SevereWeatherModel.initialIntensity(kind, climate));
+            case SQUALL -> 32;
             case HURRICANE -> 34;
             default -> 20;
         };
+        height = Math.max(20, Math.min(112, (int)Math.round(height * Math.sqrt(size))));
+        double baseIntensity = clamp(
+                SevereWeatherModel.initialIntensity(kind, climate) * config.stormStrengthMultiplier,
+                0.0,
+                1.0);
+        double strengtheningBoost = level.field_9229.method_43058() < config.stormStrengtheningChance ? 0.35 : 0.0;
         SystemCell system = new SystemCell(
                 kind,
                 centerX,
@@ -277,15 +320,21 @@ public final class SevereWeatherManager {
                 travelSpeed,
                 radius,
                 height,
-                SevereWeatherModel.initialIntensity(kind, climate),
+                baseIntensity,
+                strengtheningBoost,
                 level.field_9229.method_43058() * Math.PI * 2.0,
                 now,
                 now + (long)duration);
         state.systems.add(system);
         state.nextEventTick.put(eventCell, now + EVENT_CELL_COOLDOWN);
-        if (state.systems.size() > MAX_SYSTEMS_PER_WORLD) {
-            state.systems.remove(0);
-        }
+    }
+
+    private static int maxSystemsPerWorld() {
+        return Math.max(1, Math.min(HARD_MAX_SYSTEMS_PER_WORLD, WeatherConfig.get().maxConcurrentStorms));
+    }
+
+    private static double clamp(double value, double min, double max) {
+        return Double.isFinite(value) ? Math.max(min, Math.min(max, value)) : min;
     }
 
     private static boolean hasNearbySystem(List<SystemCell> systems, double x, double z) {
@@ -315,8 +364,7 @@ public final class SevereWeatherManager {
     }
 
     private static void emitWeather(class_3218 level, SystemCell system, long now) {
-        double lifecycle = SevereWeatherModel.lifecycleStrength(now - system.startTick, system.duration());
-        double intensity = system.baseIntensity * lifecycle;
+        double intensity = system.intensityAt(now);
         if (intensity <= 0.02) {
             return;
         }
@@ -326,6 +374,8 @@ public final class SevereWeatherManager {
         }
 
         switch (system.kind) {
+            case SUPERCELL -> SevereWeatherManager.emitSupercell(level, system, now, cloudY, intensity);
+            case SQUALL -> SevereWeatherManager.emitSquall(level, system, now, cloudY, intensity);
             case HURRICANE -> {
                 class_2394 rain = (class_2394)class_2398.field_11242;
                 level.method_14199(rain,
@@ -385,7 +435,13 @@ public final class SevereWeatherManager {
             double cloudY,
             double intensity,
             long now) {
-        double cloudRadius = system.radius * (system.kind == SevereWeatherModel.Kind.TORNADO ? 0.82 : 0.68);
+        double cloudScale = switch (system.kind) {
+            case SUPERCELL -> 0.78;
+            case SQUALL -> 0.92;
+            case TORNADO -> 0.82;
+            default -> 0.68;
+        };
+        double cloudRadius = system.radius * cloudScale;
         WeatherVisuals.emitCloudDeck(
                 level,
                 system.x,
@@ -397,6 +453,126 @@ public final class SevereWeatherManager {
                 system.travelZ,
                 now,
                 true);
+    }
+
+    /** Rotating updraft, broad anvil, wall cloud, and a dense rain/hail core. */
+    private static void emitSupercell(
+            class_3218 level,
+            SystemCell system,
+            long now,
+            double cloudY,
+            double intensity) {
+        class_2394 rain = (class_2394)class_2398.field_11242;
+        level.method_14199(rain,
+                system.x, cloudY - 7.0, system.z,
+                64 + (int)Math.round(108.0 * intensity), system.radius * 0.66, 10.0, system.radius * 0.62, 0.13);
+        WeatherVisuals.emitDirectionalPrecipitation(
+                level, rain, system.x, cloudY - 7.0, system.z,
+                8 + (int)Math.round(4.0 * intensity), system.radius * 0.58, 10.0,
+                system.travelX, system.travelZ, intensity, false);
+        WeatherVisuals.emitWindThreads(
+                level, system.x, system.baseY + 4.0, system.z,
+                4 + (int)Math.round(4.0 * intensity), system.radius * 0.30, 10.0,
+                system.travelX, system.travelZ, intensity);
+        if (intensity > 0.82) {
+            level.method_14199(HAIL_GRAIN,
+                    system.x, cloudY - 7.0, system.z,
+                    8 + (int)Math.round(22.0 * intensity), system.radius * 0.34, 9.0, system.radius * 0.34, 0.12);
+        }
+        if (now % 10L == 0L) {
+            SevereWeatherManager.emitSupercellStructure(level, system, now, cloudY, intensity);
+        }
+    }
+
+    private static void emitSupercellStructure(
+            class_3218 level,
+            SystemCell system,
+            long now,
+            double cloudY,
+            double intensity) {
+        double rotation = now * (0.018 + intensity * 0.012) + system.phase;
+        double crossX = -system.travelZ;
+        double crossZ = system.travelX;
+        for (int segment = 0; segment < 9; ++segment) {
+            double progress = segment / 8.0;
+            double along = system.radius * (0.18 + progress * 0.36);
+            double spread = (progress - 0.5) * system.radius * 1.25;
+            double x = system.x - system.travelX * along + crossX * spread;
+            double z = system.z - system.travelZ * along + crossZ * spread;
+            double y = cloudY + 2.0 + Math.sin(progress * Math.PI) * 4.0;
+            level.method_14199(STORM_CLOUD,
+                    x, y, z,
+                    2 + (int)Math.round(intensity * 2.0), system.radius * 0.11, 2.2, system.radius * 0.11, 0.002);
+            if (segment % 2 == 0) {
+                level.method_14199(CLOUD,
+                        x - system.travelX * 4.0, y + 1.8, z - system.travelZ * 4.0,
+                        2, system.radius * 0.08, 1.7, system.radius * 0.08, 0.001);
+            }
+        }
+
+        for (int band = 0; band < 2; ++band) {
+            double ringRadius = system.radius * (0.14 + band * 0.12);
+            double wallY = cloudY - 6.5 - band * 2.0;
+            for (int segment = 0; segment < 10; ++segment) {
+                double angle = rotation + segment * (Math.PI * 2.0 / 10.0) + band * 0.45;
+                double x = system.x + Math.cos(angle) * ringRadius;
+                double z = system.z + Math.sin(angle) * ringRadius;
+                level.method_14199(STORM_CLOUD, x, wallY, z, 1, 2.8, 1.6, 2.8, 0.006);
+                if ((segment + band) % 2 == 0) {
+                    SevereWeatherModel.VortexFlow flow = SevereWeatherModel.vortexFlow(
+                            x - system.x, z - system.z,
+                            system.travelX, system.travelZ,
+                            intensity, 0.9);
+                    level.method_14199((class_2394)class_2398.field_11237,
+                            x, wallY, z,
+                            0, flow.x(), flow.y(), flow.z(), 1.0);
+                }
+            }
+        }
+    }
+
+    /** A fast-moving, wind-driven line of cloud and precipitation with a leading gust front. */
+    private static void emitSquall(
+            class_3218 level,
+            SystemCell system,
+            long now,
+            double cloudY,
+            double intensity) {
+        class_2394 rain = (class_2394)class_2398.field_11242;
+        level.method_14199(rain,
+                system.x, cloudY - 7.0, system.z,
+                82 + (int)Math.round(112.0 * intensity), system.radius * 0.76, 8.0, system.radius * 0.48, 0.14);
+        WeatherVisuals.emitDirectionalPrecipitation(
+                level, rain, system.x, cloudY - 6.0, system.z,
+                10 + (int)Math.round(4.0 * intensity), system.radius * 0.62, 8.0,
+                system.travelX, system.travelZ, intensity, false);
+        WeatherVisuals.emitWindThreads(
+                level, system.x + system.travelX * system.radius * 0.25, system.baseY + 2.0,
+                system.z + system.travelZ * system.radius * 0.25,
+                7 + (int)Math.round(5.0 * intensity), system.radius * 0.66, 3.0,
+                system.travelX, system.travelZ, intensity);
+        if (now % 10L == 0L) {
+            SevereWeatherManager.emitSquallFront(level, system, cloudY, intensity);
+        }
+    }
+
+    private static void emitSquallFront(class_3218 level, SystemCell system, double cloudY, double intensity) {
+        double crossX = -system.travelZ;
+        double crossZ = system.travelX;
+        double frontOffset = system.radius * 0.28;
+        for (int segment = -5; segment <= 5; ++segment) {
+            double across = segment * system.radius * 0.105;
+            double x = system.x + system.travelX * frontOffset + crossX * across;
+            double z = system.z + system.travelZ * frontOffset + crossZ * across;
+            level.method_14199(STORM_CLOUD,
+                    x, cloudY - 3.5, z,
+                    2 + (int)Math.round(intensity * 2.0), system.radius * 0.085, 2.0, system.radius * 0.085, 0.003);
+            if (segment % 2 == 0) {
+                level.method_14199(CLOUD,
+                        x - system.travelX * 4.0, cloudY - 1.6, z - system.travelZ * 4.0,
+                        2, system.radius * 0.08, 1.4, system.radius * 0.08, 0.002);
+            }
+        }
     }
 
     private static void emitHurricaneBands(
@@ -472,28 +648,33 @@ public final class SevereWeatherManager {
         }
     }
 
-    private static void damageFragileBlock(class_3218 level, SystemCell system) {
-        if (system.damagedBlocks >= 24) {
+    private static void damageFragileBlock(class_3218 level, SystemCell system, WeatherConfig config) {
+        if (system.damagedBlocks >= config.maxBlocksPerStorm || config.maxDamageableBlockHardness <= 0.0) {
             return;
         }
-        for (int attempt = 0; attempt < 3; ++attempt) {
+        for (int attempt = 0; attempt < 8; ++attempt) {
             double angle = level.field_9229.method_43058() * Math.PI * 2.0;
-            double distance = Math.sqrt(level.field_9229.method_43058()) * system.radius * 0.45;
+            double distance = Math.sqrt(level.field_9229.method_43058()) * system.radius * 0.58;
             int x = (int)Math.floor(system.x + Math.cos(angle) * distance);
             int z = (int)Math.floor(system.z + Math.sin(angle) * distance);
-            int y = (int)Math.floor(system.baseY - 1.0 + level.field_9229.method_43058() * 3.0);
+            int y = (int)Math.floor(system.baseY - 1.0 + level.field_9229.method_43058() * Math.min(system.height, 36));
             class_2338 pos = class_2338.method_49637(x, y, z);
+            if (!level.method_8311(pos)) {
+                continue;
+            }
             class_2680 block = level.method_8320(pos);
             if (block.method_45474()) {
                 continue;
             }
             float hardness = block.method_26214(level, pos);
-            if (hardness < 0.0f || hardness > 0.3f) {
+            if (hardness < 0.0f || hardness > config.maxDamageableBlockHardness) {
                 continue;
             }
             level.method_8650(pos, false);
             system.damagedBlocks++;
-            break;
+            if (system.damagedBlocks >= config.maxBlocksPerStorm) {
+                return;
+            }
         }
     }
 
@@ -536,6 +717,7 @@ public final class SevereWeatherManager {
         private final double radius;
         private final int height;
         private final double baseIntensity;
+        private final double strengtheningBoost;
         private final double phase;
         private final long startTick;
         private final long endTick;
@@ -556,6 +738,7 @@ public final class SevereWeatherManager {
                 double radius,
                 int height,
                 double baseIntensity,
+                double strengtheningBoost,
                 double phase,
                 long startTick,
                 long endTick) {
@@ -569,6 +752,7 @@ public final class SevereWeatherManager {
             this.radius = radius;
             this.height = height;
             this.baseIntensity = baseIntensity;
+            this.strengtheningBoost = strengtheningBoost;
             this.phase = phase;
             this.startTick = startTick;
             this.endTick = endTick;
@@ -577,6 +761,13 @@ public final class SevereWeatherManager {
 
         private long duration() {
             return this.endTick - this.startTick;
+        }
+
+        private double intensityAt(long now) {
+            long age = now - this.startTick;
+            return this.baseIntensity
+                    * SevereWeatherModel.lifecycleStrength(age, this.duration())
+                    * SevereWeatherModel.strengtheningMultiplier(age, this.duration(), this.strengtheningBoost);
         }
 
         private void moveTo(long now) {

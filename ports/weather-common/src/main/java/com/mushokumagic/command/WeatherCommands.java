@@ -56,7 +56,7 @@ public final class WeatherCommands {
         context.getSource().method_9226(
                 () -> text("Погода локальная; vanilla /weather не переключает весь мир, когда региональная система включена."), false);
         context.getSource().method_9226(
-                () -> text("Использование: /magicweather <clear|cloudy|rain|thunder|snow|hail|tornado|cyclone|sandstorm> [секунды], /magicweather status или /magicweather reload."), false);
+                () -> text("Использование: /magicweather <clear|cloudy|rain|thunder|snow|hail|squall|supercell|tornado|cyclone|sandstorm> [секунды], /magicweather status или /magicweather reload."), false);
         return 1;
     }
 
@@ -132,6 +132,16 @@ public final class WeatherCommands {
                 hazard = SevereWeatherModel.Kind.HAIL;
                 displayName = "град";
             }
+            case "squall" -> {
+                preset = RegionalWeatherModel.ManualPreset.RAIN;
+                hazard = SevereWeatherModel.Kind.SQUALL;
+                displayName = "шквал";
+            }
+            case "supercell" -> {
+                preset = RegionalWeatherModel.ManualPreset.THUNDER;
+                hazard = SevereWeatherModel.Kind.SUPERCELL;
+                displayName = "суперячейка";
+            }
             case "tornado" -> {
                 preset = RegionalWeatherModel.ManualPreset.THUNDER;
                 hazard = SevereWeatherModel.Kind.TORNADO;
@@ -179,7 +189,7 @@ public final class WeatherCommands {
     private static CompletableFuture<Suggestions> suggestWeather(
             CommandContext<class_2168> context,
             SuggestionsBuilder builder) {
-        for (String preset : List.of("clear", "cloudy", "rain", "thunder", "snow", "hail", "tornado", "cyclone", "sandstorm")) {
+        for (String preset : List.of("clear", "cloudy", "rain", "thunder", "snow", "hail", "squall", "supercell", "tornado", "cyclone", "sandstorm")) {
             builder.suggest(preset);
         }
         return builder.buildFuture();

@@ -11,7 +11,7 @@ These are separate loader/game builds. Do not install jars for different loaders
 
 ## Weather simulation
 
-The system keeps weather local instead of switching rain for an entire dimension. Regional weather blends moving pressure and humidity fields with biome precipitation, temperature, elevation, seasons, daily temperature, and wind. Near loaded players, storm clouds mature and fade; severe systems can develop into cyclones, tornadoes, hailstorms, and drifting sandstorms. Local wind and precipitation influence exposed creatures and fires. Severe wind effects only damage fragile blocks when the setting is explicitly enabled; it is off by default.
+The system keeps weather local instead of switching rain for an entire dimension. Regional weather blends moving pressure and humidity fields with biome precipitation, temperature, elevation, seasons, daily temperature, and wind. Nearby storm cells now have a formation, mature, optional strengthening, and dissipation cycle; they can develop into rotating supercells, fast squall lines, cyclones, tornadoes, hailstorms, and drifting sandstorms. Original layered cloud particles form an anvil and rotating wall-cloud around supercells, while squalls render a moving frontal cloud and rain curtain. These are native particle visuals rather than a copied raymarch shader, so the mod keeps compatibility with the supported loaders and ordinary shader setups. Local wind and precipitation influence exposed creatures and fires. Severe wind effects only damage blocks when explicitly enabled; it is off by default and has per-storm block-count and hardness caps.
 
 Cumulonimbus spells from the dependent Magic mod call the Weather API to create a fading local storm in exactly a 20×20-chunk sector. The server sends that region to clients, where the vanilla rain view is applied only while inside the sector and restored on exit. It never changes server-wide or dimension-wide weather. When regional weather is enabled, the system replaces vanilla weather changes and holds global rain clear; if disabled, vanilla `/weather` works normally.
 
@@ -20,17 +20,20 @@ Cumulonimbus spells from the dependent Magic mod call the Weather API to create 
 Settings are stored in `config/mushoku_weather.json`:
 
 - `regionalWeatherEnabled` — use the local weather simulation and keep vanilla dimension-wide weather clear; default `true`.
-- `severeWeatherEnabled` — allow cyclones, tornadoes, hail, and sandstorms; default `true`.
-- `weatherBlockDamage` — allow tornadoes and cyclones to remove very fragile blocks; default `false`.
+- `severeWeatherEnabled` — allow supercells, squalls, cyclones, tornadoes, hail, and sandstorms; default `true`.
+- `severeWeatherSpawnMultiplier` and the per-hazard `*SpawnChance` values — tune natural storm frequency; all probabilities are bounded.
+- `stormSizeMultiplier`, `stormStrengthMultiplier`, and `stormStrengtheningChance` — tune footprint, peak force, and mature-stage intensification.
+- `maxConcurrentStorms` — maximum active natural/manual storm systems per world (hard cap 10).
+- `weatherBlockDamage` — allow tornadoes and cyclones to remove blocks; default `false`. `maxBlocksPerStorm` and `maxDamageableBlockHardness` bound damage when enabled.
 
-On first launch after the split, the mod imports these three settings from an existing `config/mushoku_magic.json`, then writes the independent Weather config. Edit the file and run `/magicweather reload` to reload it without restarting.
+On first launch after the split, the mod imports the three legacy toggles (`regionalWeatherEnabled`, `severeWeatherEnabled`, and `weatherBlockDamage`) from an existing `config/mushoku_magic.json`, then writes the independent Weather config with defaults for the new storm controls. Edit the file and run `/magicweather reload` to reload it without restarting.
 
 ## Operator commands
 
 With `regionalWeatherEnabled=true`, `/magicweather` affects a local 160-block radius and does not change other regions or the whole dimension:
 
 - `/magicweather clear`, `cloudy`, `rain`, `thunder`, or `snow`
-- `/magicweather hail`, `tornado`, `cyclone`, or `sandstorm` for moving local hazards
+- `/magicweather hail`, `squall`, `supercell`, `tornado`, `cyclone`, or `sandstorm` for moving local hazards
 - Add `10–3600` seconds to set a duration (default 120 seconds).
 - `/magicweather status` reports a current manual override.
 - `/magicweather reload` reloads `mushoku_weather.json`.

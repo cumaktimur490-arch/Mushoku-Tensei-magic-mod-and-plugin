@@ -2,12 +2,12 @@
 
 The `ports/` Gradle build produces separate native Weather and Magic mods for both loaders:
 
-- Forge 1.20.1 (`1.20.1-47.4.10`): `mushoku-weather-forge-1.20.1-1.0.0.jar` and `mushoku-magic-forge-1.20.1-2.4.0.jar`
-- NeoForge 1.20.1 (`1.20.1-47.1.106`): `mushoku-weather-neoforge-1.20.1-1.0.0.jar` and `mushoku-magic-neoforge-1.20.1-2.4.0.jar`
+- Forge 1.20.1 (`1.20.1-47.4.10`): `mushoku-weather-forge-1.20.1-1.0.1.jar` and `mushoku-magic-forge-1.20.1-2.4.1.jar`
+- NeoForge 1.20.1 (`1.20.1-47.1.106`): `mushoku-weather-neoforge-1.20.1-1.0.1.jar` and `mushoku-magic-neoforge-1.20.1-2.4.1.jar`
 
 Install the Weather jar by itself for standalone local weather. The Magic mod has a required Weather dependency, so install both matching jars to use Magic. Never mix the Forge and NeoForge jars or install a port jar in a Fabric instance. These are native builds and do not use Sinytra Connector. NeoForge 1.20.1 is its legacy Forge-compatible 47.1.x line, so Loom uses its Forge platform for that module while the dependency and published artifact remain native NeoForge.
 
-Weather owns the regional simulation, local Cumulonimbus snapshots, severe storms, weather configuration, and `/magicweather` commands. It never toggles server-wide rain. Magic accesses Weather's API for Cumulonimbus and bounded spell/weather interactions; the dependency goes only from Magic to Weather. Local precipitation rendering is restored when a client leaves a Cumulonimbus sector. Forge and NeoForge 1.20.1 use the compatible Forge `SimpleChannel` API for storm snapshots.
+Weather owns the regional simulation, local Cumulonimbus snapshots, rotating supercells, squalls and other severe storms, weather configuration, and `/magicweather` commands. It never toggles server-wide rain. Magic accesses Weather's API for Cumulonimbus and bounded spell/weather interactions; the dependency goes only from Magic to Weather. Local precipitation rendering is restored when a client leaves a Cumulonimbus sector. Forge and NeoForge 1.20.1 use the compatible Forge `SimpleChannel` API for storm snapshots.
 
 Both mods target Java 17 bytecode. A JDK 21 or newer is needed to run the pinned Loom plugin; CI uses JDK 25.
 
