@@ -1,7 +1,7 @@
 package com.mushokumagic.weather.api;
 
-import com.mushokumagic.world.LocalStormManager;
-import com.mushokumagic.world.WeatherPhysics;
+import com.mushokumagic.weather.world.LocalStormManager;
+import com.mushokumagic.weather.world.WeatherPhysics;
 import net.minecraft.class_1309;
 import net.minecraft.class_243;
 import net.minecraft.class_3218;

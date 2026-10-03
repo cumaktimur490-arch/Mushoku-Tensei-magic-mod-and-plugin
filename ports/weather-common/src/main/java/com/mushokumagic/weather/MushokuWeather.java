@@ -1,9 +1,9 @@
 package com.mushokumagic.weather;
 
-import com.mushokumagic.command.WeatherCommands;
-import com.mushokumagic.config.WeatherConfig;
-import com.mushokumagic.world.LocalWeatherNetwork;
-import com.mushokumagic.world.WeatherEventHandlers;
+import com.mushokumagic.weather.command.WeatherCommands;
+import com.mushokumagic.weather.config.WeatherConfig;
+import com.mushokumagic.weather.world.LocalWeatherNetwork;
+import com.mushokumagic.weather.world.WeatherEventHandlers;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;

@@ -131,11 +131,11 @@ jobs:
               if "mushoku_magic" in metadata.get("depends", {}):
                   raise SystemExit("The standalone Weather mod must not depend on Magic")
               names = set(jar.namelist())
-              if "com/mushokumagic/world/RegionalWeatherManager.class" not in names:
+              if "com/mushokumagic/weather/world/RegionalWeatherManager.class" not in names:
                   raise SystemExit(f"{jars[0]} is missing its weather simulation")
               if "com/mushokumagic/weather/api/WeatherApi.class" not in names:
                   raise SystemExit(f"{jars[0]} is missing its public integration API")
-              if "com/mushokumagic/world/VolumetricCloudRenderer.class" not in names:
+              if "com/mushokumagic/weather/world/VolumetricCloudRenderer.class" not in names:
                   raise SystemExit(f"{jars[0]} is missing its GPU cloud renderer")
               for shader in (
                       "assets/mushoku_weather/shaders/volume_cloud.vert",
@@ -243,7 +243,7 @@ jobs:
                   if mod_kind == "magic":
                       if 'modId="mushoku_magic"' not in metadata or 'modId="mushoku_weather"' not in metadata:
                           raise SystemExit(f"{jars[0]} is missing Magic metadata or its required Weather dependency")
-                      if ("com/mushokumagic/world/RegionalWeatherManager.class" in names
+                      if ("com/mushokumagic/weather/world/RegionalWeatherManager.class" in names
                               or "com/mushokumagic/weather/api/WeatherApi.class" in names):
                           raise SystemExit(f"{jars[0]} incorrectly bundles the Weather mod")
                       required_resources = {
@@ -280,11 +280,11 @@ jobs:
                           raise SystemExit(f"{jars[0]} is missing Weather loader metadata")
                       if 'modId="mushoku_magic"' in metadata:
                           raise SystemExit(f"{jars[0]} must not depend on the Magic mod")
-                      if "com/mushokumagic/world/RegionalWeatherManager.class" not in names:
+                      if "com/mushokumagic/weather/world/RegionalWeatherManager.class" not in names:
                           raise SystemExit(f"{jars[0]} is missing the weather simulation")
                       if "com/mushokumagic/weather/api/WeatherApi.class" not in names:
                           raise SystemExit(f"{jars[0]} is missing its public integration API")
-                      if "com/mushokumagic/world/VolumetricCloudRenderer.class" not in names:
+                      if "com/mushokumagic/weather/world/VolumetricCloudRenderer.class" not in names:
                           raise SystemExit(f"{jars[0]} is missing its GPU cloud renderer")
                       for shader in (
                               "assets/mushoku_weather/shaders/volume_cloud.vert",
@@ -295,6 +295,14 @@ jobs:
                           raise SystemExit(f"{jars[0]} incorrectly bundles the Magic mod")
               print(f"Verified {loader}: {jars[0]}")
           PY
+
+      - name: Verify native Magic and Weather package sets are disjoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/verify_native_package_uniqueness.py \
+            --pair Forge 'ports/forge/build/libs/mushoku-magic-forge-1.20.1-*.jar' 'ports/weather-forge/build/libs/mushoku-weather-forge-1.20.1-*.jar' \
+            --pair NeoForge 'ports/neoforge/build/libs/mushoku-magic-neoforge-1.20.1-*.jar' 'ports/weather-neoforge/build/libs/mushoku-weather-neoforge-1.20.1-*.jar'
 
       - name: Upload all native Magic and Weather jars
         uses: actions/upload-artifact@v4
@@ -404,7 +412,7 @@ jobs:
                       if has_luxium != luxium_expected:
                           raise SystemExit(f"Luxium metadata is incorrect in {jar_path}")
                   if mod_kind == "magic" and (
-                          "com/mushokumagic/world/RegionalWeatherManager.class" in names
+                          "com/mushokumagic/weather/world/RegionalWeatherManager.class" in names
                           or "com/mushokumagic/weather/api/WeatherApi.class" in names):
                       raise SystemExit(f"{jar_path} incorrectly bundles the Weather mod")
                   if mod_kind == "weather" and "com/mushokumagic/weather/api/WeatherApi.class" not in names:
@@ -422,6 +430,14 @@ jobs:
           fi
           printf '%s\n' "${assets[@]}" > "$RUNNER_TEMP/release-assets.txt"
 
+      - name: Verify native JAR package uniqueness in release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/verify_native_package_uniqueness.py \
+            --pair Forge 'release-assets/**/mushoku-magic-forge-1.20.1-*.jar' 'release-assets/**/mushoku-weather-forge-1.20.1-*.jar' \
+            --pair NeoForge 'release-assets/**/mushoku-magic-neoforge-1.20.1-*.jar' 'release-assets/**/mushoku-weather-neoforge-1.20.1-*.jar'
+
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -429,12 +445,25 @@ jobs:
           BETA_RELEASE: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, '[publish-beta]') }}
         shell: bash
         run: |
+          set -euo pipefail
           tag="v${VERSION}"
           title="Mushoku Tensei: Magic + Weather v${VERSION}"
           release_flags=(--latest)
+          beta_number=0
           if [[ "${BETA_RELEASE}" == "true" ]]; then
-            tag="${tag}-beta.1"
-            title="${title} Beta 1"
+            beta_prefix="${tag}-beta."
+            while IFS= read -r existing_tag; do
+              [[ "$existing_tag" == "${beta_prefix}"* ]] || continue
+              suffix="${existing_tag#"${beta_prefix}"}"
+              [[ "$suffix" =~ ^[0-9]+$ ]] || continue
+              candidate=$((10#$suffix))
+              if (( candidate > beta_number )); then
+                beta_number="$candidate"
+              fi
+            done < <(gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=100" --paginate --jq '.[].tag_name')
+            beta_number=$((beta_number + 1))
+            tag="${tag}-beta.${beta_number}"
+            title="${title} Beta ${beta_number}"
             release_flags=(--prerelease)
           fi
           if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
@@ -452,16 +481,19 @@ jobs:
           - Tornado and cyclone smoke receives bounded inward, rotational, and upward velocities without expensive all-pairs particle collisions.
           - Staff and enchanted-stick models have per-item hand orientation, scale, translation, and left/right first- and third-person transforms.
           - Includes separate Fabric 1.21.11 and native Forge/NeoForge 1.20.1 Weather and Magic jars. Install only the matching loader/version pair.
+          - Fixes the native Forge/NeoForge split-package conflict that stopped startup when Magic and Weather were installed together; CI now verifies that both jars in each native pair expose disjoint Java packages.
           - The Forge Magic jar declares Luxium and Embeddium as optional client-side dependencies. No Luxium-specific renderer patch is claimed.
 
           ## Verification
 
           - GitHub Actions passed for all six Fabric, Forge, and NeoForge mod builds and their mod-specific test suites.
-          - CI compiled and linked the GLSL vertex/fragment shader pair, verified both shader assets are packaged in all three Weather jars, and checked loader metadata, dependency direction, Forge-only optional Luxium metadata, and staff hand transforms.
+          - CI compiled and linked the GLSL vertex/fragment shader pair, verified both shader assets are packaged in all three Weather jars, and checked loader metadata, dependency direction, Forge-only optional Luxium metadata, package uniqueness, and staff hand transforms.
           EOF
           if [[ "${BETA_RELEASE}" == "true" ]]; then
             cat > "$RUNNER_TEMP/beta-warning.md" <<'EOF'
-          > **Beta notice:** Automated builds, shader compilation, and JAR checks passed. The volumetric cloud renderer has not yet had an in-game visual or performance QA pass. On Fabric 1.21.11 the current draw hook runs before vanilla clouds and weather, so layer ordering still needs gameplay verification.
+          > **Beta notice:** CI builds, tests, shader compilation, and native package checks passed. No in-game visual or performance QA has been performed; cloud appearance, rendering order, and performance remain unverified.
+          >
+          > **Previous beta:** `v2.5.0-beta.1` has a known Forge/NeoForge 1.20.1 startup failure when its Magic and Weather jars are installed together. Use this release instead.
 
           EOF
             cat "$RUNNER_TEMP/beta-warning.md" "$RUNNER_TEMP/release-notes.md" > "$RUNNER_TEMP/final-release-notes.md"

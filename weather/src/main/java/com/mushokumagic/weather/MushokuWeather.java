@@ -1,9 +1,9 @@
 package com.mushokumagic.weather;
 
-import com.mushokumagic.command.WeatherCommands;
-import com.mushokumagic.config.WeatherConfig;
-import com.mushokumagic.world.LocalWeatherNetwork;
-import com.mushokumagic.world.WeatherEvents;
+import com.mushokumagic.weather.command.WeatherCommands;
+import com.mushokumagic.weather.config.WeatherConfig;
+import com.mushokumagic.weather.world.LocalWeatherNetwork;
+import com.mushokumagic.weather.world.WeatherEvents;
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.class_2960;
 import org.slf4j.Logger;

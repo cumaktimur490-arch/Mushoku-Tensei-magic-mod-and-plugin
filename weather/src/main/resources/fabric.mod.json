@@ -13,7 +13,7 @@
   "environment": "*",
   "entrypoints": {
     "main": ["com.mushokumagic.weather.MushokuWeather"],
-    "client": ["com.mushokumagic.client.MushokuWeatherClient"]
+    "client": ["com.mushokumagic.weather.client.MushokuWeatherClient"]
   },
   "depends": {
     "fabricloader": ">=0.19.5",

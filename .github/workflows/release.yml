@@ -34,6 +34,14 @@ jobs:
           ./gradlew --no-daemon -p ports clean :weather-forge:clean :weather-neoforge:clean
           ./gradlew --no-daemon -p ports :weather-forge:build :weather-neoforge:build :forge:build :neoforge:build
 
+      - name: Verify native Magic and Weather package sets are disjoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/verify_native_package_uniqueness.py \
+            --pair Forge 'ports/forge/build/libs/mushoku-magic-forge-1.20.1-*.jar' 'ports/weather-forge/build/libs/mushoku-weather-forge-1.20.1-*.jar' \
+            --pair NeoForge 'ports/neoforge/build/libs/mushoku-magic-neoforge-1.20.1-*.jar' 'ports/weather-neoforge/build/libs/mushoku-weather-neoforge-1.20.1-*.jar'
+
       - name: Attach all six platform jars to the release
         shell: bash
         env:
