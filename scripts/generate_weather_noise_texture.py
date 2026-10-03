@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import random
 import struct
 import sys
 import zlib
@@ -12,48 +11,56 @@ from pathlib import Path
 
 SIZE = 512
 GRIDS = (4, 8, 16, 32, 64)
+MASK64 = (1 << 64) - 1
+FIXED_SCALE = 1 << 24
 OUTPUTS = (
     Path("weather/src/main/resources/assets/mushoku_weather/textures/cloud_noise.png"),
     Path("ports/weather-common/src/main/resources/assets/mushoku_weather/textures/cloud_noise.png"),
 )
 
 
-def smooth(value: float) -> float:
-    return value * value * (3.0 - 2.0 * value)
+def smooth(value: int) -> int:
+    squared = (value * value + FIXED_SCALE // 2) // FIXED_SCALE
+    return (squared * (3 * FIXED_SCALE - 2 * value) + FIXED_SCALE // 2) // FIXED_SCALE
 
 
-def lerp(first: float, second: float, amount: float) -> float:
-    return first + (second - first) * amount
+def lerp(first: int, second: int, amount: int) -> int:
+    return (first * (FIXED_SCALE - amount) + second * amount + FIXED_SCALE // 2) // FIXED_SCALE
 
 
 def value_noise(size: int, grid: int, seed: int) -> bytearray:
-    rng = random.Random(seed)
-    lattice = [rng.randrange(256) / 255.0 for _ in range(grid * grid)]
+    # SplitMix64 keeps the generated asset identical across Python versions.
+    state = seed & MASK64
+    lattice = []
+    for _ in range(grid * grid):
+        state = (state + 0x9E3779B97F4A7C15) & MASK64
+        value = state
+        value = ((value ^ (value >> 30)) * 0xBF58476D1CE4E5B9) & MASK64
+        value = ((value ^ (value >> 27)) * 0x94D049BB133111EB) & MASK64
+        value ^= value >> 31
+        lattice.append((value >> 56) * FIXED_SCALE)
     pixels = bytearray(size * size)
-    scale = grid / size
 
     for y in range(size):
-        gy = y * scale
-        y0 = int(gy)
-        fy = smooth(gy - y0)
+        y0, y_remainder = divmod(y * grid, size)
+        fy = smooth(y_remainder * FIXED_SCALE // size)
         y1 = (y0 + 1) % grid
         row = y * size
         lattice_y0 = y0 * grid
         lattice_y1 = y1 * grid
         for x in range(size):
-            gx = x * scale
-            x0 = int(gx)
-            fx = smooth(gx - x0)
+            x0, x_remainder = divmod(x * grid, size)
+            fx = smooth(x_remainder * FIXED_SCALE // size)
             x1 = (x0 + 1) % grid
             low = lerp(lattice[lattice_y0 + x0], lattice[lattice_y0 + x1], fx)
             high = lerp(lattice[lattice_y1 + x0], lattice[lattice_y1 + x1], fx)
-            pixels[row + x] = max(0, min(255, round(lerp(low, high, fy) * 255.0)))
+            pixels[row + x] = max(0, min(255, (lerp(low, high, fy) + FIXED_SCALE // 2) // FIXED_SCALE))
     return pixels
 
 
-def blend(layers: tuple[bytearray, ...], weights: tuple[float, ...]) -> bytearray:
+def blend(layers: tuple[bytearray, ...], weights: tuple[int, ...]) -> bytearray:
     return bytearray(
-        max(0, min(255, round(sum(layer[index] * weight for layer, weight in zip(layers, weights)))))
+        max(0, min(255, (sum(layer[index] * weight for layer, weight in zip(layers, weights)) + 50) // 100))
         for index in range(SIZE * SIZE)
     )
 
@@ -61,9 +68,9 @@ def blend(layers: tuple[bytearray, ...], weights: tuple[float, ...]) -> bytearra
 def generate_rgb() -> bytes:
     layers = tuple(value_noise(SIZE, grid, 0x4D5457 + grid * 97) for grid in GRIDS)
     channels = (
-        blend(layers[:3], (0.68, 0.25, 0.07)),
-        blend(layers[:4], (0.12, 0.48, 0.30, 0.10)),
-        blend(layers[1:], (0.06, 0.25, 0.42, 0.27)),
+        blend(layers[:3], (68, 25, 7)),
+        blend(layers[:4], (12, 48, 30, 10)),
+        blend(layers[1:], (6, 25, 42, 27)),
     )
     output = bytearray(SIZE * SIZE * 3)
     for index in range(SIZE * SIZE):
