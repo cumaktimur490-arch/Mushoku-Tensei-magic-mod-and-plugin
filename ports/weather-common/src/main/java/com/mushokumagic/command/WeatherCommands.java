@@ -67,10 +67,7 @@ public final class WeatherCommands {
             return 1;
         }
         class_3222 player = source.method_9207();
-        if (!(player.method_51469() instanceof class_3218 level)) {
-            source.method_9213(text("Локальную погоду можно проверить только в игровом мире."));
-            return 0;
-        }
+        class_3218 level = player.method_51469();
         class_243 position = player.method_19538();
         RegionalWeatherManager.ManualWeatherStatus status = RegionalWeatherManager.manualWeatherStatusAt(
                 level, position.method_10216(), position.method_10215());
@@ -161,10 +158,7 @@ public final class WeatherCommands {
         }
 
         class_3222 player = source.method_9207();
-        if (!(player.method_51469() instanceof class_3218 level)) {
-            source.method_9213(text("Локальную погоду можно задать только в игровом мире."));
-            return 0;
-        }
+        class_3218 level = player.method_51469();
         class_243 position = player.method_19538();
         double x = position.method_10216();
         double z = position.method_10215();
