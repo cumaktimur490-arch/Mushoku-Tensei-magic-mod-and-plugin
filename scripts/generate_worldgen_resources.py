@@ -187,6 +187,7 @@ CUSTOM_NOISE_SETTINGS_ID = "mushoku_worldgen:mushoku_overworld"
 CUSTOM_DENSITY_FUNCTION_IDS = (
     "mushoku_worldgen:macro_continents",
     "mushoku_worldgen:landmass_density",
+    "mushoku_worldgen:tectonic_relief",
 )
 RETAINED_VANILLA_BIOME_IDS = [
     "minecraft:deep_ocean",
@@ -625,6 +626,19 @@ def density_mul(argument1: Any, argument2: Any) -> dict[str, Any]:
     return {"type": "minecraft:mul", "argument1": argument1, "argument2": argument2}
 
 
+def density_abs(argument: Any) -> dict[str, Any]:
+    return {"type": "minecraft:abs", "argument": argument}
+
+
+def density_clamp(argument: Any, minimum: float, maximum: float) -> dict[str, Any]:
+    return {
+        "type": "minecraft:clamp",
+        "input": argument,
+        "min": minimum,
+        "max": maximum,
+    }
+
+
 def density_min(argument1: Any, argument2: Any) -> dict[str, Any]:
     return {"type": "minecraft:min", "argument1": argument1, "argument2": argument2}
 
@@ -671,11 +685,47 @@ def macro_continents_function() -> dict[str, Any]:
     }
 
 
+def tectonic_relief_function() -> dict[str, Any]:
+    """Add restrained inland uplifts and softly carved river corridors.
+
+    The vanilla erosion and ridge router fields keep this blended into
+    Minecraft's existing terrain instead of replacing its terrain model.
+    """
+    continents = CUSTOM_DENSITY_FUNCTION_IDS[0]
+    inland = density_clamp(
+        density_mul(1.4, density_add(continents, -0.08)), 0.0, 1.0
+    )
+    erosion = "minecraft:overworld/erosion"
+    ruggedness = density_clamp(density_add(0.25, density_mul(-1.0, erosion)), 0.0, 1.0)
+    ridge_signal = density_abs("minecraft:overworld/ridges")
+    ridge_uplift = density_clamp(density_add(ridge_signal, -0.45), 0.0, 0.55)
+
+    highland_mask = density_mul(inland, ruggedness)
+    highland_uplift = density_mul(
+        highland_mask, density_add(0.08, density_mul(0.22, ridge_uplift))
+    )
+    river_corridor = density_clamp(
+        density_add(0.08, density_mul(-1.0, ridge_signal)), 0.0, 0.08
+    )
+    river_carving = density_mul(-2.0, river_corridor)
+    broad_erosion = density_mul(0.04, erosion)
+
+    return {
+        "type": "minecraft:flat_cache",
+        "argument": density_add(
+            highland_uplift, density_add(river_carving, broad_erosion)
+        ),
+    }
+
+
 def landmass_density_function() -> dict[str, Any]:
-    """Gently lift or lower vanilla terrain along the broad continental field."""
+    """Keep vanilla caves while blending in continents and gentle relief."""
     return density_add(
         "minecraft:overworld/sloped_cheese",
-        density_mul(0.5, CUSTOM_DENSITY_FUNCTION_IDS[0]),
+        density_add(
+            density_mul(0.5, CUSTOM_DENSITY_FUNCTION_IDS[0]),
+            CUSTOM_DENSITY_FUNCTION_IDS[2],
+        ),
     )
 
 
@@ -1074,6 +1124,7 @@ def generated_files(resource_root: Path, legacy: bool) -> dict[Path, dict[str, A
     files[worldgen_root / "noise_settings/mushoku_overworld.json"] = noise_settings(legacy)
     files[worldgen_root / "density_function/macro_continents.json"] = macro_continents_function()
     files[worldgen_root / "density_function/landmass_density.json"] = landmass_density_function()
+    files[worldgen_root / "density_function/tectonic_relief.json"] = tectonic_relief_function()
 
     files[
         resource_root / "data/mushoku_worldgen/worldgen/world_preset/mushoku_world.json"
@@ -1177,15 +1228,29 @@ def check_world_preset(preset: dict[str, Any], resource_root: Path) -> None:
         preliminary = router.get("preliminary_surface_level", {})
         if preliminary.get("type") != "minecraft:find_top_surface":
             raise ValueError("Fabric noise router is missing its preliminary surface sampler")
+    density_documents: dict[str, dict[str, Any]] = {}
     for density_function_id in CUSTOM_DENSITY_FUNCTION_IDS:
         namespace, name = density_function_id.split(":", 1)
         density_path = resource_root / f"data/{namespace}/worldgen/density_function/{name}.json"
         if not density_path.is_file():
             raise ValueError(f"Missing Mushoku density function: {density_path}")
         try:
-            json.loads(density_path.read_text(encoding="utf-8"))
+            density_documents[density_function_id] = json.loads(
+                density_path.read_text(encoding="utf-8")
+            )
         except (OSError, json.JSONDecodeError) as error:
             raise ValueError(f"Invalid Mushoku density function {density_function_id}: {error}") from error
+
+    if not contains_value(
+        density_documents[CUSTOM_DENSITY_FUNCTION_IDS[1]], CUSTOM_DENSITY_FUNCTION_IDS[2]
+    ):
+        raise ValueError("Mushoku landmass overlay does not include its terrain-relief blend")
+    relief = density_documents[CUSTOM_DENSITY_FUNCTION_IDS[2]]
+    if not all(
+        contains_value(relief, field)
+        for field in ("minecraft:overworld/erosion", "minecraft:overworld/ridges")
+    ):
+        raise ValueError("Mushoku terrain relief is missing its erosion/ridge shaping fields")
     source = overworld.get("biome_source", {})
     if source.get("type") != "minecraft:multi_noise":
         raise ValueError("The custom preset must use the multi-noise biome source")

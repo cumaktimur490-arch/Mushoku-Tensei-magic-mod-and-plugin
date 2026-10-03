@@ -1,0 +1,90 @@
+{
+  "type": "minecraft:flat_cache",
+  "argument": {
+    "type": "minecraft:add",
+    "argument1": {
+      "type": "minecraft:mul",
+      "argument1": {
+        "type": "minecraft:mul",
+        "argument1": {
+          "type": "minecraft:clamp",
+          "input": {
+            "type": "minecraft:mul",
+            "argument1": 1.4,
+            "argument2": {
+              "type": "minecraft:add",
+              "argument1": "mushoku_worldgen:macro_continents",
+              "argument2": -0.08
+            }
+          },
+          "min": 0.0,
+          "max": 1.0
+        },
+        "argument2": {
+          "type": "minecraft:clamp",
+          "input": {
+            "type": "minecraft:add",
+            "argument1": 0.25,
+            "argument2": {
+              "type": "minecraft:mul",
+              "argument1": -1.0,
+              "argument2": "minecraft:overworld/erosion"
+            }
+          },
+          "min": 0.0,
+          "max": 1.0
+        }
+      },
+      "argument2": {
+        "type": "minecraft:add",
+        "argument1": 0.08,
+        "argument2": {
+          "type": "minecraft:mul",
+          "argument1": 0.22,
+          "argument2": {
+            "type": "minecraft:clamp",
+            "input": {
+              "type": "minecraft:add",
+              "argument1": {
+                "type": "minecraft:abs",
+                "argument": "minecraft:overworld/ridges"
+              },
+              "argument2": -0.45
+            },
+            "min": 0.0,
+            "max": 0.55
+          }
+        }
+      }
+    },
+    "argument2": {
+      "type": "minecraft:add",
+      "argument1": {
+        "type": "minecraft:mul",
+        "argument1": -2.0,
+        "argument2": {
+          "type": "minecraft:clamp",
+          "input": {
+            "type": "minecraft:add",
+            "argument1": 0.08,
+            "argument2": {
+              "type": "minecraft:mul",
+              "argument1": -1.0,
+              "argument2": {
+                "type": "minecraft:abs",
+                "argument": "minecraft:overworld/ridges"
+              }
+            }
+          },
+          "min": 0.0,
+          "max": 0.08
+        }
+      },
+      "argument2": {
+        "type": "minecraft:mul",
+        "argument1": 0.04,
+        "argument2": "minecraft:overworld/erosion"
+      }
+    }
+  }
+}

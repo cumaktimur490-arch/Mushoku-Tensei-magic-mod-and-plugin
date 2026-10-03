@@ -14,17 +14,19 @@ The preset provides five custom surface biomes:
 
 The custom palette replaces many vanilla surface climates inside this preset; deserts, jungles, swamps, savannas, and badlands are intentionally not selected. Vanilla oceans, beaches, rivers, and cave biomes are retained. The custom biomes are added to compatible vanilla structure tags so plains-style villages and pillager outposts can use them.
 
-## Broad landmasses
+## Broad landmasses and blended relief
 
-Unlike the previous biome-only version, this preset now points only its Overworld generator at `mushoku_worldgen:mushoku_overworld`. That isolated noise setting adds a low-frequency continentalness field (with a smaller coast-detail octave) to vanilla Overworld terrain density. The broad field is also used by the biome source, so land and Mushoku climate regions follow the same large-scale pattern. The vanilla terrain profile, aquifers, ore veins, and 3D cave-density router are retained as the base; only the macro landmass field and the compact surface rules are customized. The intended result is fewer, wider land regions with longer plains, forest belts, and mountain ranges rather than only larger patches of unchanged biomes.
+Only the Mushoku preset's Overworld uses `mushoku_worldgen:mushoku_overworld`. Its low-frequency continentalness field, with a smaller coast-detail octave, still drives both terrain density and the broad biome layout. The underlying vanilla `sloped_cheese` terrain profile, aquifers, ore veins, and 3D cave-density router remain the foundation, preserving the large continents already introduced without replacing Minecraft's terrain model.
 
-The ordinary vanilla Overworld still uses `minecraft:overworld` noise settings and is not modified by this preset. The scale coefficients are a first-pass beta and have not yet had in-game visual or performance QA; no visual result is being claimed as verified.
+This beta adds a restrained Tectonic/TerraForged-inspired layer rather than copying either mod's algorithms. Inland areas receive gentle plateau uplift; the vanilla erosion and ridge fields guide where the stronger, narrow mountain uplift appears. A feathered density carve around the river-like ridge band gives river corridors softer, lower approaches, while a small broad erosion term varies the surrounding forms. These are density adjustments, not direct block-height measurements, and may need tuning after playtesting.
+
+The ordinary vanilla Overworld still uses `minecraft:overworld` noise settings and is not modified by this preset. The coefficients are experimental: no fresh-world in-game visual or performance QA has been performed, so the map shape and the appearance of the new relief are not claimed as verified.
 
 ## Worldgen crash fix
 
 The 1.20.1 crash was a `Feature order cycle` between Golden Steppe and vanilla Deep Dark. Golden Steppe had placed `trees_plains` and `flower_plains` before `patch_tall_grass_2`, while Deep Dark requires tall grass before those shared features. The feature lists are now kept in vanilla-compatible order for both target versions. The resource generator also checks all custom decoration-stage lists against their vanilla templates and constructs an ordering graph to reject cycles before packaging.
 
-This automated preflight is not a substitute for launching the game and generating chunks. The beta still needs in-game verification, including a fresh Forge 1.20.1 world, because that exact runtime path has not been visually or performance-tested in this workspace.
+This automated preflight is not a substitute for launching the game and generating chunks. A fresh Forge 1.20.1 world still needs in-game verification; that runtime path has not been confirmed visually or performance-tested in this workspace.
 
 ## Choosing the preset
 
@@ -38,4 +40,4 @@ Create a **new** world and select **Mushoku: Vast Lands** from the world-type/pr
 
 The mod has no dependency on Mushoku Magic or Mushoku Weather. The Fabric 1.21.11 and native Forge/NeoForge 1.20.1 artifacts contain version-appropriate worldgen data and resource-pack metadata.
 
-World presets affect newly generated chunks. For a clean test of the changed terrain and the fixed feature order, create a fresh world with the Mushoku preset rather than reusing the world that crashed during first generation.
+World presets affect newly generated chunks. For a clean test of the terrain blend and the fixed feature order, create a fresh world with the Mushoku preset rather than reusing the world that crashed during first generation.

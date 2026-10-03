@@ -33,9 +33,11 @@ NOISE_SETTINGS = "data/mushoku_worldgen/worldgen/noise_settings/mushoku_overworl
 DENSITY_FUNCTIONS = {
     "macro_continents": "data/mushoku_worldgen/worldgen/density_function/macro_continents.json",
     "landmass_density": "data/mushoku_worldgen/worldgen/density_function/landmass_density.json",
+    "tectonic_relief": "data/mushoku_worldgen/worldgen/density_function/tectonic_relief.json",
 }
 MACRO_CONTINENTS_ID = "mushoku_worldgen:macro_continents"
 LANDMASS_DENSITY_ID = "mushoku_worldgen:landmass_density"
+TECTONIC_RELIEF_ID = "mushoku_worldgen:tectonic_relief"
 
 
 def load_json(jar: ZipFile, path: str) -> dict:
@@ -138,8 +140,20 @@ def verify(jar_path: Path, loader: str) -> None:
                 raise ValueError(f"{jar_path} has an incomplete Forge/NeoForge aquifer router")
             if "surface_rule" not in noise_settings:
                 raise ValueError(f"{jar_path} has no custom Overworld surface rule")
-            for resource in DENSITY_FUNCTIONS.values():
-                load_json(jar, resource)
+            density_documents = {
+                density_id: load_json(jar, resource)
+                for density_id, resource in DENSITY_FUNCTIONS.items()
+            }
+            if not contains_value(
+                density_documents["landmass_density"], TECTONIC_RELIEF_ID
+            ):
+                raise ValueError(f"{jar_path} landmass overlay omits its terrain-relief blend")
+            relief = density_documents["tectonic_relief"]
+            if not all(
+                contains_value(relief, field)
+                for field in ("minecraft:overworld/erosion", "minecraft:overworld/ridges")
+            ):
+                raise ValueError(f"{jar_path} terrain relief omits erosion/ridge shaping")
             entries = overworld.get("biome_source", {}).get("biomes", [])
             biome_ids = {entry.get("biome") for entry in entries}
             expected_biomes = {
