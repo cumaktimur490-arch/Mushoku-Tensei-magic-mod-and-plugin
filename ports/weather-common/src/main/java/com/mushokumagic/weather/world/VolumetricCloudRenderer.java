@@ -6,6 +6,7 @@ import com.mushokumagic.weather.MushokuWeather;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
