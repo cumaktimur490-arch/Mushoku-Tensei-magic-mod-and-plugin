@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "mushoku_worldgen",
+  "version": "${version}",
+  "name": "Mushoku Tensei: Worldgen",
+  "description": "A separate world preset with broad continental biomes, sweeping grasslands, forests, highlands, and mountain regions.",
+  "authors": ["mushoku_magic"],
+  "contact": {
+    "homepage": "https://github.com/cumaktimur490-arch/Mushoku-Tensei-magic-mod-and-plugin",
+    "sources": "https://github.com/cumaktimur490-arch/Mushoku-Tensei-magic-mod-and-plugin"
+  },
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["com.mushokumagic.worldgen.MushokuWorldgen"]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "~1.21.11",
+    "java": ">=21"
+  }
+}

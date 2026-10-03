@@ -1,9 +1,9 @@
 # Native Minecraft 1.20.1 loader builds
 
-The `ports/` Gradle build produces separate native Weather and Magic mods for both loaders:
+The `ports/` Gradle build produces separate native Weather, Magic, and optional Worldgen mods for both loaders:
 
-- Forge 1.20.1 (`1.20.1-47.4.10`): `mushoku-weather-forge-1.20.1-1.1.3.jar` and `mushoku-magic-forge-1.20.1-2.5.3.jar`
-- NeoForge 1.20.1 (`1.20.1-47.1.106`): `mushoku-weather-neoforge-1.20.1-1.1.3.jar` and `mushoku-magic-neoforge-1.20.1-2.5.3.jar`
+- Forge 1.20.1 (`1.20.1-47.4.10`): `mushoku-weather-forge-1.20.1-1.1.3.jar`, `mushoku-magic-forge-1.20.1-2.5.3.jar`, and optional `mushoku-worldgen-forge-1.20.1-0.1.0-beta.1.jar`
+- NeoForge 1.20.1 (`1.20.1-47.1.106`): `mushoku-weather-neoforge-1.20.1-1.1.3.jar`, `mushoku-magic-neoforge-1.20.1-2.5.3.jar`, and optional `mushoku-worldgen-neoforge-1.20.1-0.1.0-beta.1.jar`
 
 Install the Weather jar by itself for standalone local weather. The Magic mod has a required Weather dependency, so install both matching jars to use Magic. Never mix the Forge and NeoForge jars or install a port jar in a Fabric instance. These are native builds and do not use Sinytra Connector. NeoForge 1.20.1 is its legacy Forge-compatible 47.1.x line, so Loom uses its Forge platform for that module while the dependency and published artifact remain native NeoForge.
 
@@ -16,14 +16,16 @@ Both mods target Java 17 bytecode. A JDK 21 or newer is needed to run the pinned
 From the repository root:
 
 ```sh
-./gradlew -p ports :weather-forge:build :weather-neoforge:build :forge:build :neoforge:build
+./gradlew -p ports :weather-forge:build :weather-neoforge:build :worldgen-forge:build :worldgen-neoforge:build :forge:build :neoforge:build
 ```
 
-Artifacts are written to `ports/weather-forge/build/libs/`, `ports/weather-neoforge/build/libs/`, `ports/forge/build/libs/`, and `ports/neoforge/build/libs/`. Each standalone mod has its own test suite; run all four loader test tasks with:
+Artifacts are written to the matching `ports/<project>/build/libs/` directories. Each Magic and Weather loader artifact has its own test suite; run those four loader test tasks with:
 
 ```sh
 ./gradlew -p ports :weather-forge:test :weather-neoforge:test :forge:test :neoforge:test
 ```
+
+Worldgen is data-driven and has no gameplay dependency; install it only when selecting **Mushoku: Vast Lands** while creating a new world. See [../docs/worldgen.md](../docs/worldgen.md) for preset details and current limitations.
 
 ## Luxium
 

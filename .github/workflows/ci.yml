@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       publish_release:
-        description: Publish the verified standalone Weather and dependent Magic jars for all loaders
+        description: Publish the verified standalone Weather, Magic, and Worldgen jars for all loaders
         type: boolean
         required: false
         default: false
@@ -49,8 +49,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ./gradlew --no-daemon clean :weather:clean --stacktrace 2>&1 | tee "$RUNNER_TEMP/gradle-build.log"
-          ./gradlew --no-daemon :weather:build build --stacktrace 2>&1 | tee -a "$RUNNER_TEMP/gradle-build.log"
+          python3 scripts/generate_worldgen_resources.py --check
+          ./gradlew --no-daemon clean :weather:clean :worldgen:clean --stacktrace 2>&1 | tee "$RUNNER_TEMP/gradle-build.log"
+          ./gradlew --no-daemon :weather:build :worldgen:build build --stacktrace 2>&1 | tee -a "$RUNNER_TEMP/gradle-build.log"
 
       - name: Surface Gradle failure details
         if: failure()
@@ -78,6 +79,11 @@ jobs:
         id: weather-version
         shell: bash
         run: echo "version=$(sed -n 's/^weather_version=//p' gradle.properties)" >> "$GITHUB_OUTPUT"
+
+      - name: Read Fabric Worldgen artifact version
+        id: worldgen-version
+        shell: bash
+        run: echo "version=$(sed -n 's/^worldgen_version=//p' gradle.properties)" >> "$GITHUB_OUTPUT"
 
       - name: Verify Fabric staff display transforms
         shell: bash
@@ -151,6 +157,12 @@ jobs:
           print(f"Verified standalone Weather jar {jars[0]}")
           PY
 
+      - name: Verify Fabric Worldgen jar
+        shell: bash
+        run: |
+          jar="worldgen/build/libs/mushoku-worldgen-${{ steps.worldgen-version.outputs.version }}.jar"
+          python3 scripts/verify_worldgen_artifact.py --loader fabric "$jar"
+
       - name: Upload the Fabric Magic jar
         uses: actions/upload-artifact@v4
         with:
@@ -163,6 +175,13 @@ jobs:
         with:
           name: mushoku-weather-fabric-${{ github.sha }}
           path: weather/build/libs/mushoku-weather-${{ steps.weather-version.outputs.version }}.jar
+          if-no-files-found: error
+
+      - name: Upload the Fabric Worldgen jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: mushoku-worldgen-fabric-${{ github.sha }}
+          path: worldgen/build/libs/mushoku-worldgen-${{ steps.worldgen-version.outputs.version }}.jar
           if-no-files-found: error
 
   loader-ports:
@@ -185,8 +204,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ./gradlew --no-daemon -p ports clean :weather-forge:clean :weather-neoforge:clean --stacktrace 2>&1 | tee "$RUNNER_TEMP/ports-build.log"
-          ./gradlew --no-daemon -p ports :weather-forge:build :weather-neoforge:build :forge:build :neoforge:build --stacktrace 2>&1 | tee -a "$RUNNER_TEMP/ports-build.log"
+          ./gradlew --no-daemon -p ports clean :weather-forge:clean :weather-neoforge:clean :worldgen-forge:clean :worldgen-neoforge:clean --stacktrace 2>&1 | tee "$RUNNER_TEMP/ports-build.log"
+          ./gradlew --no-daemon -p ports :weather-forge:build :weather-neoforge:build :worldgen-forge:build :worldgen-neoforge:build :forge:build :neoforge:build --stacktrace 2>&1 | tee -a "$RUNNER_TEMP/ports-build.log"
 
       - name: Surface native build failure details
         if: failure()
@@ -302,6 +321,16 @@ jobs:
               print(f"Verified {loader}: {jars[0]}")
           PY
 
+      - name: Verify native Worldgen jars
+        shell: bash
+        run: |
+          set -euo pipefail
+          forge_version="$(sed -n 's/^worldgen_port_version=//p' ports/gradle.properties)"
+          forge_jar="ports/worldgen-forge/build/libs/mushoku-worldgen-forge-1.20.1-${forge_version}.jar"
+          neoforge_jar="ports/worldgen-neoforge/build/libs/mushoku-worldgen-neoforge-1.20.1-${forge_version}.jar"
+          python3 scripts/verify_worldgen_artifact.py --loader forge "$forge_jar"
+          python3 scripts/verify_worldgen_artifact.py --loader neoforge "$neoforge_jar"
+
       - name: Verify native Magic and Weather package sets are disjoint
         shell: bash
         run: |
@@ -310,7 +339,7 @@ jobs:
             --pair Forge 'ports/forge/build/libs/mushoku-magic-forge-1.20.1-*.jar' 'ports/weather-forge/build/libs/mushoku-weather-forge-1.20.1-*.jar' \
             --pair NeoForge 'ports/neoforge/build/libs/mushoku-magic-neoforge-1.20.1-*.jar' 'ports/weather-neoforge/build/libs/mushoku-weather-neoforge-1.20.1-*.jar'
 
-      - name: Upload all native Magic and Weather jars
+      - name: Upload all native Magic, Weather, and Worldgen jars
         uses: actions/upload-artifact@v4
         with:
           name: mushoku-native-mods-${{ github.sha }}
@@ -319,6 +348,8 @@ jobs:
             ports/neoforge/build/libs/mushoku-magic-neoforge-1.20.1-*.jar
             ports/weather-forge/build/libs/mushoku-weather-forge-1.20.1-*.jar
             ports/weather-neoforge/build/libs/mushoku-weather-neoforge-1.20.1-*.jar
+            ports/worldgen-forge/build/libs/mushoku-worldgen-forge-1.20.1-*.jar
+            ports/worldgen-neoforge/build/libs/mushoku-worldgen-neoforge-1.20.1-*.jar
           if-no-files-found: error
 
   publish-release:
@@ -353,6 +384,12 @@ jobs:
           name: mushoku-weather-fabric-${{ github.sha }}
           path: release-assets
 
+      - name: Download Fabric Worldgen jar
+        uses: actions/download-artifact@v4
+        with:
+          name: mushoku-worldgen-fabric-${{ github.sha }}
+          path: release-assets
+
       - name: Download native Forge and NeoForge jars
         uses: actions/download-artifact@v4
         with:
@@ -380,10 +417,13 @@ jobs:
           artifacts = {
               "Fabric Magic": (f"mushoku-magic-{fabric['mod_version']}.jar", "magic", "fabric", True),
               "Fabric Weather": (f"mushoku-weather-{fabric['weather_version']}.jar", "weather", "fabric", False),
+              "Fabric Worldgen": (f"mushoku-worldgen-{fabric['worldgen_version']}.jar", "worldgen", "fabric", False),
               "Forge Magic": (f"mushoku-magic-forge-1.20.1-{ports['port_version']}.jar", "magic", "forge", True),
               "Forge Weather": (f"mushoku-weather-forge-1.20.1-{ports['weather_port_version']}.jar", "weather", "forge", False),
+              "Forge Worldgen": (f"mushoku-worldgen-forge-1.20.1-{ports['worldgen_port_version']}.jar", "worldgen", "forge", False),
               "NeoForge Magic": (f"mushoku-magic-neoforge-1.20.1-{ports['port_version']}.jar", "magic", "neoforge", False),
               "NeoForge Weather": (f"mushoku-weather-neoforge-1.20.1-{ports['weather_port_version']}.jar", "weather", "neoforge", False),
+              "NeoForge Worldgen": (f"mushoku-worldgen-neoforge-1.20.1-{ports['worldgen_port_version']}.jar", "worldgen", "neoforge", False),
           }
           root = Path("release-assets")
           for label, (filename, mod_kind, loader, luxium_expected) in artifacts.items():
@@ -397,13 +437,21 @@ jobs:
                       if "fabric.mod.json" not in names or "META-INF/mods.toml" in names:
                           raise SystemExit(f"{jar_path} has incorrect Fabric metadata")
                       metadata = json.loads(jar.read("fabric.mod.json"))
-                      expected_id = "mushoku_magic" if mod_kind == "magic" else "mushoku_weather"
+                      expected_id = {
+                          "magic": "mushoku_magic",
+                          "weather": "mushoku_weather",
+                          "worldgen": "mushoku_worldgen",
+                      }[mod_kind]
                       if metadata.get("id") != expected_id:
                           raise SystemExit(f"{jar_path} has the wrong Fabric mod id")
                       if mod_kind == "magic" and "mushoku_weather" not in metadata.get("depends", {}):
                           raise SystemExit(f"{jar_path} must require Mushoku Weather")
                       if mod_kind == "weather" and "mushoku_magic" in metadata.get("depends", {}):
                           raise SystemExit(f"{jar_path} must not depend on Mushoku Magic")
+                      if mod_kind == "worldgen" and any(
+                              dependency in metadata.get("depends", {})
+                              for dependency in ("mushoku_magic", "mushoku_weather")):
+                          raise SystemExit(f"{jar_path} must be independent of Magic and Weather")
                   else:
                       if "fabric.mod.json" in names or "META-INF/mods.toml" not in names:
                           raise SystemExit(f"{jar_path} is not a native loader jar")
@@ -411,9 +459,14 @@ jobs:
                       if mod_kind == "magic":
                           if 'modId="mushoku_magic"' not in metadata or 'modId="mushoku_weather"' not in metadata:
                               raise SystemExit(f"{jar_path} is missing the Magic id or Weather dependency")
-                      else:
+                      elif mod_kind == "weather":
                           if 'modId="mushoku_weather"' not in metadata or 'modId="mushoku_magic"' in metadata:
                               raise SystemExit(f"{jar_path} has incorrect standalone Weather metadata")
+                      else:
+                          if 'modId="mushoku_worldgen"' not in metadata:
+                              raise SystemExit(f"{jar_path} is missing Worldgen loader metadata")
+                          if 'modId="mushoku_magic"' in metadata or 'modId="mushoku_weather"' in metadata:
+                              raise SystemExit(f"{jar_path} must be standalone from Magic and Weather")
                       has_luxium = 'modId="luxium"' in metadata
                       if has_luxium != luxium_expected:
                           raise SystemExit(f"Luxium metadata is incorrect in {jar_path}")
@@ -435,11 +488,19 @@ jobs:
                       raise SystemExit(f"{jar_path} incorrectly bundles the Magic mod")
               print(f"Verified {label}: {jar_path}")
           PY
+          fabric_worldgen_version="$(sed -n 's/^worldgen_version=//p' gradle.properties)"
+          port_worldgen_version="$(sed -n 's/^worldgen_port_version=//p' ports/gradle.properties)"
+          fabric_worldgen_jar="$(find release-assets -type f -name "mushoku-worldgen-${fabric_worldgen_version}.jar" -print -quit)"
+          forge_worldgen_jar="$(find release-assets -type f -name "mushoku-worldgen-forge-1.20.1-${port_worldgen_version}.jar" -print -quit)"
+          neoforge_worldgen_jar="$(find release-assets -type f -name "mushoku-worldgen-neoforge-1.20.1-${port_worldgen_version}.jar" -print -quit)"
+          python3 scripts/verify_worldgen_artifact.py --loader fabric "$fabric_worldgen_jar"
+          python3 scripts/verify_worldgen_artifact.py --loader forge "$forge_worldgen_jar"
+          python3 scripts/verify_worldgen_artifact.py --loader neoforge "$neoforge_worldgen_jar"
           version="$(sed -n 's/^mod_version=//p' gradle.properties)"
           echo "version=$version" >> "$GITHUB_OUTPUT"
           mapfile -t assets < <(find release-assets -type f -name '*.jar' ! -name '*-sources.jar' | sort)
-          if [[ "${#assets[@]}" -ne 6 ]]; then
-            echo "Expected exactly six runtime jars, found ${#assets[@]}: ${assets[*]}" >&2
+          if [[ "${#assets[@]}" -ne 9 ]]; then
+            echo "Expected exactly nine runtime jars, found ${#assets[@]}: ${assets[*]}" >&2
             exit 1
           fi
           printf '%s\n' "${assets[@]}" > "$RUNNER_TEMP/release-assets.txt"
@@ -461,7 +522,7 @@ jobs:
         run: |
           set -euo pipefail
           tag="v${VERSION}"
-          title="Mushoku Tensei: Magic + Weather v${VERSION}"
+          title="Mushoku Tensei: Magic + Weather + Worldgen v${VERSION}"
           release_flags=(--latest)
           beta_number=0
           if [[ "${BETA_RELEASE}" == "true" ]]; then
@@ -487,6 +548,8 @@ jobs:
           cat > "$RUNNER_TEMP/release-notes.md" <<'EOF'
           ## Highlights
 
+          - Adds standalone Mushoku Tensei: Worldgen with a selectable **Mushoku: Vast Lands** preset; the vanilla `minecraft:normal` world and its Overworld generation remain unchanged.
+          - Adds five custom surface biomes—Golden Steppe, Riverside Meadow, Whispering Forest, Emerald Highlands, and Skyreach Mountains—while retaining vanilla oceans, beaches, rivers, cave biomes, and structure compatibility. The first pass uses the vanilla Overworld noise settings; large-scale terrain tuning remains preliminary.
           - Weather is now a standalone mod and can run without Magic. Magic requires Weather; install both matching jars to use weather-interacting spells.
           - Cumulonimbus synchronizes a real 20×20-chunk local storm sector and cast altitude; clients render its shader-raymarched volumetric cloud, rain, and thunder locally without changing dimension-wide server weather.
           - Adds GPU ray-marched 3D cloud volumes with procedural density/noise for cumulonimbus towers, supercell anvils and rotating wall clouds, squall shelves, cyclone bands, tornado funnels, sandstorm walls, and regional overcast. Particles are auxiliary rain, hail, wind, lightning, and ground dust—not cloud bodies.
@@ -499,18 +562,18 @@ jobs:
           - `/magicweather supercell` and `/magicweather squall` start local storms; spawn frequency, size, strength, active-system limits, and strengthening are configurable. Optional tornado/cyclone block damage is off by default and strictly capped.
           - Tornado and cyclone smoke receives bounded inward, rotational, and upward velocities without expensive all-pairs particle collisions.
           - Staff and enchanted-stick models have per-item hand orientation, scale, translation, and left/right first- and third-person transforms.
-          - Includes separate Fabric 1.21.11 and native Forge/NeoForge 1.20.1 Weather and Magic jars. Install only the matching loader/version pair.
+          - Includes separate Fabric 1.21.11 and native Forge/NeoForge 1.20.1 Weather and Magic jars, plus standalone Worldgen jars for all three supported loader targets. Install only the matching loader/version pair.
           - Fixes the native Forge/NeoForge split-package conflict that stopped startup when Magic and Weather were installed together; CI now verifies that both jars in each native pair expose disjoint Java packages.
           - The Forge Magic jar declares Luxium and Embeddium as optional client-side dependencies. No Luxium-specific renderer patch is claimed.
 
           ## Verification
 
-          - GitHub Actions passed for all six Fabric, Forge, and NeoForge mod builds and their mod-specific test suites.
+          - GitHub Actions passed for all nine Fabric, Forge, and NeoForge Magic, Weather, and Worldgen mod builds; Magic and Weather test suites ran, and Worldgen resource-generation, preset, biome-stage, metadata, and packaged-resource checks passed.
           - CI regenerated the expected cloud-noise pixels from a deterministic script, verified both PNG copies are identical, compiled and linked the GLSL vertex/fragment shader pair, verified all rendering and pack metadata resources are packaged in every Weather jar, and checked loader metadata, dependency direction, Forge-only optional Luxium metadata, package uniqueness, and staff hand transforms.
           EOF
           if [[ "${BETA_RELEASE}" == "true" ]]; then
             cat > "$RUNNER_TEMP/beta-warning.md" <<'EOF'
-          > **Beta notice:** CI builds, tests, shader compilation, and native package checks passed. No in-game visual or performance QA has been performed; cloud appearance, rendering order, and performance remain unverified.
+          > **Beta notice:** CI builds, tests, shader compilation, native metadata, and worldgen data checks passed. No in-game visual or performance QA has been performed. Weather-cloud appearance, rendering order, and performance remain unverified. The Worldgen preset and biome climate distribution have not been explored in-game; its landform scale is an initial baseline for playtesting, not a visually confirmed map-generation result.
           >
           > **Earlier beta notice:** `v2.5.0-beta.1` had a Forge/NeoForge 1.20.1 split-package startup failure; it was fixed in `v2.5.0-beta.2` and remains fixed here.
 

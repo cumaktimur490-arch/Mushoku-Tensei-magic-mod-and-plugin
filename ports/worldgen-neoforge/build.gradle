@@ -1,0 +1,4 @@
+dependencies {
+    // Native NeoForge 1.20.1 artifact; Loom supplies the shared legacy FML APIs.
+    forge "net.neoforged:forge:${neoforge_legacy_version}"
+}

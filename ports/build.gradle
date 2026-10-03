@@ -14,11 +14,19 @@ subprojects {
     apply plugin: 'dev.architectury.loom'
 
     def weatherProject = project.name.startsWith('weather-')
-    def sharedSourceRoot = weatherProject ? '../weather-common' : '../common'
+    def worldgenProject = project.name.startsWith('worldgen-')
+    def sharedSourceRoot = weatherProject
+            ? '../weather-common'
+            : worldgenProject ? '../worldgen-common' : '../common'
     if (weatherProject) {
         version = weather_port_version
         base {
             archivesName = "mushoku-weather-${project.name.substring('weather-'.length())}-1.20.1"
+        }
+    } else if (worldgenProject) {
+        version = worldgen_port_version
+        base {
+            archivesName = "mushoku-worldgen-${project.name.substring('worldgen-'.length())}-1.20.1"
         }
     } else {
         base {
@@ -44,7 +52,7 @@ subprojects {
             // Keep each standalone mod's test suite with its own loader artifact.
             java.srcDirs = weatherProject
                     ? [file('../../weather/src/test/java')]
-                    : [file('../../src/test/java')]
+                    : worldgenProject ? [] : [file('../../src/test/java')]
         }
     }
 
@@ -72,7 +80,7 @@ subprojects {
         useJUnitPlatform()
     }
 
-    if (!weatherProject) {
+    if (!weatherProject && !worldgenProject) {
         tasks.register('prepareLegacyResources') {
             inputs.dir('../common/src/main/resources/data/mushoku_magic/recipe')
             outputs.dir(layout.buildDirectory.dir('generated/legacy-resources/data/mushoku_magic/recipes'))
@@ -101,14 +109,14 @@ subprojects {
 
     tasks.named('processResources').configure {
         exclude 'fabric.mod.json'
-        if (!weatherProject) {
+        if (!weatherProject && !worldgenProject) {
             exclude 'assets/mushoku_magic/items/**'
         }
         inputs.property 'version', project.version
         filesMatching('META-INF/mods.toml') {
             expand version: project.version
         }
-        if (!weatherProject) {
+        if (!weatherProject && !worldgenProject) {
             dependsOn tasks.named('prepareLegacyResources')
         }
     }

@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   build-and-upload:
-    name: Build and attach standalone Weather and Magic jars
+    name: Build and attach standalone Magic, Weather, and Worldgen jars
     runs-on: ubuntu-latest
     steps:
       - name: Check out the release tag
@@ -24,15 +24,16 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
 
-      - name: Run tests and build Fabric Weather and Magic
+      - name: Run tests and build Fabric Magic, Weather, and Worldgen
         run: |
-          ./gradlew --no-daemon clean :weather:clean
-          ./gradlew --no-daemon :weather:build build
+          python3 scripts/generate_worldgen_resources.py --check
+          ./gradlew --no-daemon clean :weather:clean :worldgen:clean
+          ./gradlew --no-daemon :weather:build :worldgen:build build
 
-      - name: Build native Weather and Magic 1.20.1 loader ports
+      - name: Build native Magic, Weather, and Worldgen 1.20.1 loader ports
         run: |
-          ./gradlew --no-daemon -p ports clean :weather-forge:clean :weather-neoforge:clean
-          ./gradlew --no-daemon -p ports :weather-forge:build :weather-neoforge:build :forge:build :neoforge:build
+          ./gradlew --no-daemon -p ports clean :weather-forge:clean :weather-neoforge:clean :worldgen-forge:clean :worldgen-neoforge:clean
+          ./gradlew --no-daemon -p ports :weather-forge:build :weather-neoforge:build :worldgen-forge:build :worldgen-neoforge:build :forge:build :neoforge:build
 
       - name: Verify volumetric Weather rendering resources are packaged
         shell: bash
@@ -64,6 +65,16 @@ jobs:
               print(f"Verified volumetric Weather resources in {jars[0]}")
           PY
 
+      - name: Verify Worldgen preset resources in all loader jars
+        shell: bash
+        run: |
+          set -euo pipefail
+          fabric_version="$(sed -n 's/^worldgen_version=//p' gradle.properties)"
+          port_version="$(sed -n 's/^worldgen_port_version=//p' ports/gradle.properties)"
+          python3 scripts/verify_worldgen_artifact.py --loader fabric "worldgen/build/libs/mushoku-worldgen-${fabric_version}.jar"
+          python3 scripts/verify_worldgen_artifact.py --loader forge "ports/worldgen-forge/build/libs/mushoku-worldgen-forge-1.20.1-${port_version}.jar"
+          python3 scripts/verify_worldgen_artifact.py --loader neoforge "ports/worldgen-neoforge/build/libs/mushoku-worldgen-neoforge-1.20.1-${port_version}.jar"
+
       - name: Verify native Magic and Weather package sets are disjoint
         shell: bash
         run: |
@@ -72,7 +83,7 @@ jobs:
             --pair Forge 'ports/forge/build/libs/mushoku-magic-forge-1.20.1-*.jar' 'ports/weather-forge/build/libs/mushoku-weather-forge-1.20.1-*.jar' \
             --pair NeoForge 'ports/neoforge/build/libs/mushoku-magic-neoforge-1.20.1-*.jar' 'ports/weather-neoforge/build/libs/mushoku-weather-neoforge-1.20.1-*.jar'
 
-      - name: Attach all six platform jars to the release
+      - name: Attach all nine platform jars to the release
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -81,7 +92,9 @@ jobs:
           weather_version="$(sed -n 's/^weather_version=//p' gradle.properties)"
           port_magic_version="$(sed -n 's/^port_version=//p' ports/gradle.properties)"
           port_weather_version="$(sed -n 's/^weather_port_version=//p' ports/gradle.properties)"
-          for version in "$magic_version" "$weather_version" "$port_magic_version" "$port_weather_version"; do
+          worldgen_version="$(sed -n 's/^worldgen_version=//p' gradle.properties)"
+          port_worldgen_version="$(sed -n 's/^worldgen_port_version=//p' ports/gradle.properties)"
+          for version in "$magic_version" "$weather_version" "$port_magic_version" "$port_weather_version" "$worldgen_version" "$port_worldgen_version"; do
             test -n "$version"
           done
           fabric_magic="build/libs/mushoku-magic-${magic_version}.jar"
@@ -90,11 +103,14 @@ jobs:
           forge_weather="ports/weather-forge/build/libs/mushoku-weather-forge-1.20.1-${port_weather_version}.jar"
           neoforge_magic="ports/neoforge/build/libs/mushoku-magic-neoforge-1.20.1-${port_magic_version}.jar"
           neoforge_weather="ports/weather-neoforge/build/libs/mushoku-weather-neoforge-1.20.1-${port_weather_version}.jar"
-          for jar in "$fabric_magic" "$fabric_weather" "$forge_magic" "$forge_weather" "$neoforge_magic" "$neoforge_weather"; do
+          fabric_worldgen="worldgen/build/libs/mushoku-worldgen-${worldgen_version}.jar"
+          forge_worldgen="ports/worldgen-forge/build/libs/mushoku-worldgen-forge-1.20.1-${port_worldgen_version}.jar"
+          neoforge_worldgen="ports/worldgen-neoforge/build/libs/mushoku-worldgen-neoforge-1.20.1-${port_worldgen_version}.jar"
+          for jar in "$fabric_magic" "$fabric_weather" "$fabric_worldgen" "$forge_magic" "$forge_weather" "$forge_worldgen" "$neoforge_magic" "$neoforge_weather" "$neoforge_worldgen"; do
             test -f "$jar"
           done
           gh release upload "$GITHUB_REF_NAME" \
-            "$fabric_magic" "$fabric_weather" \
-            "$forge_magic" "$forge_weather" \
-            "$neoforge_magic" "$neoforge_weather" \
+            "$fabric_magic" "$fabric_weather" "$fabric_worldgen" \
+            "$forge_magic" "$forge_weather" "$forge_worldgen" \
+            "$neoforge_magic" "$neoforge_weather" "$neoforge_worldgen" \
             --clobber

@@ -1,0 +1,3 @@
+dependencies {
+    forge "net.minecraftforge:forge:${forge_version}"
+}
