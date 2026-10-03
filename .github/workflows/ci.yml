@@ -35,8 +35,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ./gradlew --no-daemon clean :weather:clean
-          ./gradlew --no-daemon :weather:build build --stacktrace 2>&1 | tee "$RUNNER_TEMP/gradle-build.log"
+          ./gradlew --no-daemon clean :weather:clean --stacktrace 2>&1 | tee "$RUNNER_TEMP/gradle-build.log"
+          ./gradlew --no-daemon :weather:build build --stacktrace 2>&1 | tee -a "$RUNNER_TEMP/gradle-build.log"
 
       - name: Surface Gradle failure details
         if: failure()
@@ -162,8 +162,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ./gradlew --no-daemon -p ports clean :weather-forge:clean :weather-neoforge:clean
-          ./gradlew --no-daemon -p ports :weather-forge:build :weather-neoforge:build :forge:build :neoforge:build --stacktrace 2>&1 | tee "$RUNNER_TEMP/ports-build.log"
+          ./gradlew --no-daemon -p ports clean :weather-forge:clean :weather-neoforge:clean --stacktrace 2>&1 | tee "$RUNNER_TEMP/ports-build.log"
+          ./gradlew --no-daemon -p ports :weather-forge:build :weather-neoforge:build :forge:build :neoforge:build --stacktrace 2>&1 | tee -a "$RUNNER_TEMP/ports-build.log"
 
       - name: Surface native build failure details
         if: failure()
