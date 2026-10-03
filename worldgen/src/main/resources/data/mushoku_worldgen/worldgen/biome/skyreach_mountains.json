@@ -42,6 +42,7 @@
       "minecraft:ore_redstone",
       "minecraft:ore_redstone_lower",
       "minecraft:ore_diamond",
+      "minecraft:ore_diamond_medium",
       "minecraft:ore_diamond_large",
       "minecraft:ore_diamond_buried",
       "minecraft:ore_lapis",
@@ -59,11 +60,9 @@
       "minecraft:spring_lava"
     ],
     [
-      "minecraft:trees_grove",
-      "minecraft:patch_tall_grass_2",
-      "minecraft:patch_grass_taiga",
       "minecraft:glow_lichen",
-      "minecraft:patch_large_fern"
+      "minecraft:trees_grove",
+      "minecraft:patch_pumpkin"
     ],
     [
       "minecraft:freeze_top_layer"

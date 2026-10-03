@@ -42,6 +42,7 @@
       "minecraft:ore_redstone",
       "minecraft:ore_redstone_lower",
       "minecraft:ore_diamond",
+      "minecraft:ore_diamond_medium",
       "minecraft:ore_diamond_large",
       "minecraft:ore_diamond_buried",
       "minecraft:ore_lapis",
@@ -58,14 +59,20 @@
       "minecraft:spring_lava"
     ],
     [
-      "minecraft:trees_old_growth_pine_taiga",
+      "minecraft:glow_lichen",
       "minecraft:patch_large_fern",
+      "minecraft:trees_old_growth_pine_taiga",
       "minecraft:flower_default",
       "minecraft:patch_grass_taiga",
-      "minecraft:patch_berry_common",
+      "minecraft:patch_dead_bush",
       "minecraft:brown_mushroom_old_growth",
       "minecraft:red_mushroom_old_growth",
-      "minecraft:patch_sugar_cane"
+      "minecraft:brown_mushroom_normal",
+      "minecraft:red_mushroom_normal",
+      "minecraft:patch_pumpkin",
+      "minecraft:patch_sugar_cane",
+      "minecraft:patch_firefly_bush_near_water",
+      "minecraft:patch_berry_common"
     ],
     [
       "minecraft:freeze_top_layer"

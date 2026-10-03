@@ -62,11 +62,10 @@
       "minecraft:spring_lava"
     ],
     [
-      "minecraft:trees_grove",
-      "minecraft:patch_tall_grass_2",
-      "minecraft:patch_grass_taiga",
       "minecraft:glow_lichen",
-      "minecraft:patch_large_fern"
+      "minecraft:trees_grove",
+      "minecraft:patch_sugar_cane",
+      "minecraft:patch_pumpkin"
     ],
     [
       "minecraft:freeze_top_layer"

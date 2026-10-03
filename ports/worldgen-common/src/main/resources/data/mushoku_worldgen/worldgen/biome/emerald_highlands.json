@@ -61,14 +61,19 @@
       "minecraft:spring_lava"
     ],
     [
-      "minecraft:trees_old_growth_pine_taiga",
+      "minecraft:glow_lichen",
       "minecraft:patch_large_fern",
+      "minecraft:trees_old_growth_pine_taiga",
       "minecraft:flower_default",
       "minecraft:patch_grass_taiga",
-      "minecraft:patch_berry_common",
+      "minecraft:patch_dead_bush",
       "minecraft:brown_mushroom_old_growth",
       "minecraft:red_mushroom_old_growth",
-      "minecraft:patch_sugar_cane"
+      "minecraft:brown_mushroom_normal",
+      "minecraft:red_mushroom_normal",
+      "minecraft:patch_sugar_cane",
+      "minecraft:patch_pumpkin",
+      "minecraft:patch_berry_common"
     ],
     [
       "minecraft:freeze_top_layer"

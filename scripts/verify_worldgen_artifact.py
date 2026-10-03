@@ -28,6 +28,14 @@ RETAINED_VANILLA_BIOMES = {
 }
 PRESET = "data/mushoku_worldgen/worldgen/world_preset/mushoku_world.json"
 NORMAL_TAG = "data/minecraft/tags/worldgen/world_preset/normal.json"
+CUSTOM_NOISE_SETTINGS = "mushoku_worldgen:mushoku_overworld"
+NOISE_SETTINGS = "data/mushoku_worldgen/worldgen/noise_settings/mushoku_overworld.json"
+DENSITY_FUNCTIONS = {
+    "macro_continents": "data/mushoku_worldgen/worldgen/density_function/macro_continents.json",
+    "landmass_density": "data/mushoku_worldgen/worldgen/density_function/landmass_density.json",
+}
+MACRO_CONTINENTS_ID = "mushoku_worldgen:macro_continents"
+LANDMASS_DENSITY_ID = "mushoku_worldgen:landmass_density"
 
 
 def load_json(jar: ZipFile, path: str) -> dict:
@@ -35,6 +43,16 @@ def load_json(jar: ZipFile, path: str) -> dict:
         return json.loads(jar.read(path))
     except (KeyError, json.JSONDecodeError) as error:
         raise ValueError(f"Missing or invalid JSON resource {path}: {error}") from error
+
+
+def contains_value(value: object, expected: object) -> bool:
+    if value == expected:
+        return True
+    if isinstance(value, dict):
+        return any(contains_value(child, expected) for child in value.values())
+    if isinstance(value, list):
+        return any(contains_value(child, expected) for child in value)
+    return False
 
 
 def verify(jar_path: Path, loader: str) -> None:
@@ -59,6 +77,8 @@ def verify(jar_path: Path, loader: str) -> None:
                 f"data/mushoku_worldgen/worldgen/biome/{biome}.json"
                 for biome in CUSTOM_BIOMES
             )
+            required.add(NOISE_SETTINGS)
+            required.update(DENSITY_FUNCTIONS.values())
             missing = sorted(required - names)
             if missing:
                 raise ValueError(f"{jar_path} is missing resources: {missing}")
@@ -103,8 +123,23 @@ def verify(jar_path: Path, loader: str) -> None:
             }:
                 raise ValueError(f"{jar_path} has an incomplete dimension set")
             overworld = dimensions["minecraft:overworld"].get("generator", {})
-            if overworld.get("settings") != "minecraft:overworld":
-                raise ValueError(f"{jar_path} would alter the vanilla Overworld noise settings")
+            if overworld.get("settings") != CUSTOM_NOISE_SETTINGS:
+                raise ValueError(f"{jar_path} does not use isolated Mushoku terrain settings")
+            noise_settings = load_json(jar, NOISE_SETTINGS)
+            noise_router = noise_settings.get("noise_router", {})
+            if noise_router.get("continents") != MACRO_CONTINENTS_ID:
+                raise ValueError(f"{jar_path} is missing the broad continentalness router")
+            if not contains_value(noise_router.get("final_density"), LANDMASS_DENSITY_ID):
+                raise ValueError(f"{jar_path} final density does not use its continent overlay")
+            if loader == "fabric":
+                if noise_router.get("preliminary_surface_level", {}).get("type") != "minecraft:find_top_surface":
+                    raise ValueError(f"{jar_path} has no modern preliminary-surface sampler")
+            elif not {"initial_density_without_jaggedness", "lava"}.issubset(noise_router):
+                raise ValueError(f"{jar_path} has an incomplete Forge/NeoForge aquifer router")
+            if "surface_rule" not in noise_settings:
+                raise ValueError(f"{jar_path} has no custom Overworld surface rule")
+            for resource in DENSITY_FUNCTIONS.values():
+                load_json(jar, resource)
             entries = overworld.get("biome_source", {}).get("biomes", [])
             biome_ids = {entry.get("biome") for entry in entries}
             expected_biomes = {
@@ -124,8 +159,30 @@ def verify(jar_path: Path, loader: str) -> None:
                     jar,
                     f"data/mushoku_worldgen/worldgen/biome/{biome}.json",
                 )
-                if len(definition.get("features", [])) != 11:
+                feature_stages = definition.get("features", [])
+                if len(feature_stages) != 11:
                     raise ValueError(f"{jar_path} biome {biome_id} has invalid feature stages")
+                if biome == "golden_steppe":
+                    deep_dark_order = [
+                        "minecraft:glow_lichen",
+                        "minecraft:patch_tall_grass_2",
+                        "minecraft:trees_plains",
+                        "minecraft:flower_plains",
+                        "minecraft:patch_grass_plain",
+                        "minecraft:brown_mushroom_normal",
+                        "minecraft:red_mushroom_normal",
+                        "minecraft:patch_pumpkin",
+                    ]
+                    deep_dark_features = set(deep_dark_order)
+                    shared = [
+                        feature
+                        for feature in feature_stages[9]
+                        if feature in deep_dark_features
+                    ]
+                    if shared != deep_dark_order:
+                        raise ValueError(
+                            f"{jar_path} Golden Steppe has a feature-order conflict with minecraft:deep_dark"
+                        )
 
             normal_tag = load_json(jar, NORMAL_TAG)
             if normal_tag.get("replace", False):

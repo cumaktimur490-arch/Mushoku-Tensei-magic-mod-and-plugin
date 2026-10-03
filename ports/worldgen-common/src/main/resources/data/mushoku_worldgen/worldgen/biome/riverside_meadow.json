@@ -61,11 +61,11 @@
       "minecraft:spring_lava"
     ],
     [
-      "minecraft:flower_meadow",
-      "minecraft:trees_meadow",
+      "minecraft:glow_lichen",
       "minecraft:patch_tall_grass_2",
       "minecraft:patch_grass_plain",
-      "minecraft:patch_sugar_cane"
+      "minecraft:flower_meadow",
+      "minecraft:trees_meadow"
     ],
     [
       "minecraft:freeze_top_layer"

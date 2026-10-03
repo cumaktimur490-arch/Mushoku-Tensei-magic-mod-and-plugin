@@ -42,6 +42,7 @@
       "minecraft:ore_redstone",
       "minecraft:ore_redstone_lower",
       "minecraft:ore_diamond",
+      "minecraft:ore_diamond_medium",
       "minecraft:ore_diamond_large",
       "minecraft:ore_diamond_buried",
       "minecraft:ore_lapis",
@@ -58,12 +59,12 @@
       "minecraft:spring_lava"
     ],
     [
-      "minecraft:flower_meadow",
-      "minecraft:trees_meadow",
+      "minecraft:glow_lichen",
       "minecraft:patch_tall_grass_2",
       "minecraft:patch_grass_meadow",
-      "minecraft:wildflowers_meadow",
-      "minecraft:patch_sugar_cane"
+      "minecraft:flower_meadow",
+      "minecraft:trees_meadow",
+      "minecraft:wildflowers_meadow"
     ],
     [
       "minecraft:freeze_top_layer"
