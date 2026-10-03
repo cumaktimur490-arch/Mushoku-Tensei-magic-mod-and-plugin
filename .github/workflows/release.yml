@@ -50,6 +50,7 @@ jobs:
               "assets/mushoku_weather/shaders/volume_cloud.vert",
               "assets/mushoku_weather/shaders/volume_cloud.frag",
               "assets/mushoku_weather/textures/cloud_noise.png",
+              "pack.mcmeta",
           )
           for pattern in patterns:
               jars = [path for path in Path().glob(pattern) if not path.stem.endswith("-sources")]

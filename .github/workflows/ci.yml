@@ -139,12 +139,13 @@ jobs:
                   raise SystemExit(f"{jars[0]} is missing its public integration API")
               if "com/mushokumagic/weather/world/VolumetricCloudRenderer.class" not in names:
                   raise SystemExit(f"{jars[0]} is missing its GPU cloud renderer")
-              for shader in (
+              for resource in (
                       "assets/mushoku_weather/shaders/volume_cloud.vert",
                       "assets/mushoku_weather/shaders/volume_cloud.frag",
-                      "assets/mushoku_weather/textures/cloud_noise.png"):
-                  if shader not in names:
-                      raise SystemExit(f"{jars[0]} is missing shader resource {shader}")
+                      "assets/mushoku_weather/textures/cloud_noise.png",
+                      "pack.mcmeta"):
+                  if resource not in names:
+                      raise SystemExit(f"{jars[0]} is missing Weather resource {resource}")
               if "com/mushokumagic/spell/SpellEffects.class" in names:
                   raise SystemExit(f"{jars[0]} incorrectly bundles the Magic mod")
           print(f"Verified standalone Weather jar {jars[0]}")
@@ -289,12 +290,13 @@ jobs:
                           raise SystemExit(f"{jars[0]} is missing its public integration API")
                       if "com/mushokumagic/weather/world/VolumetricCloudRenderer.class" not in names:
                           raise SystemExit(f"{jars[0]} is missing its GPU cloud renderer")
-                      for shader in (
+                      for resource in (
                               "assets/mushoku_weather/shaders/volume_cloud.vert",
                               "assets/mushoku_weather/shaders/volume_cloud.frag",
-                              "assets/mushoku_weather/textures/cloud_noise.png"):
-                          if shader not in names:
-                              raise SystemExit(f"{jars[0]} is missing shader resource {shader}")
+                              "assets/mushoku_weather/textures/cloud_noise.png",
+                              "pack.mcmeta"):
+                          if resource not in names:
+                              raise SystemExit(f"{jars[0]} is missing Weather resource {resource}")
                       if "com/mushokumagic/spell/SpellEffects.class" in names:
                           raise SystemExit(f"{jars[0]} incorrectly bundles the Magic mod")
               print(f"Verified {loader}: {jars[0]}")
@@ -425,9 +427,10 @@ jobs:
                       for resource in (
                               "assets/mushoku_weather/shaders/volume_cloud.vert",
                               "assets/mushoku_weather/shaders/volume_cloud.frag",
-                              "assets/mushoku_weather/textures/cloud_noise.png"):
+                              "assets/mushoku_weather/textures/cloud_noise.png",
+                              "pack.mcmeta"):
                           if resource not in names:
-                              raise SystemExit(f"{jar_path} is missing Weather rendering resource {resource}")
+                              raise SystemExit(f"{jar_path} is missing Weather resource {resource}")
                   if mod_kind == "weather" and "com/mushokumagic/spell/SpellEffects.class" in names:
                       raise SystemExit(f"{jar_path} incorrectly bundles the Magic mod")
               print(f"Verified {label}: {jar_path}")
@@ -488,6 +491,7 @@ jobs:
           - Cumulonimbus synchronizes a real 20×20-chunk local storm sector and cast altitude; clients render its shader-raymarched volumetric cloud, rain, and thunder locally without changing dimension-wide server weather.
           - Adds GPU ray-marched 3D cloud volumes with procedural density/noise for cumulonimbus towers, supercell anvils and rotating wall clouds, squall shelves, cyclone bands, tornado funnels, sandstorm walls, and regional overcast. Particles are auxiliary rain, hail, wind, lightning, and ground dust—not cloud bodies.
           - Adds an original seamless multi-channel cloud-noise texture, projected through the 3D raymarch to carve larger billows, soft edges, and fine erosion detail without drawing flat cloud sprites.
+          - Adds loader-version-appropriate Weather resource-pack metadata, avoiding the missing-pack-metadata warning in Minecraft 1.20.1 and 1.21.11.
           - Cloud quality, active volume budget, and render distance are configurable; local moving storms retain formation, mature, strengthening, and dissipating phases with rain curtains, hail, and strong winds.
           - `/magicweather supercell` and `/magicweather squall` start local storms; spawn frequency, size, strength, active-system limits, and strengthening are configurable. Optional tornado/cyclone block damage is off by default and strictly capped.
           - Tornado and cyclone smoke receives bounded inward, rotational, and upward velocities without expensive all-pairs particle collisions.
@@ -499,7 +503,7 @@ jobs:
           ## Verification
 
           - GitHub Actions passed for all six Fabric, Forge, and NeoForge mod builds and their mod-specific test suites.
-          - CI regenerated the expected cloud-noise pixels from a deterministic script, verified both PNG copies are identical, compiled and linked the GLSL vertex/fragment shader pair, verified all three Weather rendering assets are packaged in all Weather jars, and checked loader metadata, dependency direction, Forge-only optional Luxium metadata, package uniqueness, and staff hand transforms.
+          - CI regenerated the expected cloud-noise pixels from a deterministic script, verified both PNG copies are identical, compiled and linked the GLSL vertex/fragment shader pair, verified all rendering and pack metadata resources are packaged in every Weather jar, and checked loader metadata, dependency direction, Forge-only optional Luxium metadata, package uniqueness, and staff hand transforms.
           EOF
           if [[ "${BETA_RELEASE}" == "true" ]]; then
             cat > "$RUNNER_TEMP/beta-warning.md" <<'EOF'
