@@ -2,5 +2,5 @@ dependencies {
     // NeoForge's 1.20.1 line retains Forge's FML/API packages; the separately
     // named artifact keeps its dependency metadata and output distinct.
     forge "net.neoforged:forge:${neoforge_legacy_version}"
-    modImplementation project(path: ':weather-neoforge', configuration: 'namedElements')
+    implementation project(path: ':weather-neoforge', configuration: 'namedElements')
 }
