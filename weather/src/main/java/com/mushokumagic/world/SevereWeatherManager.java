@@ -20,7 +20,7 @@ import net.minecraft.server.MinecraftServer;
 
 /**
  * Creates short-lived, moving severe-weather systems only in loaded areas near players.
- * Their particle fields and forces are local; this never changes dimension-wide weather.
+ * Their GPU cloud volumes, particle fields and forces are local; global weather is untouched.
  */
 public final class SevereWeatherManager {
     private static final long SPAWN_CHECK_INTERVAL = 600L;
@@ -30,11 +30,9 @@ public final class SevereWeatherManager {
     private static final int HARD_MAX_SYSTEMS_PER_WORLD = 10;
     private static final double MIN_PLAYER_DISTANCE = 320.0;
     private static final double PARTICLE_VIEW_PADDING = 96.0;
-    private static final class_2394 CLOUD = WeatherPalette.dust(0xCFD9E0, 1.45f);
-    private static final class_2394 STORM_CLOUD = WeatherPalette.dust(0x3D4856, 1.75f);
-    private static final class_2394 TORNADO_DUST = WeatherPalette.dust(0x78828B, 1.12f);
     private static final class_2394 HAIL_GRAIN = WeatherPalette.dust(0xEAF5FF, 0.82f);
     private static final class_2394 SAND_DUST = WeatherPalette.dust(0xC9AD7A, 1.15f);
+    private static final class_2394 VORTEX_MIST = WeatherPalette.dust(0xAABBC7, 0.62f);
     private static final Map<class_3218, WorldState> WORLDS = new IdentityHashMap<>();
 
     private SevereWeatherManager() {
@@ -210,6 +208,38 @@ public final class SevereWeatherManager {
         return true;
     }
 
+    /** Compact server-authoritative storm state for client-side volumetric rendering. */
+    public static List<StormSnapshot> snapshots(class_3218 level) {
+        WorldState state = WORLDS.get(level);
+        if (state == null || state.systems.isEmpty()) {
+            return List.of();
+        }
+        long now = level.method_75260();
+        ArrayList<StormSnapshot> snapshots = new ArrayList<>(state.systems.size());
+        for (SystemCell system : state.systems) {
+            if (now >= system.endTick) {
+                continue;
+            }
+            snapshots.add(new StormSnapshot(
+                    system.kind,
+                    system.x,
+                    system.baseY,
+                    system.z,
+                    system.travelX,
+                    system.travelZ,
+                    system.travelSpeed,
+                    system.radius,
+                    system.height,
+                    system.baseIntensity,
+                    system.strengtheningBoost,
+                    system.phase,
+                    system.startTick,
+                    system.endTick,
+                    now));
+        }
+        return List.copyOf(snapshots);
+    }
+
     /** Removes nearby temporary hazards when an administrator clears the local weather. */
     public static void clearNear(class_3218 level, double x, double z, double radius) {
         WorldState state = WORLDS.get(level);
@@ -369,13 +399,9 @@ public final class SevereWeatherManager {
             return;
         }
         double cloudY = system.baseY + system.height + 5.0;
-        if (now % 10L == 0L) {
-            SevereWeatherManager.emitCloudLayers(level, system, cloudY, intensity, now);
-        }
-
         switch (system.kind) {
-            case SUPERCELL -> SevereWeatherManager.emitSupercell(level, system, now, cloudY, intensity);
-            case SQUALL -> SevereWeatherManager.emitSquall(level, system, now, cloudY, intensity);
+            case SUPERCELL -> SevereWeatherManager.emitSupercell(level, system, cloudY, intensity);
+            case SQUALL -> SevereWeatherManager.emitSquall(level, system, cloudY, intensity);
             case HURRICANE -> {
                 class_2394 rain = (class_2394)class_2398.field_11242;
                 level.method_65096(rain,
@@ -385,9 +411,14 @@ public final class SevereWeatherManager {
                         level, rain, system.x, cloudY - 7.0, system.z,
                         8, system.radius * 0.58, 9.0,
                         system.travelX, system.travelZ, intensity, false);
-                SevereWeatherManager.emitHurricaneBands(level, system, now, cloudY, intensity);
+                if (now % 10L == 0L) {
+                    WeatherVisuals.emitVortexParticles(
+                            level, VORTEX_MIST, system.x, system.baseY + 1.0, system.z,
+                            5 + (int)Math.round(5.0 * intensity), system.radius * 0.48, 22.0,
+                            system.travelX, system.travelZ, intensity);
+                }
             }
-            case TORNADO -> SevereWeatherManager.emitTornadoFunnel(level, system, now, intensity);
+            case TORNADO -> SevereWeatherManager.emitTornadoBaseEffects(level, system, now, intensity);
             case HAIL -> {
                 class_2394 rain = (class_2394)class_2398.field_11242;
                 level.method_65096(rain,
@@ -408,7 +439,7 @@ public final class SevereWeatherManager {
                 level.method_65096((class_2394)class_2398.field_46763,
                         system.x, system.baseY + 2.0, system.z,
                         6 + (int)Math.round(8.0 * intensity), system.radius * 0.58, 1.6, system.radius * 0.58, 0.045);
-                level.method_65096(TORNADO_DUST,
+                level.method_65096(SAND_DUST,
                         system.x, system.baseY + 9.0, system.z,
                         10 + (int)Math.round(14.0 * intensity), system.radius * 0.64, 4.0, system.radius * 0.64, 0.055);
                 WeatherVisuals.emitDriftingParticles(
@@ -423,43 +454,22 @@ public final class SevereWeatherManager {
                         system.travelX,
                         system.travelZ,
                         intensity);
+                if (now % 10L == 0L) {
+                    WeatherVisuals.emitVortexParticles(
+                            level, SAND_DUST, system.x, system.baseY + 1.0, system.z,
+                            5 + (int)Math.round(5.0 * intensity), system.radius * 0.46, 20.0,
+                            system.travelX, system.travelZ, intensity);
+                }
             }
             case NONE -> {
             }
         }
     }
 
-    private static void emitCloudLayers(
-            class_3218 level,
-            SystemCell system,
-            double cloudY,
-            double intensity,
-            long now) {
-        double cloudScale = switch (system.kind) {
-            case SUPERCELL -> 0.78;
-            case SQUALL -> 0.92;
-            case TORNADO -> 0.82;
-            default -> 0.68;
-        };
-        double cloudRadius = system.radius * cloudScale;
-        WeatherVisuals.emitCloudDeck(
-                level,
-                system.x,
-                cloudY,
-                system.z,
-                cloudRadius,
-                Math.min(1.0, 0.68 + intensity * 0.32),
-                system.travelX,
-                system.travelZ,
-                now,
-                true);
-    }
-
     /** Rotating updraft, broad anvil, wall cloud, and a dense rain/hail core. */
     private static void emitSupercell(
             class_3218 level,
             SystemCell system,
-            long now,
             double cloudY,
             double intensity) {
         class_2394 rain = (class_2394)class_2398.field_11242;
@@ -479,63 +489,12 @@ public final class SevereWeatherManager {
                     system.x, cloudY - 7.0, system.z,
                     8 + (int)Math.round(22.0 * intensity), system.radius * 0.34, 9.0, system.radius * 0.34, 0.12);
         }
-        if (now % 10L == 0L) {
-            SevereWeatherManager.emitSupercellStructure(level, system, now, cloudY, intensity);
-        }
-    }
-
-    private static void emitSupercellStructure(
-            class_3218 level,
-            SystemCell system,
-            long now,
-            double cloudY,
-            double intensity) {
-        double rotation = now * (0.018 + intensity * 0.012) + system.phase;
-        double crossX = -system.travelZ;
-        double crossZ = system.travelX;
-        for (int segment = 0; segment < 9; ++segment) {
-            double progress = segment / 8.0;
-            double along = system.radius * (0.18 + progress * 0.36);
-            double spread = (progress - 0.5) * system.radius * 1.25;
-            double x = system.x - system.travelX * along + crossX * spread;
-            double z = system.z - system.travelZ * along + crossZ * spread;
-            double y = cloudY + 2.0 + Math.sin(progress * Math.PI) * 4.0;
-            level.method_65096(STORM_CLOUD,
-                    x, y, z,
-                    2 + (int)Math.round(intensity * 2.0), system.radius * 0.11, 2.2, system.radius * 0.11, 0.002);
-            if (segment % 2 == 0) {
-                level.method_65096(CLOUD,
-                        x - system.travelX * 4.0, y + 1.8, z - system.travelZ * 4.0,
-                        2, system.radius * 0.08, 1.7, system.radius * 0.08, 0.001);
-            }
-        }
-
-        for (int band = 0; band < 2; ++band) {
-            double ringRadius = system.radius * (0.14 + band * 0.12);
-            double wallY = cloudY - 6.5 - band * 2.0;
-            for (int segment = 0; segment < 10; ++segment) {
-                double angle = rotation + segment * (Math.PI * 2.0 / 10.0) + band * 0.45;
-                double x = system.x + Math.cos(angle) * ringRadius;
-                double z = system.z + Math.sin(angle) * ringRadius;
-                level.method_65096(STORM_CLOUD, x, wallY, z, 1, 2.8, 1.6, 2.8, 0.006);
-                if ((segment + band) % 2 == 0) {
-                    SevereWeatherModel.VortexFlow flow = SevereWeatherModel.vortexFlow(
-                            x - system.x, z - system.z,
-                            system.travelX, system.travelZ,
-                            intensity, 0.9);
-                    level.method_65096((class_2394)class_2398.field_46763,
-                            x, wallY, z,
-                            0, flow.x(), flow.y(), flow.z(), 1.0);
-                }
-            }
-        }
     }
 
     /** A fast-moving, wind-driven line of cloud and precipitation with a leading gust front. */
     private static void emitSquall(
             class_3218 level,
             SystemCell system,
-            long now,
             double cloudY,
             double intensity) {
         class_2394 rain = (class_2394)class_2398.field_11242;
@@ -551,101 +510,37 @@ public final class SevereWeatherManager {
                 system.z + system.travelZ * system.radius * 0.25,
                 7 + (int)Math.round(5.0 * intensity), system.radius * 0.66, 3.0,
                 system.travelX, system.travelZ, intensity);
-        if (now % 10L == 0L) {
-            SevereWeatherManager.emitSquallFront(level, system, cloudY, intensity);
-        }
     }
 
-    private static void emitSquallFront(class_3218 level, SystemCell system, double cloudY, double intensity) {
-        double crossX = -system.travelZ;
-        double crossZ = system.travelX;
-        double frontOffset = system.radius * 0.28;
-        for (int segment = -5; segment <= 5; ++segment) {
-            double across = segment * system.radius * 0.105;
-            double x = system.x + system.travelX * frontOffset + crossX * across;
-            double z = system.z + system.travelZ * frontOffset + crossZ * across;
-            level.method_65096(STORM_CLOUD,
-                    x, cloudY - 3.5, z,
-                    2 + (int)Math.round(intensity * 2.0), system.radius * 0.085, 2.0, system.radius * 0.085, 0.003);
-            if (segment % 2 == 0) {
-                level.method_65096(CLOUD,
-                        x - system.travelX * 4.0, cloudY - 1.6, z - system.travelZ * 4.0,
-                        2, system.radius * 0.08, 1.4, system.radius * 0.08, 0.002);
-            }
-        }
-    }
-
-    private static void emitHurricaneBands(
+    private static void emitTornadoBaseEffects(
             class_3218 level,
             SystemCell system,
             long now,
-            double cloudY,
             double intensity) {
-        double rotation = now * 0.02 + system.phase;
-        for (int band = 0; band < 4; ++band) {
-            double ringRadius = system.radius * (0.24 + band * 0.165);
-            double y = cloudY - 5.5 + band * 2.1;
-            for (int segment = 0; segment < 12; ++segment) {
-                double angle = rotation + band * 0.82 + segment * (Math.PI * 2.0 / 12.0);
-                double x = system.x + Math.cos(angle) * ringRadius;
-                double z = system.z + Math.sin(angle) * ringRadius;
-                level.method_65096(STORM_CLOUD,
-                        x, y, z,
-                        1 + (int)Math.round(intensity * 2.0), 2.5, 1.45, 2.5, 0.006);
-                if (segment % 3 == 0 && band % 2 == 0) {
-                    SevereWeatherModel.VortexFlow flow = SevereWeatherModel.vortexFlow(
-                            x - system.x, z - system.z,
-                            system.travelX, system.travelZ,
-                            intensity, 0.38);
-                    level.method_65096((class_2394)class_2398.field_46763,
-                            x, y, z,
-                            0, flow.x(), flow.y(), flow.z(), 1.0);
-                }
-                if (segment % 3 != 1) {
-                    level.method_65096(CLOUD, x, y + 0.55, z, 1, 2.6, 1.1, 2.6, 0.004);
-                }
-            }
+        if (now % 10L != 0L) {
+            return;
         }
-    }
-
-    private static void emitTornadoFunnel(class_3218 level, SystemCell system, long now, double intensity) {
-        double rotation = now * (0.075 + intensity * 0.035) + system.phase;
-        for (int layer = 0; layer < 10; ++layer) {
-            double progress = (double)layer / 9.0;
-            double y = system.baseY + 1.5 + progress * system.height;
-            double ringRadius = (1.5 + progress * 8.2) * (0.55 + intensity * 0.45);
-            for (int segment = 0; segment < 7; ++segment) {
-                double angle = rotation + layer * 0.58 + segment * (Math.PI * 2.0 / 7.0);
-                double x = system.x + Math.cos(angle) * ringRadius;
-                double z = system.z + Math.sin(angle) * ringRadius;
-                level.method_65096(TORNADO_DUST,
-                        x, y, z,
-                        1, 0.42, 0.62, 0.42, 0.045 + intensity * 0.025);
-                if ((segment + layer) % 2 == 0) {
-                    SevereWeatherModel.VortexFlow flow = SevereWeatherModel.vortexFlow(
-                            x - system.x, z - system.z,
-                            system.travelX, system.travelZ,
-                            intensity, 1.0 - progress * 0.24);
-                    level.method_65096((class_2394)class_2398.field_46763,
-                            x, y, z,
-                            0, flow.x(), flow.y(), flow.z(), 1.0);
-                    level.method_65096(CLOUD,
-                            x, y + 0.55, z,
-                            1, 0.62, 0.48, 0.62, 0.024);
-                }
-            }
-        }
-        if (now % 10L == 0L) {
-            level.method_65096((class_2394)class_2398.field_11242,
-                    system.x, system.baseY + system.height * 0.55, system.z,
-                    26 + (int)Math.round(22.0 * intensity), system.radius * 0.58, system.height * 0.42, system.radius * 0.58, 0.11);
-            level.method_65096(SAND_DUST,
-                    system.x, system.baseY + 1.0, system.z,
-                    18 + (int)Math.round(20.0 * intensity), system.radius * 0.44, 1.2, system.radius * 0.44, 0.1);
-            level.method_65096((class_2394)class_2398.field_46763,
-                    system.x, system.baseY + 1.2, system.z,
-                    6 + (int)Math.round(10.0 * intensity), system.radius * 0.36, 0.8, system.radius * 0.36, 0.06);
-        }
+        class_2394 rain = (class_2394)class_2398.field_11242;
+        level.method_65096(rain,
+                system.x, system.baseY + system.height * 0.55, system.z,
+                22 + (int)Math.round(24.0 * intensity), system.radius * 0.48,
+                system.height * 0.34, system.radius * 0.48, 0.12);
+        WeatherVisuals.emitDriftingParticles(
+                level,
+                SAND_DUST,
+                system.x,
+                system.baseY + 1.0,
+                system.z,
+                5 + (int)Math.round(6.0 * intensity),
+                system.radius * 0.38,
+                1.4,
+                system.travelX,
+                system.travelZ,
+                intensity);
+        WeatherVisuals.emitVortexParticles(
+                level, SAND_DUST, system.x, system.baseY + 1.0, system.z,
+                5 + (int)Math.round(6.0 * intensity), system.radius * 0.55,
+                system.height * 0.82, system.travelX, system.travelZ, intensity);
     }
 
     private static void damageFragileBlock(class_3218 level, SystemCell system, WeatherConfig config) {
@@ -688,6 +583,24 @@ public final class SevereWeatherManager {
         if (state.nextEventTick.size() > 512) {
             state.nextEventTick.clear();
         }
+    }
+
+    public record StormSnapshot(
+            SevereWeatherModel.Kind kind,
+            double x,
+            double baseY,
+            double z,
+            double travelX,
+            double travelZ,
+            double travelSpeed,
+            double radius,
+            int height,
+            double baseIntensity,
+            double strengtheningBoost,
+            double phase,
+            long startTick,
+            long endTick,
+            long snapshotTick) {
     }
 
     public record WeatherSample(

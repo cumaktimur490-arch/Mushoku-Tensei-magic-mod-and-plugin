@@ -78,6 +78,29 @@ public final class RegionalWeatherManager {
         MANUAL_OVERRIDES.clear();
     }
 
+    /** Samples one compact local climate cell for volumetric client rendering. */
+    public static RegionalSnapshot snapshotAt(class_3218 level, class_3222 player) {
+        class_243 position = player.method_73189();
+        double x = Math.floor(position.method_10216() / 16.0) * 16.0 + 8.0;
+        double z = Math.floor(position.method_10215() / 16.0) * 16.0 + 8.0;
+        if (!WeatherConfig.get().regionalWeatherEnabled) {
+            return new RegionalSnapshot(x, position.method_10214(), z, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, false);
+        }
+        RegionalWeatherModel.WeatherState weather = RegionalWeatherManager.sampleAt(
+                level, position.method_10216(), position.method_10214(), position.method_10215());
+        return new RegionalSnapshot(
+                x,
+                position.method_10214(),
+                z,
+                weather.cloudCover(),
+                weather.precipitationIntensity(),
+                weather.temperature(),
+                weather.windX(),
+                weather.windZ(),
+                weather.windStrength(),
+                weather.thunderstorm());
+    }
+
     /** Starts an explicit local weather override centered on the command executor. */
     public static void setManualWeather(
             class_3218 level,
@@ -247,33 +270,11 @@ public final class RegionalWeatherManager {
                 sampleX,
                 sampleY,
                 sampleZ);
-        boolean manualWeather = RegionalWeatherManager.findManualOverride(
-                level,
-                sampleX,
-                sampleZ,
-                now) != null;
-
         double driftX = weather.windX() * weather.windStrength() * 3.0;
         double driftZ = weather.windZ() * weather.windStrength() * 3.0;
         double x = sampleX + driftX;
         double z = sampleZ + driftZ;
         double rainY = cell.minY() + 24.0;
-        double cloudY = cell.minY() + 27.0;
-
-        if ((hasPrecipitation || manualWeather) && weather.cloudCover() >= 0.40) {
-            double cloudSpread = 13.0 + weather.cloudCover() * 9.0;
-            WeatherVisuals.emitCloudDeck(
-                    level,
-                    x,
-                    cloudY,
-                    z,
-                    cloudSpread,
-                    weather.cloudCover(),
-                    weather.windX(),
-                    weather.windZ(),
-                    now,
-                    weather.cloudCover() >= 0.62);
-        }
 
         if (weather.precipitationIntensity() > 0.02) {
             boolean snowing = weather.precipitation() == RegionalWeatherModel.Precipitation.SNOW;
@@ -354,6 +355,19 @@ public final class RegionalWeatherManager {
 
     private static double randomOffset(class_3218 level, double radius) {
         return (level.field_9229.method_43058() * 2.0 - 1.0) * radius;
+    }
+
+    public record RegionalSnapshot(
+            double x,
+            double y,
+            double z,
+            double cloudCover,
+            double precipitationIntensity,
+            double temperature,
+            double windX,
+            double windZ,
+            double windStrength,
+            boolean thunderstorm) {
     }
 
     public record ManualWeatherStatus(

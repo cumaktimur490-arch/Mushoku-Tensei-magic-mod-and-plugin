@@ -21,7 +21,7 @@ Casting now has a distinct gathering phase and release phase instead of moving t
 ## Recognizable anime techniques
 
 - **Water Cannon** is implemented as a long cyan-blue jet with a bright core, splash accents, damage, and knockback along its path; its width grows with magical power.
-- **Cumulonimbus** forms a rising cloud, then sustains server-synchronized rain and thunder gradients only for clients standing inside its fixed 20×20-chunk sector. It slows creatures and clears nearby fire; leaving the sector restores the client’s saved weather values, and the spell never changes dimension-wide server weather. Cloud billows and lightning remain lightweight visual effects.
+- **Cumulonimbus** starts a server-synchronized storm in its fixed 20×20-chunk sector at the cast altitude. Clients inside the sector see a ray-marched volumetric cumulonimbus with a rising convective tower and wind-sheared anvil, plus local rain and secondary lightning; the sector never changes dimension-wide server weather, and leaving restores the client's saved local rain state. Cast particles are only the short magical ignition flourish, not the sustained cloud.
 - **Earth Hedgehog** raises a ring of ochre-and-stone particle spires around the aim point, damaging, slowing, and lifting nearby creatures without placing or breaking blocks.
 - **Stone Cannon**, **Quagmire**, **Icicle Lance**, **Exodus Flame**, and **Nuclear Explosion** are additional casting phrases for related existing earth, water, and fire spells.
 

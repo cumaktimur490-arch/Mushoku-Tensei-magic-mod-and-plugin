@@ -21,6 +21,12 @@ public final class WeatherConfig {
     public boolean severeWeatherEnabled = true;
     /** Allow tornadoes/cyclones to remove blocks; disabled by default. */
     public boolean weatherBlockDamage = false;
+    /** Render true shader-based 3D cloud volumes on clients. */
+    public boolean volumetricCloudsEnabled = true;
+    /** Raymarch quality: 1 performance, 2 balanced, 3 detailed. */
+    public int volumetricCloudQuality = 2;
+    /** Maximum distance at which volumetric weather is rendered, in blocks. */
+    public int cloudRenderDistance = 768;
 
     /** Multiplies all natural severe-weather spawn chances. */
     public double severeWeatherSpawnMultiplier = 1.0;
@@ -99,6 +105,9 @@ public final class WeatherConfig {
         this.regionalWeatherEnabled = readBoolean(json, "regionalWeatherEnabled", this.regionalWeatherEnabled);
         this.severeWeatherEnabled = readBoolean(json, "severeWeatherEnabled", this.severeWeatherEnabled);
         this.weatherBlockDamage = readBoolean(json, "weatherBlockDamage", this.weatherBlockDamage);
+        this.volumetricCloudsEnabled = readBoolean(json, "volumetricCloudsEnabled", this.volumetricCloudsEnabled);
+        this.volumetricCloudQuality = readInt(json, "volumetricCloudQuality", this.volumetricCloudQuality, 1, 3);
+        this.cloudRenderDistance = readInt(json, "cloudRenderDistance", this.cloudRenderDistance, 128, 2048);
         this.severeWeatherSpawnMultiplier = readDouble(
                 json, "severeWeatherSpawnMultiplier", this.severeWeatherSpawnMultiplier, 0.0, 5.0);
         this.supercellSpawnChance = readDouble(json, "supercellSpawnChance", this.supercellSpawnChance, 0.0, 1.0);

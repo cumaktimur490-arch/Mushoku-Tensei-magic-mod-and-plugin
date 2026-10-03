@@ -31,6 +31,18 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
 
+      - name: Compile and link the volumetric GLSL shaders
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y glslang-tools
+          cmp weather/src/main/resources/assets/mushoku_weather/shaders/volume_cloud.vert ports/weather-common/src/main/resources/assets/mushoku_weather/shaders/volume_cloud.vert
+          cmp weather/src/main/resources/assets/mushoku_weather/shaders/volume_cloud.frag ports/weather-common/src/main/resources/assets/mushoku_weather/shaders/volume_cloud.frag
+          glslangValidator -l \
+            weather/src/main/resources/assets/mushoku_weather/shaders/volume_cloud.vert \
+            weather/src/main/resources/assets/mushoku_weather/shaders/volume_cloud.frag
+
       - name: Run tests and build the mod
         shell: bash
         run: |
@@ -123,6 +135,13 @@ jobs:
                   raise SystemExit(f"{jars[0]} is missing its weather simulation")
               if "com/mushokumagic/weather/api/WeatherApi.class" not in names:
                   raise SystemExit(f"{jars[0]} is missing its public integration API")
+              if "com/mushokumagic/world/VolumetricCloudRenderer.class" not in names:
+                  raise SystemExit(f"{jars[0]} is missing its GPU cloud renderer")
+              for shader in (
+                      "assets/mushoku_weather/shaders/volume_cloud.vert",
+                      "assets/mushoku_weather/shaders/volume_cloud.frag"):
+                  if shader not in names:
+                      raise SystemExit(f"{jars[0]} is missing shader resource {shader}")
               if "com/mushokumagic/spell/SpellEffects.class" in names:
                   raise SystemExit(f"{jars[0]} incorrectly bundles the Magic mod")
           print(f"Verified standalone Weather jar {jars[0]}")
@@ -265,6 +284,13 @@ jobs:
                           raise SystemExit(f"{jars[0]} is missing the weather simulation")
                       if "com/mushokumagic/weather/api/WeatherApi.class" not in names:
                           raise SystemExit(f"{jars[0]} is missing its public integration API")
+                      if "com/mushokumagic/world/VolumetricCloudRenderer.class" not in names:
+                          raise SystemExit(f"{jars[0]} is missing its GPU cloud renderer")
+                      for shader in (
+                              "assets/mushoku_weather/shaders/volume_cloud.vert",
+                              "assets/mushoku_weather/shaders/volume_cloud.frag"):
+                          if shader not in names:
+                              raise SystemExit(f"{jars[0]} is missing shader resource {shader}")
                       if "com/mushokumagic/spell/SpellEffects.class" in names:
                           raise SystemExit(f"{jars[0]} incorrectly bundles the Magic mod")
               print(f"Verified {loader}: {jars[0]}")
@@ -408,8 +434,9 @@ jobs:
           ## Highlights
 
           - Weather is now a standalone mod and can run without Magic. Magic requires Weather; install both matching jars to use weather-interacting spells.
-          - Cumulonimbus synchronizes its real 20×20-chunk local storm state; only clients inside the sector get the local vanilla rain view, and prior values are restored on exit. Server-wide weather is never switched.
-          - Adds moving supercells and fast squall lines with forming, mature, strengthening, and dissipating phases; layered anvils, rotating wall clouds, gust fronts, directional rain curtains, hail, and strong local winds.
+          - Cumulonimbus synchronizes a real 20×20-chunk local storm sector and cast altitude; clients render its shader-raymarched volumetric cloud, rain, and thunder locally without changing dimension-wide server weather.
+          - Adds GPU ray-marched 3D cloud volumes with procedural density/noise for cumulonimbus towers, supercell anvils and rotating wall clouds, squall shelves, cyclone bands, tornado funnels, sandstorm walls, and regional overcast. Particles are auxiliary rain, hail, wind, lightning, and ground dust—not cloud bodies.
+          - Cloud quality, active volume budget, and render distance are configurable; local moving storms retain formation, mature, strengthening, and dissipating phases with rain curtains, hail, and strong winds.
           - `/magicweather supercell` and `/magicweather squall` start local storms; spawn frequency, size, strength, active-system limits, and strengthening are configurable. Optional tornado/cyclone block damage is off by default and strictly capped.
           - Tornado and cyclone smoke receives bounded inward, rotational, and upward velocities without expensive all-pairs particle collisions.
           - Staff and enchanted-stick models have per-item hand orientation, scale, translation, and left/right first- and third-person transforms.
@@ -419,7 +446,7 @@ jobs:
           ## Verification
 
           - GitHub Actions passed for all six Fabric, Forge, and NeoForge mod builds and their mod-specific test suites.
-          - CI verified each loader's standalone Weather/Magic metadata and dependency direction, packaged resources, Forge-only optional Luxium metadata, and all staff hand transforms.
+          - CI compiled and linked the GLSL vertex/fragment shader pair, verified both shader assets are packaged in all three Weather jars, and checked loader metadata, dependency direction, Forge-only optional Luxium metadata, and staff hand transforms.
           EOF
           mapfile -t assets < "$RUNNER_TEMP/release-assets.txt"
           gh release create "$tag" "${assets[@]}" \

@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import net.minecraft.class_243;
+import net.minecraft.class_2394;
+import net.minecraft.class_2398;
 import net.minecraft.class_3218;
 import net.minecraft.class_3222;
 import net.minecraft.server.MinecraftServer;
@@ -18,7 +20,6 @@ public final class LocalStormManager {
     private static final int TICK_INTERVAL = 5;
     private static final int MAX_STORMS_PER_WORLD = 8;
     private static final long FADE_TICKS = 100L;
-    private static final long CLIENT_SYNC_INTERVAL = 100L;
     private static final long MIN_LIGHTNING_DELAY = 240L;
     private static final long LIGHTNING_DELAY_VARIANCE = 360L;
     private static final Map<class_3218, List<Storm>> STORMS = new IdentityHashMap<>();
@@ -33,14 +34,23 @@ public final class LocalStormManager {
         }
         long now = level.method_8510();
         long endTick = now + durationTicks;
+        double baseY = center.method_10214();
         StormSector sector = StormSector.centeredAt(center.method_10216(), center.method_10215());
         List<Storm> storms = STORMS.computeIfAbsent(level, ignored -> new ArrayList<>());
         for (Storm storm : storms) {
             if (!storm.sector.equals(sector)) {
                 continue;
             }
+            boolean changed = false;
             if (endTick > storm.endTick) {
                 storm.endTick = endTick;
+                changed = true;
+            }
+            if (Math.abs(storm.baseY - baseY) > 1.0) {
+                storm.baseY = baseY;
+                changed = true;
+            }
+            if (changed) {
                 DIRTY_CLIENT_SNAPSHOTS.add(level);
             }
             return;
@@ -48,7 +58,7 @@ public final class LocalStormManager {
         if (storms.size() >= MAX_STORMS_PER_WORLD) {
             storms.remove(0);
         }
-        storms.add(new Storm(sector, now, endTick, now + LocalStormManager.lightningDelay(level)));
+        storms.add(new Storm(sector, baseY, now, endTick, now + LocalStormManager.lightningDelay(level)));
         DIRTY_CLIENT_SNAPSHOTS.add(level);
     }
 
@@ -61,7 +71,7 @@ public final class LocalStormManager {
         LocalWeatherNetwork.syncToPlayer(player, level, LocalStormManager.snapshots(level));
     }
 
-    private static List<StormSnapshot> snapshots(class_3218 level) {
+    public static List<StormSnapshot> snapshots(class_3218 level) {
         List<Storm> storms = STORMS.get(level);
         if (storms == null || storms.isEmpty()) {
             return List.of();
@@ -72,6 +82,7 @@ public final class LocalStormManager {
                     storm.sector.minChunkX(),
                     storm.sector.minChunkZ(),
                     storm.sector.widthChunks(),
+                    storm.baseY,
                     storm.startTick,
                     storm.endTick));
         }
@@ -102,7 +113,7 @@ public final class LocalStormManager {
             storms.removeIf(storm -> now >= storm.endTick);
             boolean dirtySnapshot = DIRTY_CLIENT_SNAPSHOTS.remove(level);
             boolean snapshotChanged = storms.size() != previousStormCount || dirtySnapshot;
-            if (snapshotChanged || now % CLIENT_SYNC_INTERVAL == 0L) {
+            if (snapshotChanged) {
                 LocalStormManager.syncWorld(level, players);
             }
             if (storms.isEmpty()) {
@@ -127,7 +138,7 @@ public final class LocalStormManager {
                 WeatherCell cell = WeatherCell.from(position);
                 Set<WeatherCell> cells = emittedCells.computeIfAbsent(activeStorm, ignored -> new HashSet<>());
                 if (cells.add(cell)) {
-                    LocalStormManager.spawnWeather(level, cell, activeStorm, now);
+                    LocalStormManager.spawnWeather(level, cell);
                 }
             }
 
@@ -219,26 +230,26 @@ public final class LocalStormManager {
         return null;
     }
 
-    private static void spawnWeather(class_3218 level, WeatherCell cell, Storm storm, long now) {
-        double strength = storm.strengthAt(now);
+    private static void spawnWeather(class_3218 level, WeatherCell cell) {
         double x = cell.centerX();
-        double cloudY = cell.minY() + 27.0;
         double z = cell.centerZ();
         StormWeather flow = LocalStormManager.weatherAt(level, x, z);
         double driftX = flow.windX() * flow.windStrength() * 3.0;
         double driftZ = flow.windZ() * flow.windStrength() * 3.0;
-        if (now % 10L == 0L) {
-            WeatherVisuals.emitCloudDeck(
-                    level,
-                    x + driftX,
-                    cloudY,
-                    z + driftZ,
-                    24.0 + strength * 8.0,
-                    0.62 + strength * 0.38,
-                    flow.windX(),
-                    flow.windZ(),
-                    now,
-                    true);
+        if (flow.intensity() > 0.04) {
+            class_2394 rain = (class_2394)class_2398.field_11242;
+            double rainY = cell.minY() + 26.0;
+            level.method_14199(rain,
+                    x + driftX, rainY, z + driftZ,
+                    18 + (int)Math.round(44.0 * flow.intensity()),
+                    10.0 + flow.intensity() * 5.0, 10.0,
+                    10.0 + flow.intensity() * 5.0,
+                    0.075 + flow.windStrength() * 0.07);
+            WeatherVisuals.emitDirectionalPrecipitation(
+                    level, rain, x + driftX, rainY - 1.0, z + driftZ,
+                    4 + (int)Math.round(flow.intensity() * 5.0),
+                    8.0 + flow.intensity() * 3.0, 8.0,
+                    flow.windX(), flow.windZ(), flow.windStrength(), false);
         }
         if (flow.windStrength() >= 0.5) {
             WeatherVisuals.emitWindThreads(
@@ -298,6 +309,7 @@ public final class LocalStormManager {
             int minChunkX,
             int minChunkZ,
             int widthChunks,
+            double baseY,
             long startTick,
             long endTick) {
     }
@@ -314,12 +326,14 @@ public final class LocalStormManager {
 
     private static final class Storm {
         private final StormSector sector;
+        private double baseY;
         private final long startTick;
         private long endTick;
         private long nextLightningTick;
 
-        private Storm(StormSector sector, long startTick, long endTick, long nextLightningTick) {
+        private Storm(StormSector sector, double baseY, long startTick, long endTick, long nextLightningTick) {
             this.sector = sector;
+            this.baseY = baseY;
             this.startTick = startTick;
             this.endTick = endTick;
             this.nextLightningTick = nextLightningTick;

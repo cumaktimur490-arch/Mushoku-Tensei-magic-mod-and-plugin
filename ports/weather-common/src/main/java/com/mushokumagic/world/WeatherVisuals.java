@@ -4,67 +4,11 @@ import net.minecraft.class_2394;
 import net.minecraft.class_2398;
 import net.minecraft.class_3218;
 
-/** Shared particle staging for layered local clouds, wind and directional precipitation. */
+/** Shared secondary weather effects: lightning, wind and directional precipitation. */
 public final class WeatherVisuals {
-    private static final class_2394 CLOUD_HIGHLIGHT = WeatherPalette.dust(0xC5D3DD, 1.12f);
-    private static final class_2394 CLOUD_BODY = WeatherPalette.dust(0x758491, 1.42f);
-    private static final class_2394 CLOUD_UNDERSIDE = WeatherPalette.dust(0x35414F, 1.55f);
     private static final class_2394 WIND_MIST = WeatherPalette.dust(0xA7C5D4, 0.38f);
 
     private WeatherVisuals() {
-    }
-
-    /** Draws three drifting cloud strata instead of a single random cloud puff. */
-    public static void emitCloudDeck(
-            class_3218 level,
-            double x,
-            double y,
-            double z,
-            double radius,
-            double cover,
-            double windX,
-            double windZ,
-            long tick,
-            boolean storm) {
-        double safeCover = clamp(cover, 0.0, 1.0);
-        if (safeCover < 0.32) {
-            return;
-        }
-        double windLength = Math.hypot(windX, windZ);
-        double directionX = windLength > 1.0E-8 ? windX / windLength : 1.0;
-        double directionZ = windLength > 1.0E-8 ? windZ / windLength : 0.0;
-        double safeRadius = clamp(radius, 7.0, 96.0);
-        double phase = tick * 0.0035;
-        int density = 7 + (int)Math.round(safeCover * 9.0);
-
-        for (int layer = 0; layer < 3; ++layer) {
-            double layerOffset = layer - 1.0;
-            double alongWind = layerOffset * safeRadius * 0.12
-                    + Math.sin(phase + layer * 1.7) * safeRadius * 0.035;
-            double crossWind = Math.cos(phase * 0.72 + layer * 1.35) * safeRadius * 0.045;
-            double centerX = x + directionX * alongWind - directionZ * crossWind;
-            double centerZ = z + directionZ * alongWind + directionX * crossWind;
-            double layerY = y + layerOffset * 1.7;
-            double layerSpread = safeRadius * (0.68 + layer * 0.045);
-            int cloudPuffs = density + (layer == 1 ? 3 : 0);
-
-            level.method_14199((class_2394)class_2398.field_11204,
-                    centerX, layerY, centerZ,
-                    cloudPuffs, layerSpread, 1.5, layerSpread, 0.0015);
-            level.method_14199(CLOUD_HIGHLIGHT,
-                    centerX - directionX * 1.8, layerY + 0.55, centerZ - directionZ * 1.8,
-                    4 + density / 2, layerSpread * 0.76, 0.9, layerSpread * 0.76, 0.001);
-            if (storm && layer < 2) {
-                level.method_14199(CLOUD_BODY,
-                        centerX + directionX * 1.2, layerY - 0.45, centerZ + directionZ * 1.2,
-                        5 + density, layerSpread * 0.72, 0.85, layerSpread * 0.72, 0.0008);
-            }
-            if (storm && layer == 0) {
-                level.method_14199(CLOUD_UNDERSIDE,
-                        centerX, layerY - 1.35, centerZ,
-                        4 + density, layerSpread * 0.62, 0.7, layerSpread * 0.62, 0.0005);
-            }
-        }
     }
 
     /** Builds a forked blue-white lightning bolt from connected particle segments. */
@@ -220,6 +164,54 @@ public final class WeatherVisuals {
             level.method_14199(particle,
                     particleX, particleY, particleZ,
                     0, windX * speed, lift, windZ * speed, 1.0);
+        }
+    }
+
+    /** Seeds a bounded, updraft-driven vortex without pairwise particle interactions. */
+    public static void emitVortexParticles(
+            class_3218 level,
+            class_2394 particle,
+            double centerX,
+            double baseY,
+            double centerZ,
+            int count,
+            double radius,
+            double height,
+            double windX,
+            double windZ,
+            double intensity) {
+        int safeCount = Math.max(0, Math.min(12, count));
+        if (particle == null || safeCount == 0 || intensity < 0.15 || radius <= 0.0 || height <= 0.0) {
+            return;
+        }
+        double strength = clamp(intensity, 0.0, 1.0);
+        for (int index = 0; index < safeCount; ++index) {
+            double angle = level.field_9229.method_43058() * Math.PI * 2.0;
+            double radialFraction = 0.18 + 0.82 * Math.sqrt(level.field_9229.method_43058());
+            double radialDistance = Math.max(0.5, radius * radialFraction);
+            double heightFraction = level.field_9229.method_43058();
+            double radialX = Math.cos(angle);
+            double radialZ = Math.sin(angle);
+            SevereWeatherModel.VortexFlow flow = SevereWeatherModel.vortexFlow(
+                    radialX * radialDistance,
+                    radialZ * radialDistance,
+                    windX,
+                    windZ,
+                    strength,
+                    1.0 - heightFraction * 0.58);
+            double particleX = centerX + radialX * radialDistance;
+            double particleY = baseY + heightFraction * height;
+            double particleZ = centerZ + radialZ * radialDistance;
+            level.method_14199(
+                    particle,
+                    particleX,
+                    particleY,
+                    particleZ,
+                    0,
+                    flow.x(),
+                    flow.y(),
+                    flow.z(),
+                    1.0);
         }
     }
 

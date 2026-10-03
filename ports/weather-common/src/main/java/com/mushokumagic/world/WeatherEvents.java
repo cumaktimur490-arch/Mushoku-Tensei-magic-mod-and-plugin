@@ -12,6 +12,7 @@ public final class WeatherEvents {
         LocalStormManager.tick(server);
         SevereWeatherManager.tick(server);
         WeatherPhysics.tick(server);
+        LocalWeatherNetwork.syncServerSnapshots(server);
     }
 
     public static void clear(MinecraftServer server) {

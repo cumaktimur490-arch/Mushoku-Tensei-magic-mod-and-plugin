@@ -13,6 +13,10 @@ public final class ClientLocalWeatherNetwork {
         ClientPlayNetworking.registerGlobalReceiver(
                 LocalWeatherNetwork.StormSnapshotMessage.TYPE,
                 (message, context) -> context.client().execute(
-                        () -> ClientStormWeather.applySnapshot(message.dimension(), message.storms())));
+                        () -> ClientStormWeather.applySnapshot(
+                                message.dimension(),
+                                message.localStorms(),
+                                message.severeStorms(),
+                                message.regional())));
     }
 }

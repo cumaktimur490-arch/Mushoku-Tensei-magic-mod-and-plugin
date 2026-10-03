@@ -25,7 +25,11 @@ public final class ClientStormWeather {
     private ClientStormWeather() {
     }
 
-    public static void applySnapshot(String dimension, List<LocalStormManager.StormSnapshot> storms) {
+    public static void applySnapshot(
+            String dimension,
+            List<LocalStormManager.StormSnapshot> storms,
+            List<SevereWeatherManager.StormSnapshot> severeStorms,
+            RegionalWeatherManager.RegionalSnapshot regional) {
         if (dimension == null || dimension.isBlank()) {
             return;
         }
@@ -34,6 +38,7 @@ public final class ClientStormWeather {
         } else {
             SNAPSHOTS.put(dimension, List.copyOf(storms));
         }
+        VolumetricCloudRenderer.updateSnapshots(dimension, storms, severeStorms, regional);
         while (SNAPSHOTS.size() > 8) {
             SNAPSHOTS.remove(SNAPSHOTS.keySet().iterator().next());
         }
@@ -45,6 +50,7 @@ public final class ClientStormWeather {
         if (world == null || client.field_1724 == null) {
             ClientStormWeather.restore();
             SNAPSHOTS.clear();
+            VolumetricCloudRenderer.clear();
             return;
         }
 
@@ -77,6 +83,7 @@ public final class ClientStormWeather {
 
     public static void clear() {
         SNAPSHOTS.clear();
+        VolumetricCloudRenderer.clear();
         ClientStormWeather.restore();
     }
 
