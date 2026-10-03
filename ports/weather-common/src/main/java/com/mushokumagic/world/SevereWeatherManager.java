@@ -521,7 +521,7 @@ public final class SevereWeatherManager {
             return;
         }
         class_2394 rain = (class_2394)class_2398.field_11242;
-        level.method_65096(rain,
+        level.method_14199(rain,
                 system.x, system.baseY + system.height * 0.55, system.z,
                 22 + (int)Math.round(24.0 * intensity), system.radius * 0.48,
                 system.height * 0.34, system.radius * 0.48, 0.12);

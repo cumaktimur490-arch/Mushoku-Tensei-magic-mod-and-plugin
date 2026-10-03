@@ -79,14 +79,15 @@ public final class VolumetricCloudRenderer {
         SNAPSHOTS.clear();
     }
 
-    /** Called from the loader's final world-render stage after vanilla clouds and weather. */
+    /** Called from the loader's world-render stage with the active projection matrix. */
     public static void render(
             String dimension,
             double cameraX,
             double cameraY,
             double cameraZ,
             long worldTime,
-            float partialTick) {
+            float partialTick,
+            Matrix4f projectionMatrix) {
         WeatherConfig config = WeatherConfig.get();
         if (!config.volumetricCloudsEnabled || disabledAfterFailure || dimension == null) {
             return;
@@ -119,7 +120,7 @@ public final class VolumetricCloudRenderer {
             if (!VolumetricCloudRenderer.ensureProgram()) {
                 return;
             }
-            VolumetricCloudRenderer.draw(volumes, cameraX, cameraY, cameraZ, frameTime, quality);
+            VolumetricCloudRenderer.draw(volumes, cameraX, cameraY, cameraZ, frameTime, quality, projectionMatrix);
         } catch (Throwable throwable) {
             disabledAfterFailure = true;
             MushokuWeather.LOGGER.error("Volumetric weather rendering failed; keeping the rest of the weather effects enabled", throwable);
@@ -301,9 +302,10 @@ public final class VolumetricCloudRenderer {
             double cameraY,
             double cameraZ,
             double time,
-            int requestedQuality) {
+            int requestedQuality,
+            Matrix4f projectionMatrix) {
         Matrix4f viewRotation = new Matrix4f(RenderSystem.getModelViewMatrix()).setTranslation(0.0f, 0.0f, 0.0f);
-        Matrix4f viewProjection = new Matrix4f(RenderSystem.getProjectionMatrix()).mul(viewRotation);
+        Matrix4f viewProjection = new Matrix4f(projectionMatrix).mul(viewRotation);
         FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
         viewProjection.get(matrixBuffer);
         matrixBuffer.flip();
