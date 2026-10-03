@@ -13,8 +13,13 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 /** Client weather presentation and volumetric GPU cloud rendering for Forge-family loaders. */
-@Mod.EventBusSubscriber(modid = MushokuWeather.MOD_ID, value = Dist.CLIENT)
+@Mod.EventBusSubscriber(
+        modid = MushokuWeather.MOD_ID,
+        bus = Mod.EventBusSubscriber.Bus.FORGE,
+        value = Dist.CLIENT)
 public final class MushokuWeatherClient {
+    private static boolean renderStageReported;
+
     private MushokuWeatherClient() {
     }
 
@@ -34,6 +39,12 @@ public final class MushokuWeatherClient {
         class_638 world = client.field_1687;
         if (world == null) {
             return;
+        }
+        if (!renderStageReported) {
+            MushokuWeather.LOGGER.info(
+                    "Mushoku Weather client render hook active at AFTER_WEATHER in dimension {}.",
+                    world.method_27983());
+            renderStageReported = true;
         }
         class_243 camera = event.getCamera().method_19326();
         VolumetricCloudRenderer.render(

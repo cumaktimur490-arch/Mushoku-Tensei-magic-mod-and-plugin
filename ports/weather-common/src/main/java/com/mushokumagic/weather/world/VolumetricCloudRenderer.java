@@ -55,6 +55,10 @@ public final class VolumetricCloudRenderer {
     private static int timeLocation;
     private static int viewProjectionLocation;
     private static boolean disabledAfterFailure;
+    private static boolean configDisableReported;
+    private static boolean missingSnapshotReported;
+    private static boolean emptyVolumesReported;
+    private static boolean activeRenderReported;
 
     private VolumetricCloudRenderer() {
     }
@@ -69,7 +73,7 @@ public final class VolumetricCloudRenderer {
         }
         boolean isEmpty = (localStorms == null || localStorms.isEmpty())
                 && (severeStorms == null || severeStorms.isEmpty())
-                && (regional == null || regional.cloudCover() < 0.24);
+                && (regional == null || regional.cloudCover() < 0.18);
         if (isEmpty) {
             SNAPSHOTS.remove(dimension);
         } else {
@@ -96,11 +100,25 @@ public final class VolumetricCloudRenderer {
             long worldTime,
             float partialTick) {
         WeatherConfig config = WeatherConfig.get();
-        if (!config.volumetricCloudsEnabled || disabledAfterFailure || dimension == null) {
+        if (dimension == null || disabledAfterFailure) {
+            return;
+        }
+        if (!config.volumetricCloudsEnabled) {
+            if (!configDisableReported) {
+                MushokuWeather.LOGGER.warn(
+                        "Volumetric weather clouds are disabled by config/mushoku_weather.json (volumetricCloudsEnabled=false).");
+                configDisableReported = true;
+            }
             return;
         }
         SnapshotSet snapshots = SNAPSHOTS.get(dimension);
         if (snapshots == null) {
+            if (!missingSnapshotReported) {
+                MushokuWeather.LOGGER.warn(
+                        "No synchronized local weather snapshot is available for {}; volumetric clouds cannot be rendered yet.",
+                        dimension);
+                missingSnapshotReported = true;
+            }
             return;
         }
 
@@ -113,6 +131,13 @@ public final class VolumetricCloudRenderer {
                 frameTime,
                 Math.max(128, Math.min(2048, config.cloudRenderDistance)));
         if (volumes.isEmpty()) {
+            if (!emptyVolumesReported) {
+                MushokuWeather.LOGGER.warn(
+                        "The synchronized weather snapshot for {} contains no renderable cloud volume; regional cloud cover is {}%.",
+                        dimension,
+                        snapshots.regional == null ? "unknown" : Math.round(snapshots.regional.cloudCover() * 100.0));
+                emptyVolumesReported = true;
+            }
             return;
         }
         volumes.sort(Comparator.comparingDouble((CloudVolume volume) -> volume.distanceSquared));
@@ -128,6 +153,14 @@ public final class VolumetricCloudRenderer {
                 return;
             }
             VolumetricCloudRenderer.draw(volumes, cameraX, cameraY, cameraZ, frameTime, quality);
+            if (!activeRenderReported) {
+                MushokuWeather.LOGGER.info(
+                        "Volumetric weather rendering is active in {} with {} cloud volume(s) at quality {}.",
+                        dimension,
+                        volumes.size(),
+                        quality);
+                activeRenderReported = true;
+            }
         } catch (Throwable throwable) {
             disabledAfterFailure = true;
             MushokuWeather.LOGGER.error("Volumetric weather rendering failed; keeping the rest of the weather effects enabled", throwable);
@@ -214,19 +247,31 @@ public final class VolumetricCloudRenderer {
         }
 
         RegionalWeatherManager.RegionalSnapshot regional = snapshots.regional;
-        if (regional != null && regional.cloudCover() >= 0.30) {
-            double intensity = clamp((regional.cloudCover() - 0.16) / 0.84);
-            intensity = Math.max(intensity, clamp(regional.precipitationIntensity() * 0.84));
+        if (regional != null && regional.cloudCover() >= 0.18) {
+            double intensity = clamp((regional.cloudCover() - 0.12) / 0.78);
+            intensity = Math.max(intensity, clamp(regional.precipitationIntensity() * 0.90));
+            intensity = Math.max(0.16, intensity);
             if (regional.thunderstorm()) {
-                intensity = Math.max(intensity, 0.74);
+                intensity = Math.max(intensity, 0.88);
             }
-            double centerY = Math.max(120.0, Math.min(236.0, regional.y() + 76.0));
+            double centerY = Math.max(110.0, Math.min(248.0, regional.y() + 84.0));
+            double halfExtent = 235.0 + regional.cloudCover() * 140.0;
             VolumetricCloudRenderer.addIfVisible(
                     volumes, 7, regional.x(), centerY, regional.z(),
-                    132.0 + regional.cloudCover() * 38.0, 44.0,
-                    132.0 + regional.cloudCover() * 38.0,
+                    halfExtent, 54.0, halfExtent,
                     intensity, regional.windX(), regional.windZ(), now * 0.002,
                     now, cameraX, cameraY, cameraZ, renderDistance);
+
+            if (regional.thunderstorm() || regional.precipitationIntensity() >= 0.68) {
+                double convectiveIntensity = Math.max(0.68, intensity * 0.92);
+                double stormY = Math.min(304.0, centerY + 38.0);
+                double stormExtent = 188.0 + regional.precipitationIntensity() * 82.0;
+                VolumetricCloudRenderer.addIfVisible(
+                        volumes, 0, regional.x(), stormY, regional.z(),
+                        stormExtent, 82.0, stormExtent,
+                        convectiveIntensity, regional.windX(), regional.windZ(), now * 0.0013,
+                        now, cameraX, cameraY, cameraZ, renderDistance);
+            }
         }
         return volumes;
     }
@@ -322,6 +367,7 @@ public final class VolumetricCloudRenderer {
             GL20.glUniformMatrix4fv(viewProjectionLocation, false, matrixBuffer);
             GL30.glBindVertexArray(vertexArray);
             GL11.glEnable(GL11.GL_DEPTH_TEST);
+            GL11.glDepthFunc(GL11.GL_LEQUAL);
             GL11.glDepthMask(false);
             GL11.glEnable(GL11.GL_BLEND);
             GL14.glBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ONE_MINUS_SRC_ALPHA);
@@ -571,6 +617,7 @@ public final class VolumetricCloudRenderer {
         private final boolean depthTest;
         private final boolean cull;
         private final boolean depthMask;
+        private final int depthFunction;
         private final int blendSourceRgb;
         private final int blendDestinationRgb;
         private final int blendSourceAlpha;
@@ -590,6 +637,7 @@ public final class VolumetricCloudRenderer {
             this.depthTest = GL11.glIsEnabled(GL11.GL_DEPTH_TEST);
             this.cull = GL11.glIsEnabled(GL11.GL_CULL_FACE);
             this.depthMask = GL11.glGetBoolean(GL11.GL_DEPTH_WRITEMASK);
+            this.depthFunction = GL11.glGetInteger(GL11.GL_DEPTH_FUNC);
             this.blendSourceRgb = GL11.glGetInteger(GL14.GL_BLEND_SRC_RGB);
             this.blendDestinationRgb = GL11.glGetInteger(GL14.GL_BLEND_DST_RGB);
             this.blendSourceAlpha = GL11.glGetInteger(GL14.GL_BLEND_SRC_ALPHA);
@@ -616,6 +664,7 @@ public final class VolumetricCloudRenderer {
             if (this.depthTest) GL11.glEnable(GL11.GL_DEPTH_TEST); else GL11.glDisable(GL11.GL_DEPTH_TEST);
             if (this.cull) GL11.glEnable(GL11.GL_CULL_FACE); else GL11.glDisable(GL11.GL_CULL_FACE);
             GL11.glDepthMask(this.depthMask);
+            GL11.glDepthFunc(this.depthFunction);
             GL14.glBlendFuncSeparate(this.blendSourceRgb, this.blendDestinationRgb,
                     this.blendSourceAlpha, this.blendDestinationAlpha);
             GL20.glBlendEquationSeparate(this.blendEquationRgb, this.blendEquationAlpha);

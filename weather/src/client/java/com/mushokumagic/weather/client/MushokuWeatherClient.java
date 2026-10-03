@@ -14,6 +14,8 @@ import org.joml.Matrix4f;
 
 @Environment(EnvType.CLIENT)
 public final class MushokuWeatherClient implements ClientModInitializer {
+    private static boolean renderStageReported;
+
     @Override
     public void onInitializeClient() {
         ClientLocalWeatherNetwork.register();
@@ -28,6 +30,12 @@ public final class MushokuWeatherClient implements ClientModInitializer {
             var cameraState = context.worldState().field_63082;
             if (!cameraState.field_63079) {
                 return;
+            }
+            if (!renderStageReported) {
+                com.mushokumagic.weather.MushokuWeather.LOGGER.info(
+                        "Mushoku Weather client render hook active at END_MAIN in dimension {}.",
+                        world.method_27983());
+                renderStageReported = true;
             }
             class_243 camera = cameraState.field_63078;
             float partialTick = client.method_61966().method_60637(false);

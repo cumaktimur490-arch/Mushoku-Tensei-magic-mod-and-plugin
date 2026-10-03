@@ -15,7 +15,7 @@ class WeatherConfigTest {
         assertTrue(config.severeWeatherEnabled);
         assertFalse(config.weatherBlockDamage);
         assertTrue(config.volumetricCloudsEnabled);
-        assertEquals(2, config.volumetricCloudQuality);
+        assertEquals(3, config.volumetricCloudQuality);
         assertEquals(768, config.cloudRenderDistance);
         assertEquals(1.0, config.severeWeatherSpawnMultiplier, 0.0);
         assertEquals(1.0, config.stormSizeMultiplier, 0.0);

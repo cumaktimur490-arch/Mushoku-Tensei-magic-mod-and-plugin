@@ -2,8 +2,8 @@
 
 The `ports/` Gradle build produces separate native Weather and Magic mods for both loaders:
 
-- Forge 1.20.1 (`1.20.1-47.4.10`): `mushoku-weather-forge-1.20.1-1.1.2.jar` and `mushoku-magic-forge-1.20.1-2.5.2.jar`
-- NeoForge 1.20.1 (`1.20.1-47.1.106`): `mushoku-weather-neoforge-1.20.1-1.1.2.jar` and `mushoku-magic-neoforge-1.20.1-2.5.2.jar`
+- Forge 1.20.1 (`1.20.1-47.4.10`): `mushoku-weather-forge-1.20.1-1.1.3.jar` and `mushoku-magic-forge-1.20.1-2.5.3.jar`
+- NeoForge 1.20.1 (`1.20.1-47.1.106`): `mushoku-weather-neoforge-1.20.1-1.1.3.jar` and `mushoku-magic-neoforge-1.20.1-2.5.3.jar`
 
 Install the Weather jar by itself for standalone local weather. The Magic mod has a required Weather dependency, so install both matching jars to use Magic. Never mix the Forge and NeoForge jars or install a port jar in a Fabric instance. These are native builds and do not use Sinytra Connector. NeoForge 1.20.1 is its legacy Forge-compatible 47.1.x line, so Loom uses its Forge platform for that module while the dependency and published artifact remain native NeoForge.
 

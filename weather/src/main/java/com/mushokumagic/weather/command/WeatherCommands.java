@@ -71,28 +71,42 @@ public final class WeatherCommands {
 
     private static int weatherStatus(CommandContext<class_2168> context) throws CommandSyntaxException {
         class_2168 source = context.getSource();
-        if (!WeatherConfig.get().regionalWeatherEnabled) {
-            source.method_9226(() -> text("Региональная погода отключена; используется ванильная погода мира."), false);
-            return 1;
-        }
         class_3222 player = source.method_9207();
         if (!(player.method_51469() instanceof class_3218 level)) {
             source.method_9213(text("Локальную погоду можно проверить только в игровом мире."));
             return 0;
         }
         class_243 position = player.method_73189();
+        WeatherConfig config = WeatherConfig.get();
+        RegionalWeatherModel.WeatherState weather = RegionalWeatherManager.sampleAt(
+                level, position.method_10216(), position.method_10214(), position.method_10215());
         RegionalWeatherManager.ManualWeatherStatus status = RegionalWeatherManager.manualWeatherStatusAt(
                 level, position.method_10216(), position.method_10215());
-        if (status == null) {
-            source.method_9226(
-                    () -> text("Здесь нет активного ручного приказа; условия задаются региональной симуляцией."),
-                    false);
-            return 1;
-        }
-        int seconds = (status.remainingTicks() + 19) / 20;
-        source.method_9226(
-                () -> text("Локальная погода: " + status.description() + ", ещё примерно " + seconds + " сек."),
-                false);
+        String kind = switch (weather.kind()) {
+            case CLEAR -> "ясно";
+            case CLOUDY -> "облачно";
+            case RAIN -> "дождь";
+            case HEAVY_RAIN -> "сильный дождь";
+            case SNOW -> "снег";
+            case THUNDERSTORM -> "гроза";
+        };
+        String manual = status == null
+                ? "нет"
+                : status.description() + " (ещё " + ((status.remainingTicks() + 19) / 20) + " сек.)";
+        int clouds = (int)Math.round(weather.cloudCover() * 100.0);
+        int precipitation = (int)Math.round(weather.precipitationIntensity() * 100.0);
+        int wind = (int)Math.round(weather.windStrength() * 100.0);
+        int severeSystems = SevereWeatherManager.snapshots(level).size();
+        String report = "Погода здесь: " + kind
+                + "; облачность " + clouds + "%"
+                + "; осадки " + precipitation + "%"
+                + "; ветер " + wind + "%"
+                + "; объёмные облака " + (config.volumetricCloudsEnabled ? "включены" : "выключены")
+                + "; качество облаков " + config.volumetricCloudQuality + "/3"
+                + "; региональная система " + (config.regionalWeatherEnabled ? "включена" : "выключена")
+                + "; активных штормов " + severeSystems
+                + "; ручная команда " + manual + ".";
+        source.method_9226(() -> text(report), false);
         return 1;
     }
 

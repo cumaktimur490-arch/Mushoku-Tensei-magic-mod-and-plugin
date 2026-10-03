@@ -1,5 +1,6 @@
 package com.mushokumagic.weather.world;
 
+import com.mushokumagic.weather.MushokuWeather;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +20,7 @@ public final class ClientStormWeather {
     private static final Map<String, List<LocalStormManager.StormSnapshot>> SNAPSHOTS = new HashMap<>();
 
     private static class_638 overriddenWorld;
+    private static boolean snapshotReported;
     private static boolean savedRaining;
     private static float savedRainGradient;
     private static float savedThunderGradient;
@@ -33,6 +35,16 @@ public final class ClientStormWeather {
             RegionalWeatherManager.RegionalSnapshot regional) {
         if (dimension == null || dimension.isBlank()) {
             return;
+        }
+        if (!snapshotReported && regional != null) {
+            MushokuWeather.LOGGER.info(
+                    "Received local weather snapshot for {}: cloud cover {}%, precipitation {}%, local storms {}, severe systems {}.",
+                    dimension,
+                    Math.round(regional.cloudCover() * 100.0),
+                    Math.round(regional.precipitationIntensity() * 100.0),
+                    storms == null ? 0 : storms.size(),
+                    severeStorms == null ? 0 : severeStorms.size());
+            snapshotReported = true;
         }
         if (storms == null || storms.isEmpty()) {
             SNAPSHOTS.remove(dimension);

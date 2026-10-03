@@ -178,7 +178,8 @@ void main() {
         vec3 point = rayDirection * distanceAlongRay;
         vec3 local = point - uCenter;
         vec3 q = local / uHalfSize;
-        float phase = uPhase + uTime * (uKind == 5 ? 1.1 : 0.16);
+        float phaseRate = uKind == 5 ? 1.1 : (uKind == 7 ? 0.012 : 0.045);
+        float phase = uPhase + uTime * phaseRate;
         float shape = cloudShape(q, phase);
         if (shape > 0.002) {
             vec3 flowOffset = vec3(wind.x, 0.08, wind.y) * flowTime;
@@ -192,14 +193,17 @@ void main() {
                     + (cloudNoise.g - 0.50) * 0.31
                     + (cloudNoise.b - 0.50) * 0.19;
             float warpedShape = shape + (broadNoise - 0.50) * 0.12;
-            float coverage = mix(0.72, 0.34, clamp(uIntensity, 0.0, 1.0));
-            float density = clamp((warpedShape + erosion - coverage) * 2.45, 0.0, 1.0) * uIntensity;
+            float coverage = mix(0.70, 0.32, clamp(uIntensity, 0.0, 1.0));
+            if (uKind == 7) {
+                coverage -= 0.025;
+            }
+            float density = clamp((warpedShape + erosion * 0.82 - coverage) * 2.7, 0.0, 1.0) * uIntensity;
             if (density > 0.012) {
                 if (!foundDepth && density > 0.055) {
                     firstCloudDepth = distanceAlongRay;
                     foundDepth = true;
                 }
-                float absorption = (uKind == 6 ? 0.041 : 0.030) * stepLength * density;
+                float absorption = (uKind == 6 ? 0.041 : 0.033) * stepLength * density;
                 float sampleAlpha = 1.0 - exp(-absorption);
                 float lighting = clamp(0.54 + q.y * 0.18 + broadNoise * 0.17 + cloudNoise.g * 0.08, 0.30, 1.15);
                 float silverEdge = pow(clamp(1.0 - abs(detailNoise - 0.5) * 2.0, 0.0, 1.0), 3.0) * 0.10;

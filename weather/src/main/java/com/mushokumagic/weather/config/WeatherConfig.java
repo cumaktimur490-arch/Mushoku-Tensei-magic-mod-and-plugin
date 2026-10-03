@@ -24,7 +24,7 @@ public final class WeatherConfig {
     /** Render true shader-based 3D cloud volumes on clients. */
     public boolean volumetricCloudsEnabled = true;
     /** Raymarch quality: 1 performance, 2 balanced, 3 detailed. */
-    public int volumetricCloudQuality = 2;
+    public int volumetricCloudQuality = 3;
     /** Maximum distance at which volumetric weather is rendered, in blocks. */
     public int cloudRenderDistance = 768;
 
