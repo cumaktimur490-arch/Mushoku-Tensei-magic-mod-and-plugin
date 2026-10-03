@@ -1,6 +1,6 @@
 package com.mushokumagic.world;
 
-import com.mushokumagic.MushokuMagic;
+import com.mushokumagic.weather.MushokuWeather;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,7 +39,7 @@ public final class LocalWeatherNetwork {
 
     public static final class StormSnapshotMessage implements class_8710 {
         public static final class_8710.class_9154<StormSnapshotMessage> TYPE =
-                new class_8710.class_9154<>(MushokuMagic.id("local_weather"));
+                new class_8710.class_9154<>(MushokuWeather.id("local_weather"));
         public static final class_9139<class_9129, StormSnapshotMessage> CODEC =
                 class_9139.method_56438(
                         (message, buffer) -> message.encode(buffer),

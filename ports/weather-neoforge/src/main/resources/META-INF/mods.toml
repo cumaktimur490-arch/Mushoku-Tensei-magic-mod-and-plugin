@@ -1,0 +1,20 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="MIT"
+issueTrackerURL="https://github.com/cumaktimur490-arch/Mushoku-Tensei-magic-mod-and-plugin/issues"
+
+[[mods]]
+modId="mushoku_weather"
+version="${version}"
+displayName="Mushoku Tensei: Weather"
+authors="mushoku_magic"
+description='''
+A standalone local-weather simulation with moving regional storms, cyclones, tornadoes, hail, sandstorms, and operator controls for Minecraft 1.20.1.
+'''
+
+[[dependencies.mushoku_weather]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.20.1,1.20.2)"
+ordering="NONE"
+side="BOTH"

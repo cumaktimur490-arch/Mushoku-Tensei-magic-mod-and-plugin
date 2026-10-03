@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "mushoku_weather",
+  "version": "${version}",
+  "name": "Mushoku Tensei: Weather",
+  "description": "Standalone regional weather, storms, cyclones, tornadoes, hail, sandstorms, and local weather controls.",
+  "authors": ["mushoku_magic"],
+  "contact": {
+    "homepage": "https://github.com/cumaktimur490-arch/Mushoku-Tensei-magic-mod-and-plugin",
+    "sources": "https://github.com/cumaktimur490-arch/Mushoku-Tensei-magic-mod-and-plugin"
+  },
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["com.mushokumagic.weather.MushokuWeather"],
+    "client": ["com.mushokumagic.client.MushokuWeatherClient"]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "~1.21.11",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}

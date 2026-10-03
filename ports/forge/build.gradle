@@ -1,3 +1,4 @@
 dependencies {
     forge "net.minecraftforge:forge:${forge_version}"
+    modImplementation project(path: ':weather-forge', configuration: 'namedElements')
 }

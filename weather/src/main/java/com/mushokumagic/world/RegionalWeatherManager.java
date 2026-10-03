@@ -1,6 +1,6 @@
 package com.mushokumagic.world;
 
-import com.mushokumagic.config.MagicConfig;
+import com.mushokumagic.config.WeatherConfig;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -37,7 +37,7 @@ public final class RegionalWeatherManager {
 
     public static void tick(MinecraftServer server) {
         Iterable<class_3218> levels = server.method_3738();
-        if (!MagicConfig.get().regionalWeatherEnabled) {
+        if (!WeatherConfig.get().regionalWeatherEnabled) {
             for (class_3218 level : levels) {
                 RegionalWeatherManager.pruneManualOverrides(level, level.method_75260());
             }
@@ -169,7 +169,7 @@ public final class RegionalWeatherManager {
                 level.method_75260(),
                 biomeTemperature,
                 hasPrecipitation);
-        if (MagicConfig.get().regionalWeatherEnabled) {
+        if (WeatherConfig.get().regionalWeatherEnabled) {
             ManualOverride override = RegionalWeatherManager.findManualOverride(
                     level,
                     x,

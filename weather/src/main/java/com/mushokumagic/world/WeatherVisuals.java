@@ -1,6 +1,5 @@
 package com.mushokumagic.world;
 
-import com.mushokumagic.spell.MagicPalette;
 import net.minecraft.class_2390;
 import net.minecraft.class_2394;
 import net.minecraft.class_2398;
@@ -77,8 +76,8 @@ public final class WeatherVisuals {
         double step = safeHeight / segments;
         double currentX = x;
         double currentZ = z;
-        class_2394 boltCore = MagicPalette.core("water", 2.0f);
-        class_2394 boltEdge = MagicPalette.core("water", 1.1f);
+        class_2394 boltCore = WeatherPalette.lightningCore(2.0f);
+        class_2394 boltEdge = WeatherPalette.lightningCore(1.1f);
 
         for (int segment = 0; segment <= segments; ++segment) {
             if (segment > 0) {

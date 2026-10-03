@@ -1,6 +1,6 @@
 package com.mushokumagic.world;
 
-import com.mushokumagic.config.MagicConfig;
+import com.mushokumagic.config.WeatherConfig;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -42,7 +42,7 @@ public final class SevereWeatherManager {
     }
 
     public static void tick(MinecraftServer server) {
-        if (!MagicConfig.get().regionalWeatherEnabled || !MagicConfig.get().severeWeatherEnabled) {
+        if (!WeatherConfig.get().regionalWeatherEnabled || !WeatherConfig.get().severeWeatherEnabled) {
             SevereWeatherManager.clear();
             return;
         }
@@ -70,7 +70,7 @@ public final class SevereWeatherManager {
                     continue;
                 }
                 SevereWeatherManager.emitWeather(level, system, now);
-                if (MagicConfig.get().weatherBlockDamage
+                if (WeatherConfig.get().weatherBlockDamage
                         && (system.kind == SevereWeatherModel.Kind.TORNADO
                                 || system.kind == SevereWeatherModel.Kind.HURRICANE)
                         && now % BLOCK_CHECK_INTERVAL == 0L) {
@@ -138,7 +138,7 @@ public final class SevereWeatherManager {
             class_243 center,
             SevereWeatherModel.Kind kind,
             int durationTicks) {
-        if (!MagicConfig.get().severeWeatherEnabled
+        if (!WeatherConfig.get().severeWeatherEnabled
                 || kind == null
                 || kind == SevereWeatherModel.Kind.NONE
                 || durationTicks <= 0) {

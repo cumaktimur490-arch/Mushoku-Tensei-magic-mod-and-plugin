@@ -10,10 +10,9 @@ import com.mushokumagic.spell.CastParams;
 import com.mushokumagic.spell.Spell;
 import com.mushokumagic.spell.SpellCasting;
 import com.mushokumagic.util.Msg;
-import com.mushokumagic.world.LocalStormManager;
+import com.mushokumagic.weather.api.WeatherApi;
 import com.mushokumagic.world.MagicHitTracker;
 import com.mushokumagic.world.TemporaryBlocks;
-import com.mushokumagic.world.WeatherPhysics;
 import java.util.List;
 import net.minecraft.class_1293;
 import net.minecraft.class_1294;
@@ -249,7 +248,7 @@ public final class SpellEffects {
             MagicHitTracker.mark(target, caster, level.method_75260());
         }
         boolean modifyBlocks = MagicConfig.get().fireSpellsModifyBlocks;
-        boolean allowFire = modifyBlocks && WeatherPhysics.ignitionMultiplier(level, point) >= 0.2;
+        boolean allowFire = modifyBlocks && WeatherApi.ignitionMultiplier(level, point) >= 0.2;
         level.method_8537((class_1297)caster, point.method_10216(), point.method_10214(), point.method_10215(), (float)radius, allowFire, modifyBlocks ? class_1937.class_7867.field_40889 : class_1937.class_7867.field_40888);
         if (modifyBlocks) {
             SpellEffects.igniteAround(level, point, SpellEffects.fireAttemptCount(radius), radius);
@@ -313,7 +312,7 @@ public final class SpellEffects {
             double progress = Math.max(0.0, Math.min(1.0, fromStart.method_1026(segment) / lengthSquared));
             class_243 closest = start.method_1019(segment.method_1021(progress));
             if (target.method_73189().method_1025(closest) > radius * radius) continue;
-            double waterPower = WeatherPhysics.elementalPowerMultiplier(level, target.method_73189(), "water", target);
+            double waterPower = WeatherApi.elementalPowerMultiplier(level, target.method_73189(), "water", target);
             SpellEffects.magicDamage(caster, level, target, spell.power() * power * waterPower, 0.0);
             class_243 push = segment.method_1029().method_1021(Math.min(2.25, 0.9 + Math.sqrt(power) * 0.12));
             target.method_5762(push.field_1352, Math.min(0.8, 0.2 + power * 0.01), push.field_1350);
@@ -344,7 +343,7 @@ public final class SpellEffects {
         int affected = 0;
         for (class_1309 target : level.method_18467(class_1309.class, SpellEffects.boxAround(point, radius))) {
             if (target == caster || target.method_73189().method_1025(point) > radius * radius) continue;
-            double coldPower = WeatherPhysics.elementalPowerMultiplier(level, target.method_73189(), "ice", target);
+            double coldPower = WeatherApi.elementalPowerMultiplier(level, target.method_73189(), "ice", target);
             SpellEffects.magicDamage(caster, level, target, 2.0 * power * coldPower, 0.0);
             target.method_6092(new class_1293(class_1294.field_5909, (int)Math.max((long)20L, (long)Math.round((double)(40.0 * power * coldPower))), 0));
             MagicHitTracker.mark(target, caster, level.method_75260());
@@ -395,7 +394,7 @@ public final class SpellEffects {
             ++affected;
         }
         SpellEffects.extinguish(level, point, radius);
-        LocalStormManager.start(level, point, stormDuration);
+        WeatherApi.startCumulonimbus(level, point, stormDuration);
         if (!params.silent()) {
             int intensity = MagicScaling.intensity(power);
             double cloudRadius = Math.min(24.0, Math.max(4.0, radius * 0.75));
@@ -522,14 +521,14 @@ public final class SpellEffects {
         double radius = Math.max(2.0, MagicScaling.radius(spell.radius(), power, params.radiusMultiplier()));
         double pushStrength = Math.min(2.75, 0.75 + Math.sqrt(Math.max(1.0, power)) * 0.15)
                 * params.damageMultiplier()
-                * WeatherPhysics.elementalPowerMultiplier(level, caster.method_73189(), "wind", caster);
+                * WeatherApi.elementalPowerMultiplier(level, caster.method_73189(), "wind", caster);
         class_243 horizontalWind = new class_243(caster.method_5720().field_1352, 0.0, caster.method_5720().field_1350);
         if (horizontalWind.method_1027() < 1.0E-4) {
             horizontalWind = new class_243(0.0, 0.0, 1.0);
         } else {
             horizontalWind = horizontalWind.method_1029();
         }
-        WeatherPhysics.addGust(
+        WeatherApi.addGust(
                 level,
                 caster.method_73189(),
                 horizontalWind.field_1352,
@@ -565,8 +564,8 @@ public final class SpellEffects {
 
     private static void updraft(class_3222 caster, class_3218 level, CastParams params, double power) {
         double lift = Math.min(2.5, (0.75 + Math.sqrt(Math.max(1.0, power)) * 0.17)
-                * WeatherPhysics.elementalPowerMultiplier(level, caster.method_73189(), "wind", caster));
-        WeatherPhysics.addUpdraft(
+                * WeatherApi.elementalPowerMultiplier(level, caster.method_73189(), "wind", caster));
+        WeatherApi.addUpdraft(
                 level,
                 caster.method_73189(),
                 Math.min(1.1, 0.25 + Math.sqrt(Math.max(1.0, power)) * 0.045),
@@ -762,9 +761,9 @@ public final class SpellEffects {
             for (class_1309 target : targets) {
                 if (target == caster || target.method_73189().method_1025(point) > finalRadius * finalRadius) continue;
                 class_243 targetPosition = target.method_73189();
-                double weatherDamage = WeatherPhysics.elementalPowerMultiplier(level, targetPosition, "fire", target);
+                double weatherDamage = WeatherApi.elementalPowerMultiplier(level, targetPosition, "fire", target);
                 double wetFireDuration = fireSeconds > 0.0
-                        ? fireSeconds * WeatherPhysics.fireDurationMultiplier(level, targetPosition, target)
+                        ? fireSeconds * WeatherApi.fireDurationMultiplier(level, targetPosition, target)
                         : 0.0;
                 SpellEffects.magicDamage(caster, level, target, damage * weatherDamage, wetFireDuration);
             }
@@ -784,7 +783,7 @@ public final class SpellEffects {
     }
 
     private static void igniteAround(class_3218 level, class_243 center, int attempts, double radius) {
-        double ignitionScale = WeatherPhysics.ignitionMultiplier(level, center);
+        double ignitionScale = WeatherApi.ignitionMultiplier(level, center);
         attempts = (int)Math.round(attempts * ignitionScale);
         if (radius <= 0.0 || attempts <= 0) {
             return;

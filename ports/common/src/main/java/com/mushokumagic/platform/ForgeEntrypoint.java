@@ -7,7 +7,6 @@ import com.mushokumagic.event.MagicEvents;
 import com.mushokumagic.item.MagicItems;
 import com.mushokumagic.mana.ManaData;
 import com.mushokumagic.command.MagicCommands;
-import com.mushokumagic.world.LocalWeatherNetwork;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -26,7 +25,6 @@ public final class ForgeEntrypoint {
         MinecraftForge.EVENT_BUS.register(new ForgeEventHandlers());
         MinecraftForge.EVENT_BUS.register(this);
 
-        LocalWeatherNetwork.register();
         MagicConfig.load();
         ManaData.init();
         MushokuMagic.LOGGER.info("Mushoku Tensei: Magic initialized for Forge-compatible 1.20.1.");

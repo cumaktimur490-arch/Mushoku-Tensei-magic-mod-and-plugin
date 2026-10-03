@@ -3,7 +3,6 @@ package com.mushokumagic.platform;
 import com.mushokumagic.event.MagicEvents;
 import com.mushokumagic.mana.ManaData;
 import com.mushokumagic.spell.CastManager;
-import com.mushokumagic.world.LocalStormManager;
 import net.minecraft.class_1269;
 import net.minecraft.class_1309;
 import net.minecraft.class_1657;
@@ -31,14 +30,6 @@ public final class ForgeEventHandlers {
     public void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof class_3222 player) {
             MagicEvents.onJoin(player);
-            LocalStormManager.syncToPlayer(player);
-        }
-    }
-
-    @SubscribeEvent
-    public void onPlayerChangedDimension(PlayerEvent.PlayerChangedDimensionEvent event) {
-        if (event.getEntity() instanceof class_3222 player) {
-            LocalStormManager.syncToPlayer(player);
         }
     }
 

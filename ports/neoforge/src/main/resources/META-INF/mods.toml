@@ -9,7 +9,7 @@ version="${version}"
 displayName="Mushoku Tensei: Magic"
 authors="mushoku_magic"
 description='''
-Anime-inspired magic, mana progression, elemental spells, wands, and localized severe weather for Minecraft 1.20.1.
+Anime-inspired mana progression, elemental spells, wands, and spellcasting for Minecraft 1.20.1. Requires Mushoku Tensei: Weather for weather interactions.
 '''
 
 [[dependencies.mushoku_magic]]
@@ -17,4 +17,11 @@ modId="minecraft"
 mandatory=true
 versionRange="[1.20.1,1.20.2)"
 ordering="NONE"
+side="BOTH"
+
+[[dependencies.mushoku_magic]]
+modId="mushoku_weather"
+mandatory=true
+versionRange="[1.0.0,)"
+ordering="AFTER"
 side="BOTH"

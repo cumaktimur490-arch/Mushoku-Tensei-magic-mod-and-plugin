@@ -6,12 +6,8 @@ import com.mushokumagic.mana.ManaData;
 import com.mushokumagic.mana.ManaManager;
 import com.mushokumagic.spell.CastManager;
 import com.mushokumagic.util.Msg;
-import com.mushokumagic.world.LocalStormManager;
 import com.mushokumagic.world.MagicHitTracker;
-import com.mushokumagic.world.RegionalWeatherManager;
-import com.mushokumagic.world.SevereWeatherManager;
 import com.mushokumagic.world.TemporaryBlocks;
-import com.mushokumagic.world.WeatherPhysics;
 import java.util.Locale;
 import net.minecraft.class_1268;
 import net.minecraft.class_1269;
@@ -80,10 +76,6 @@ public final class MagicEvents {
         for (class_3218 level : server.method_3738()) {
             TemporaryBlocks.tick(level);
         }
-        RegionalWeatherManager.tick(server);
-        LocalStormManager.tick(server);
-        SevereWeatherManager.tick(server);
-        WeatherPhysics.tick(server);
         for (class_3222 player : server.method_3760().method_14571()) {
             ManaManager.tickPlayer(player);
         }
@@ -116,10 +108,6 @@ public final class MagicEvents {
 
     public static void onServerStopping(MinecraftServer server) {
         TemporaryBlocks.restoreAll(server);
-        RegionalWeatherManager.clear();
-        LocalStormManager.clear();
-        SevereWeatherManager.clear();
-        WeatherPhysics.clear();
     }
 
     private static class_3222 resolveMagicKiller(class_1282 source) {

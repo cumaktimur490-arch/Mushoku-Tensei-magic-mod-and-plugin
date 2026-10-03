@@ -1,7 +1,7 @@
 package com.mushokumagic.world;
 
-import com.mushokumagic.config.MagicConfig;
-import com.mushokumagic.spell.MagicPalette;
+import com.mushokumagic.config.WeatherConfig;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -31,18 +31,18 @@ public final class SevereWeatherManager {
     private static final int MAX_SYSTEMS_PER_WORLD = 4;
     private static final double MIN_PLAYER_DISTANCE = 320.0;
     private static final double PARTICLE_VIEW_PADDING = 96.0;
-    private static final class_2394 CLOUD = MagicPalette.dust(0xCFD9E0, 1.45f);
-    private static final class_2394 STORM_CLOUD = MagicPalette.dust(0x3D4856, 1.75f);
-    private static final class_2394 TORNADO_DUST = MagicPalette.dust(0x78828B, 1.12f);
-    private static final class_2394 HAIL_GRAIN = MagicPalette.dust(0xEAF5FF, 0.82f);
-    private static final class_2394 SAND_DUST = MagicPalette.dust(0xC9AD7A, 1.15f);
+    private static final class_2394 CLOUD = WeatherPalette.dust(0xCFD9E0, 1.45f);
+    private static final class_2394 STORM_CLOUD = WeatherPalette.dust(0x3D4856, 1.75f);
+    private static final class_2394 TORNADO_DUST = WeatherPalette.dust(0x78828B, 1.12f);
+    private static final class_2394 HAIL_GRAIN = WeatherPalette.dust(0xEAF5FF, 0.82f);
+    private static final class_2394 SAND_DUST = WeatherPalette.dust(0xC9AD7A, 1.15f);
     private static final Map<class_3218, WorldState> WORLDS = new IdentityHashMap<>();
 
     private SevereWeatherManager() {
     }
 
     public static void tick(MinecraftServer server) {
-        if (!MagicConfig.get().regionalWeatherEnabled || !MagicConfig.get().severeWeatherEnabled) {
+        if (!WeatherConfig.get().regionalWeatherEnabled || !WeatherConfig.get().severeWeatherEnabled) {
             SevereWeatherManager.clear();
             return;
         }
@@ -70,7 +70,7 @@ public final class SevereWeatherManager {
                     continue;
                 }
                 SevereWeatherManager.emitWeather(level, system, now);
-                if (MagicConfig.get().weatherBlockDamage
+                if (WeatherConfig.get().weatherBlockDamage
                         && (system.kind == SevereWeatherModel.Kind.TORNADO
                                 || system.kind == SevereWeatherModel.Kind.HURRICANE)
                         && now % BLOCK_CHECK_INTERVAL == 0L) {
@@ -138,7 +138,7 @@ public final class SevereWeatherManager {
             class_243 center,
             SevereWeatherModel.Kind kind,
             int durationTicks) {
-        if (!MagicConfig.get().severeWeatherEnabled
+        if (!WeatherConfig.get().severeWeatherEnabled
                 || kind == null
                 || kind == SevereWeatherModel.Kind.NONE
                 || durationTicks <= 0) {

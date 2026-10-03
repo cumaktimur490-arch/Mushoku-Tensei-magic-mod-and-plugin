@@ -1,16 +1,15 @@
 package com.mushokumagic.world;
 
-import com.mushokumagic.spell.MagicPalette;
 import net.minecraft.class_2394;
 import net.minecraft.class_2398;
 import net.minecraft.class_3218;
 
 /** Shared particle staging for layered local clouds, wind and directional precipitation. */
 public final class WeatherVisuals {
-    private static final class_2394 CLOUD_HIGHLIGHT = MagicPalette.dust(0xC5D3DD, 1.12f);
-    private static final class_2394 CLOUD_BODY = MagicPalette.dust(0x758491, 1.42f);
-    private static final class_2394 CLOUD_UNDERSIDE = MagicPalette.dust(0x35414F, 1.55f);
-    private static final class_2394 WIND_MIST = MagicPalette.dust(0xA7C5D4, 0.38f);
+    private static final class_2394 CLOUD_HIGHLIGHT = WeatherPalette.dust(0xC5D3DD, 1.12f);
+    private static final class_2394 CLOUD_BODY = WeatherPalette.dust(0x758491, 1.42f);
+    private static final class_2394 CLOUD_UNDERSIDE = WeatherPalette.dust(0x35414F, 1.55f);
+    private static final class_2394 WIND_MIST = WeatherPalette.dust(0xA7C5D4, 0.38f);
 
     private WeatherVisuals() {
     }
@@ -76,8 +75,8 @@ public final class WeatherVisuals {
         double step = safeHeight / segments;
         double currentX = x;
         double currentZ = z;
-        class_2394 boltCore = MagicPalette.core("water", 2.0f);
-        class_2394 boltEdge = MagicPalette.core("water", 1.1f);
+        class_2394 boltCore = WeatherPalette.lightningCore(2.0f);
+        class_2394 boltEdge = WeatherPalette.lightningCore(1.1f);
 
         for (int segment = 0; segment <= segments; ++segment) {
             if (segment > 0) {

@@ -10,7 +10,6 @@ import com.mushokumagic.event.MagicEvents;
 import com.mushokumagic.item.MagicItems;
 import com.mushokumagic.mana.ManaData;
 import com.mushokumagic.spell.SpellRegistry;
-import com.mushokumagic.world.LocalWeatherNetwork;
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.class_2960;
 import org.slf4j.Logger;
@@ -26,7 +25,6 @@ implements ModInitializer {
     }
 
     public void onInitialize() {
-        LocalWeatherNetwork.register();
         MagicConfig.load();
         ManaData.init();
         MagicEffects.init();

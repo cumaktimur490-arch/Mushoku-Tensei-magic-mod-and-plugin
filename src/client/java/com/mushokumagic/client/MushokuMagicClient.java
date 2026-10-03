@@ -4,7 +4,6 @@
 package com.mushokumagic.client;
 
 import com.mushokumagic.MushokuMagic;
-import com.mushokumagic.world.ClientStormWeather;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -23,12 +22,10 @@ implements ClientModInitializer {
     private static class_304 keyStatus;
 
     public void onInitializeClient() {
-        ClientLocalWeatherNetwork.register();
         keySpells = KeyBindingHelper.registerKeyBinding((class_304)new class_304("key.mushoku_magic.spells", class_3675.class_307.field_1668, 75, CATEGORY));
         keyRepeat = KeyBindingHelper.registerKeyBinding((class_304)new class_304("key.mushoku_magic.repeat", class_3675.class_307.field_1668, 82, CATEGORY));
         keyStatus = KeyBindingHelper.registerKeyBinding((class_304)new class_304("key.mushoku_magic.status", class_3675.class_307.field_1668, 77, CATEGORY));
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            ClientStormWeather.tick();
             if (client.field_1724 == null || client.method_1562() == null) {
                 return;
             }

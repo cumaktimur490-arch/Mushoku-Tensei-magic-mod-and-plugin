@@ -9,13 +9,21 @@ allprojects {
 
 subprojects {
     // NeoForge 1.20.1 is the legacy Forge-compatible 47.1.x line. Loom's
-    // supported 1.20.1 toolchain therefore uses its Forge platform for both
-    // projects; the NeoForge module still depends on the native NeoForge artifact.
+    // supported 1.20.1 toolchain uses its Forge platform for both native builds.
     project.ext.set('loom.platform', 'forge')
     apply plugin: 'dev.architectury.loom'
 
-    base {
-        archivesName = "mushoku-magic-${project.name}-1.20.1"
+    def weatherProject = project.name.startsWith('weather-')
+    def sharedSourceRoot = weatherProject ? '../weather-common' : '../common'
+    if (weatherProject) {
+        version = weather_port_version
+        base {
+            archivesName = "mushoku-weather-${project.name.substring('weather-'.length())}-1.20.1"
+        }
+    } else {
+        base {
+            archivesName = "mushoku-magic-${project.name}-1.20.1"
+        }
     }
 
     java {
@@ -26,11 +34,17 @@ subprojects {
 
     sourceSets {
         main {
-            java.srcDirs = [file('../common/src/main/java'), file('src/main/java')]
-            resources.srcDirs = [file('../common/src/main/resources'), file('src/main/resources'), layout.buildDirectory.dir('generated/legacy-resources')]
+            java.srcDirs = [file("${sharedSourceRoot}/src/main/java"), file('src/main/java')]
+            resources.srcDirs = [
+                    file("${sharedSourceRoot}/src/main/resources"),
+                    file('src/main/resources'),
+                    layout.buildDirectory.dir('generated/legacy-resources')]
         }
         test {
-            java.srcDirs = [file('../../src/test/java')]
+            // Keep each standalone mod's test suite with its own loader artifact.
+            java.srcDirs = weatherProject
+                    ? [file('../../weather/src/test/java')]
+                    : [file('../../src/test/java')]
         }
     }
 
@@ -58,38 +72,44 @@ subprojects {
         useJUnitPlatform()
     }
 
-    tasks.register('prepareLegacyResources') {
-        inputs.dir('../common/src/main/resources/data/mushoku_magic/recipe')
-        outputs.dir(layout.buildDirectory.dir('generated/legacy-resources/data/mushoku_magic/recipes'))
-        doLast {
-            def inputDir = file('../common/src/main/resources/data/mushoku_magic/recipe')
-            def outputDir = layout.buildDirectory.dir('generated/legacy-resources/data/mushoku_magic/recipes').get().asFile
-            outputDir.mkdirs()
-            inputDir.eachFileMatch(~/.*\.json/) { source ->
-                def recipe = new groovy.json.JsonSlurper().parse(source)
-                if (recipe.result instanceof Map && recipe.result.id != null) {
-                    recipe.result.item = recipe.result.remove('id')
-                }
-                def output = new File(outputDir, source.name)
-                output.withWriter('UTF-8') { writer ->
-                    new groovy.json.JsonBuilder(recipe).writeTo(writer)
-                    writer.println()
+    if (!weatherProject) {
+        tasks.register('prepareLegacyResources') {
+            inputs.dir('../common/src/main/resources/data/mushoku_magic/recipe')
+            outputs.dir(layout.buildDirectory.dir('generated/legacy-resources/data/mushoku_magic/recipes'))
+            doLast {
+                def inputDir = file('../common/src/main/resources/data/mushoku_magic/recipe')
+                def outputDir = layout.buildDirectory.dir('generated/legacy-resources/data/mushoku_magic/recipes').get().asFile
+                outputDir.mkdirs()
+                inputDir.eachFileMatch(~/.*\.json/) { source ->
+                    def recipe = new groovy.json.JsonSlurper().parse(source)
+                    if (recipe.result instanceof Map && recipe.result.id != null) {
+                        recipe.result.item = recipe.result.remove('id')
+                    }
+                    def output = new File(outputDir, source.name)
+                    output.withWriter('UTF-8') { writer ->
+                        new groovy.json.JsonBuilder(recipe).writeTo(writer)
+                        writer.println()
+                    }
                 }
             }
         }
-    }
 
-    tasks.named('sourcesJar').configure {
-        dependsOn tasks.named('prepareLegacyResources')
+        tasks.named('sourcesJar').configure {
+            dependsOn tasks.named('prepareLegacyResources')
+        }
     }
 
     tasks.named('processResources').configure {
-        dependsOn tasks.named('prepareLegacyResources')
         exclude 'fabric.mod.json'
-        exclude 'assets/mushoku_magic/items/**'
+        if (!weatherProject) {
+            exclude 'assets/mushoku_magic/items/**'
+        }
         inputs.property 'version', project.version
         filesMatching('META-INF/mods.toml') {
             expand version: project.version
+        }
+        if (!weatherProject) {
+            dependsOn tasks.named('prepareLegacyResources')
         }
     }
 }

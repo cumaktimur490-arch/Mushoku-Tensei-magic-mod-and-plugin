@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       publish_release:
-        description: Publish the verified Fabric, Forge, and NeoForge jars as a GitHub Release
+        description: Publish the verified standalone Weather and dependent Magic jars for all loaders
         type: boolean
         required: false
         default: false
@@ -34,8 +34,9 @@ jobs:
       - name: Run tests and build the mod
         shell: bash
         run: |
-          set -o pipefail
-          ./gradlew --no-daemon clean build --stacktrace 2>&1 | tee "$RUNNER_TEMP/gradle-build.log"
+          set -euo pipefail
+          ./gradlew --no-daemon clean :weather:clean
+          ./gradlew --no-daemon :weather:build build --stacktrace 2>&1 | tee "$RUNNER_TEMP/gradle-build.log"
 
       - name: Surface Gradle failure details
         if: failure()
@@ -58,6 +59,11 @@ jobs:
         id: fabric-version
         shell: bash
         run: echo "version=$(sed -n 's/^mod_version=//p' gradle.properties)" >> "$GITHUB_OUTPUT"
+
+      - name: Read Fabric Weather artifact version
+        id: weather-version
+        shell: bash
+        run: echo "version=$(sed -n 's/^weather_version=//p' gradle.properties)" >> "$GITHUB_OUTPUT"
 
       - name: Verify Fabric staff display transforms
         shell: bash
@@ -95,11 +101,45 @@ jobs:
           print(f"Verified staff hand transforms in {jars[0]}")
           PY
 
-      - name: Upload the Fabric mod jar
+      - name: Verify standalone Fabric Weather jar
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          from zipfile import ZipFile
+
+          jars = [path for path in Path("weather/build/libs").glob("mushoku-weather-*.jar") if not path.stem.endswith("-sources")]
+          if len(jars) != 1:
+              raise SystemExit(f"Expected one Fabric Weather runtime jar, found {jars}")
+          with ZipFile(jars[0]) as jar:
+              metadata = json.loads(jar.read("fabric.mod.json"))
+              if metadata.get("id") != "mushoku_weather":
+                  raise SystemExit(f"{jars[0]} is not the standalone Weather mod")
+              if "mushoku_magic" in metadata.get("depends", {}):
+                  raise SystemExit("The standalone Weather mod must not depend on Magic")
+              names = set(jar.namelist())
+              if "com/mushokumagic/world/RegionalWeatherManager.class" not in names:
+                  raise SystemExit(f"{jars[0]} is missing its weather simulation")
+              if "com/mushokumagic/weather/api/WeatherApi.class" not in names:
+                  raise SystemExit(f"{jars[0]} is missing its public integration API")
+              if "com/mushokumagic/spell/SpellEffects.class" in names:
+                  raise SystemExit(f"{jars[0]} incorrectly bundles the Magic mod")
+          print(f"Verified standalone Weather jar {jars[0]}")
+          PY
+
+      - name: Upload the Fabric Magic jar
         uses: actions/upload-artifact@v4
         with:
           name: mushoku-magic-fabric-${{ github.sha }}
           path: build/libs/mushoku-magic-${{ steps.fabric-version.outputs.version }}.jar
+          if-no-files-found: error
+
+      - name: Upload the Fabric Weather jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: mushoku-weather-fabric-${{ github.sha }}
+          path: weather/build/libs/mushoku-weather-${{ steps.weather-version.outputs.version }}.jar
           if-no-files-found: error
 
   loader-ports:
@@ -121,8 +161,9 @@ jobs:
       - name: Run both native loader builds and tests
         shell: bash
         run: |
-          set -o pipefail
-          ./gradlew --no-daemon -p ports clean :forge:build :neoforge:build --stacktrace 2>&1 | tee "$RUNNER_TEMP/ports-build.log"
+          set -euo pipefail
+          ./gradlew --no-daemon -p ports clean :weather-forge:clean :weather-neoforge:clean
+          ./gradlew --no-daemon -p ports :weather-forge:build :weather-neoforge:build :forge:build :neoforge:build --stacktrace 2>&1 | tee "$RUNNER_TEMP/ports-build.log"
 
       - name: Surface native build failure details
         if: failure()
@@ -150,75 +191,94 @@ jobs:
           from zipfile import ZipFile
 
           artifacts = {
-              "Forge": (Path("ports/forge/build/libs"), "mushoku-magic-forge-1.20.1-*.jar", True),
-              "NeoForge": (Path("ports/neoforge/build/libs"), "mushoku-magic-neoforge-1.20.1-*.jar", False),
+              "Forge Magic": (Path("ports/forge/build/libs"), "mushoku-magic-forge-1.20.1-*.jar", "magic", True),
+              "NeoForge Magic": (Path("ports/neoforge/build/libs"), "mushoku-magic-neoforge-1.20.1-*.jar", "magic", False),
+              "Forge Weather": (Path("ports/weather-forge/build/libs"), "mushoku-weather-forge-1.20.1-*.jar", "weather", False),
+              "NeoForge Weather": (Path("ports/weather-neoforge/build/libs"), "mushoku-weather-neoforge-1.20.1-*.jar", "weather", False),
           }
-          for loader, (directory, pattern, luxium_expected) in artifacts.items():
+          item_ids = [
+              "magic_stone_1", "magic_stone_2", "magic_stone_3",
+              "enchanted_stick_1", "enchanted_stick_2", "enchanted_stick_3",
+              "wand_1", "wand_2", "wand_3",
+          ]
+          held_item_ids = [
+              "wand_1", "wand_2", "wand_3",
+              "enchanted_stick_1", "enchanted_stick_2", "enchanted_stick_3",
+          ]
+          required_hands = (
+              "firstperson_righthand", "firstperson_lefthand",
+              "thirdperson_righthand", "thirdperson_lefthand",
+          )
+          for loader, (directory, pattern, mod_kind, luxium_expected) in artifacts.items():
               jars = [jar for jar in directory.glob(pattern) if not jar.stem.endswith("-sources")]
               if len(jars) != 1:
-                  raise SystemExit(f"Expected exactly one {loader} mod jar, found {jars}")
+                  raise SystemExit(f"Expected exactly one {loader} runtime jar, found {jars}")
               with ZipFile(jars[0]) as jar:
                   names = set(jar.namelist())
                   if "fabric.mod.json" in names:
-                      raise SystemExit(f"{jars[0]} incorrectly contains fabric.mod.json")
+                      raise SystemExit(f"{jars[0]} incorrectly contains Fabric metadata")
                   metadata = jar.read("META-INF/mods.toml").decode("utf-8")
-                  if 'modId="mushoku_magic"' not in metadata:
-                      raise SystemExit(f"{jars[0]} is missing native loader metadata")
                   has_luxium = 'modId="luxium"' in metadata
                   if has_luxium != luxium_expected:
                       raise SystemExit(f"Luxium dependency metadata is incorrect in {jars[0]}")
-                  item_ids = [
-                      "magic_stone_1", "magic_stone_2", "magic_stone_3",
-                      "enchanted_stick_1", "enchanted_stick_2", "enchanted_stick_3",
-                      "wand_1", "wand_2", "wand_3",
-                  ]
-                  required_resources = {
-                      "pack.mcmeta",
-                      "assets/mushoku_magic/lang/en_us.json",
-                      "assets/mushoku_magic/lang/ru_ru.json",
-                  }
-                  for item_id in item_ids:
-                      required_resources.add(f"assets/mushoku_magic/models/item/{item_id}.json")
-                      required_resources.add(f"assets/mushoku_magic/textures/item/{item_id}.png")
-                      required_resources.add(f"data/mushoku_magic/recipes/{item_id}.json")
-                  missing_resources = required_resources - names
-                  if missing_resources:
-                      raise SystemExit(f"{jars[0]} is missing resources: {sorted(missing_resources)}")
-                  pack_metadata = json.loads(jar.read("pack.mcmeta"))
-                  if pack_metadata.get("pack", {}).get("pack_format") != 15:
-                      raise SystemExit(f"{jars[0]} has invalid Minecraft 1.20.1 pack metadata")
-                  held_item_ids = [
-                      "wand_1", "wand_2", "wand_3",
-                      "enchanted_stick_1", "enchanted_stick_2", "enchanted_stick_3",
-                  ]
-                  required_hands = (
-                      "firstperson_righthand", "firstperson_lefthand",
-                      "thirdperson_righthand", "thirdperson_lefthand",
-                  )
-                  for item_id in held_item_ids:
-                      model_path = f"assets/mushoku_magic/models/item/{item_id}.json"
-                      model = json.loads(jar.read(model_path))
-                      if model.get("parent") != "minecraft:item/handheld":
-                          raise SystemExit(f"{jars[0]} model {model_path} is not handheld")
-                      display = model.get("display", {})
-                      for hand in required_hands:
-                          transform = display.get(hand)
-                          if transform is None:
-                              raise SystemExit(f"{jars[0]} model {model_path} has no {hand} transform")
-                          if any(len(transform.get(field, [])) != 3 for field in ("rotation", "translation", "scale")):
-                              raise SystemExit(f"{jars[0]} model {model_path} has an incomplete {hand} transform")
-                          if any(not 0.0 < value <= 1.0 for value in transform["scale"]):
-                              raise SystemExit(f"{jars[0]} model {model_path} has an invalid {hand} scale")
-              print(f"Verified {jars[0]}")
+                  if mod_kind == "magic":
+                      if 'modId="mushoku_magic"' not in metadata or 'modId="mushoku_weather"' not in metadata:
+                          raise SystemExit(f"{jars[0]} is missing Magic metadata or its required Weather dependency")
+                      if ("com/mushokumagic/world/RegionalWeatherManager.class" in names
+                              or "com/mushokumagic/weather/api/WeatherApi.class" in names):
+                          raise SystemExit(f"{jars[0]} incorrectly bundles the Weather mod")
+                      required_resources = {
+                          "pack.mcmeta",
+                          "assets/mushoku_magic/lang/en_us.json",
+                          "assets/mushoku_magic/lang/ru_ru.json",
+                      }
+                      for item_id in item_ids:
+                          required_resources.add(f"assets/mushoku_magic/models/item/{item_id}.json")
+                          required_resources.add(f"assets/mushoku_magic/textures/item/{item_id}.png")
+                          required_resources.add(f"data/mushoku_magic/recipes/{item_id}.json")
+                      missing_resources = required_resources - names
+                      if missing_resources:
+                          raise SystemExit(f"{jars[0]} is missing resources: {sorted(missing_resources)}")
+                      pack_metadata = json.loads(jar.read("pack.mcmeta"))
+                      if pack_metadata.get("pack", {}).get("pack_format") != 15:
+                          raise SystemExit(f"{jars[0]} has invalid Minecraft 1.20.1 pack metadata")
+                      for item_id in held_item_ids:
+                          model_path = f"assets/mushoku_magic/models/item/{item_id}.json"
+                          model = json.loads(jar.read(model_path))
+                          if model.get("parent") != "minecraft:item/handheld":
+                              raise SystemExit(f"{jars[0]} model {model_path} is not handheld")
+                          display = model.get("display", {})
+                          for hand in required_hands:
+                              transform = display.get(hand)
+                              if transform is None:
+                                  raise SystemExit(f"{jars[0]} model {model_path} has no {hand} transform")
+                              if any(len(transform.get(field, [])) != 3 for field in ("rotation", "translation", "scale")):
+                                  raise SystemExit(f"{jars[0]} model {model_path} has an incomplete {hand} transform")
+                              if any(not 0.0 < value <= 1.0 for value in transform["scale"]):
+                                  raise SystemExit(f"{jars[0]} model {model_path} has an invalid {hand} scale")
+                  else:
+                      if 'modId="mushoku_weather"' not in metadata:
+                          raise SystemExit(f"{jars[0]} is missing Weather loader metadata")
+                      if 'modId="mushoku_magic"' in metadata:
+                          raise SystemExit(f"{jars[0]} must not depend on the Magic mod")
+                      if "com/mushokumagic/world/RegionalWeatherManager.class" not in names:
+                          raise SystemExit(f"{jars[0]} is missing the weather simulation")
+                      if "com/mushokumagic/weather/api/WeatherApi.class" not in names:
+                          raise SystemExit(f"{jars[0]} is missing its public integration API")
+                      if "com/mushokumagic/spell/SpellEffects.class" in names:
+                          raise SystemExit(f"{jars[0]} incorrectly bundles the Magic mod")
+              print(f"Verified {loader}: {jars[0]}")
           PY
 
-      - name: Upload Forge and NeoForge jars
+      - name: Upload all native Magic and Weather jars
         uses: actions/upload-artifact@v4
         with:
-          name: mushoku-magic-ports-${{ github.sha }}
+          name: mushoku-native-mods-${{ github.sha }}
           path: |
             ports/forge/build/libs/mushoku-magic-forge-1.20.1-*.jar
             ports/neoforge/build/libs/mushoku-magic-neoforge-1.20.1-*.jar
+            ports/weather-forge/build/libs/mushoku-weather-forge-1.20.1-*.jar
+            ports/weather-neoforge/build/libs/mushoku-weather-neoforge-1.20.1-*.jar
           if-no-files-found: error
 
   publish-release:
@@ -238,16 +298,22 @@ jobs:
         with:
           ref: ${{ github.sha }}
 
-      - name: Download Fabric jar
+      - name: Download Fabric Magic jar
         uses: actions/download-artifact@v4
         with:
           name: mushoku-magic-fabric-${{ github.sha }}
           path: release-assets
 
-      - name: Download Forge and NeoForge jars
+      - name: Download Fabric Weather jar
         uses: actions/download-artifact@v4
         with:
-          name: mushoku-magic-ports-${{ github.sha }}
+          name: mushoku-weather-fabric-${{ github.sha }}
+          path: release-assets
+
+      - name: Download native Forge and NeoForge jars
+        uses: actions/download-artifact@v4
+        with:
+          name: mushoku-native-mods-${{ github.sha }}
           path: release-assets
 
       - name: Verify release jars
@@ -255,6 +321,7 @@ jobs:
         shell: bash
         run: |
           python3 - <<'PY'
+          import json
           from pathlib import Path
           from zipfile import ZipFile
 
@@ -265,39 +332,63 @@ jobs:
                   if line and not line.startswith("#") and "=" in line
               )
 
-          fabric_version = properties("gradle.properties")["mod_version"]
-          port_version = properties("ports/gradle.properties")["port_version"]
-          assets = {
-              "Fabric": (f"mushoku-magic-{fabric_version}.jar", "fabric"),
-              "Forge": (f"mushoku-magic-forge-1.20.1-{port_version}.jar", "forge"),
-              "NeoForge": (f"mushoku-magic-neoforge-1.20.1-{port_version}.jar", "neoforge"),
+          fabric = properties("gradle.properties")
+          ports = properties("ports/gradle.properties")
+          artifacts = {
+              "Fabric Magic": (f"mushoku-magic-{fabric['mod_version']}.jar", "magic", "fabric", True),
+              "Fabric Weather": (f"mushoku-weather-{fabric['weather_version']}.jar", "weather", "fabric", False),
+              "Forge Magic": (f"mushoku-magic-forge-1.20.1-{ports['port_version']}.jar", "magic", "forge", True),
+              "Forge Weather": (f"mushoku-weather-forge-1.20.1-{ports['weather_port_version']}.jar", "weather", "forge", False),
+              "NeoForge Magic": (f"mushoku-magic-neoforge-1.20.1-{ports['port_version']}.jar", "magic", "neoforge", False),
+              "NeoForge Weather": (f"mushoku-weather-neoforge-1.20.1-{ports['weather_port_version']}.jar", "weather", "neoforge", False),
           }
           root = Path("release-assets")
-          for loader, (filename, metadata_kind) in assets.items():
+          for label, (filename, mod_kind, loader, luxium_expected) in artifacts.items():
               matches = list(root.rglob(filename))
               if len(matches) != 1:
-                  raise SystemExit(f"Expected one {loader} jar named {filename}; found {matches}")
+                  raise SystemExit(f"Expected one {label} jar named {filename}; found {matches}")
               jar_path = matches[0]
               with ZipFile(jar_path) as jar:
                   names = set(jar.namelist())
-                  if metadata_kind == "fabric":
-                      if "fabric.mod.json" not in names:
-                          raise SystemExit(f"{jar_path} is missing Fabric metadata")
+                  if loader == "fabric":
+                      if "fabric.mod.json" not in names or "META-INF/mods.toml" in names:
+                          raise SystemExit(f"{jar_path} has incorrect Fabric metadata")
+                      metadata = json.loads(jar.read("fabric.mod.json"))
+                      expected_id = "mushoku_magic" if mod_kind == "magic" else "mushoku_weather"
+                      if metadata.get("id") != expected_id:
+                          raise SystemExit(f"{jar_path} has the wrong Fabric mod id")
+                      if mod_kind == "magic" and "mushoku_weather" not in metadata.get("depends", {}):
+                          raise SystemExit(f"{jar_path} must require Mushoku Weather")
+                      if mod_kind == "weather" and "mushoku_magic" in metadata.get("depends", {}):
+                          raise SystemExit(f"{jar_path} must not depend on Mushoku Magic")
                   else:
                       if "fabric.mod.json" in names or "META-INF/mods.toml" not in names:
                           raise SystemExit(f"{jar_path} is not a native loader jar")
                       metadata = jar.read("META-INF/mods.toml").decode("utf-8")
+                      if mod_kind == "magic":
+                          if 'modId="mushoku_magic"' not in metadata or 'modId="mushoku_weather"' not in metadata:
+                              raise SystemExit(f"{jar_path} is missing the Magic id or Weather dependency")
+                      else:
+                          if 'modId="mushoku_weather"' not in metadata or 'modId="mushoku_magic"' in metadata:
+                              raise SystemExit(f"{jar_path} has incorrect standalone Weather metadata")
                       has_luxium = 'modId="luxium"' in metadata
-                      if has_luxium != (metadata_kind == "forge"):
-                          raise SystemExit(f"Luxium dependency metadata is incorrect in {jar_path}")
-              print(jar_path)
-              print(f"Verified {loader}: {jar_path}")
+                      if has_luxium != luxium_expected:
+                          raise SystemExit(f"Luxium metadata is incorrect in {jar_path}")
+                  if mod_kind == "magic" and (
+                          "com/mushokumagic/world/RegionalWeatherManager.class" in names
+                          or "com/mushokumagic/weather/api/WeatherApi.class" in names):
+                      raise SystemExit(f"{jar_path} incorrectly bundles the Weather mod")
+                  if mod_kind == "weather" and "com/mushokumagic/weather/api/WeatherApi.class" not in names:
+                      raise SystemExit(f"{jar_path} is missing the Weather integration API")
+                  if mod_kind == "weather" and "com/mushokumagic/spell/SpellEffects.class" in names:
+                      raise SystemExit(f"{jar_path} incorrectly bundles the Magic mod")
+              print(f"Verified {label}: {jar_path}")
           PY
-          version="$(sed -n 's/^port_version=//p' ports/gradle.properties)"
+          version="$(sed -n 's/^mod_version=//p' gradle.properties)"
           echo "version=$version" >> "$GITHUB_OUTPUT"
           mapfile -t assets < <(find release-assets -type f -name '*.jar' ! -name '*-sources.jar' | sort)
-          if [[ "${#assets[@]}" -ne 3 ]]; then
-            echo "Expected exactly three runtime jars, found ${#assets[@]}: ${assets[*]}" >&2
+          if [[ "${#assets[@]}" -ne 6 ]]; then
+            echo "Expected exactly six runtime jars, found ${#assets[@]}: ${assets[*]}" >&2
             exit 1
           fi
           printf '%s\n' "${assets[@]}" > "$RUNNER_TEMP/release-assets.txt"
@@ -316,21 +407,22 @@ jobs:
           cat > "$RUNNER_TEMP/release-notes.md" <<'EOF'
           ## Highlights
 
-          - Cumulonimbus now synchronizes a real 20×20-chunk local storm state; vanilla rain is rendered only for modded clients inside the sector and their previous weather state is restored on exit. Server-wide weather is never switched.
-          - Tornado and cyclone smoke particles receive bounded inward, rotational, and upward velocities, creating rising vortex streams without expensive all-pairs particle collisions.
-          - Staff and enchanted-stick models now have per-item hand orientation, scale, translation, and left/right first- and third-person transforms.
-          - Includes Fabric 1.21.11 and separate native Forge and NeoForge jars for Minecraft 1.20.1. Install only the jar matching the instance's loader.
-          - The Forge jar declares Luxium and Embeddium as optional client-side dependencies. No Luxium-specific renderer patch is claimed.
+          - Weather is now a standalone mod and can run without Magic. Magic requires Weather; install both matching jars to use weather-interacting spells.
+          - Cumulonimbus synchronizes its real 20×20-chunk local storm state; only clients inside the sector get the local vanilla rain view, and prior values are restored on exit. Server-wide weather is never switched.
+          - Tornado and cyclone smoke receives bounded inward, rotational, and upward velocities without expensive all-pairs particle collisions.
+          - Staff and enchanted-stick models have per-item hand orientation, scale, translation, and left/right first- and third-person transforms.
+          - Includes separate Fabric 1.21.11 and native Forge/NeoForge 1.20.1 Weather and Magic jars. Install only the matching loader/version pair.
+          - The Forge Magic jar declares Luxium and Embeddium as optional client-side dependencies. No Luxium-specific renderer patch is claimed.
 
           ## Verification
 
-          - GitHub Actions passed for Fabric, Forge, and NeoForge builds and tests.
-          - CI verified native metadata and required resources, Forge-only optional Luxium metadata, and all six models' hand transforms in each loader jar.
+          - GitHub Actions passed for all six Fabric, Forge, and NeoForge mod builds and their mod-specific test suites.
+          - CI verified each loader's standalone Weather/Magic metadata and dependency direction, packaged resources, Forge-only optional Luxium metadata, and all staff hand transforms.
           EOF
           mapfile -t assets < "$RUNNER_TEMP/release-assets.txt"
           gh release create "$tag" "${assets[@]}" \
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
-            --title "Mushoku Tensei: Magic v${VERSION} — Native 1.20.1 ports" \
+            --title "Mushoku Tensei: Magic + Weather v${VERSION}" \
             --notes-file "$RUNNER_TEMP/release-notes.md" \
             --latest

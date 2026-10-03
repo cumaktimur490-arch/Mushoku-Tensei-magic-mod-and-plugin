@@ -9,7 +9,7 @@ import com.mushokumagic.mana.ManaManager;
 import com.mushokumagic.spell.CastParams;
 import com.mushokumagic.spell.Spell;
 import com.mushokumagic.util.Msg;
-import com.mushokumagic.world.WeatherPhysics;
+import com.mushokumagic.weather.api.WeatherApi;
 import java.util.List;
 import java.util.Locale;
 import net.minecraft.class_1309;
@@ -114,7 +114,7 @@ public final class SpellCasting {
         if (!(player.method_51469() instanceof class_3218 level)) {
             return target;
         }
-        return WeatherPhysics.driftProjectileAimPoint(level, origin, target, spellId, range);
+        return WeatherApi.driftProjectileAimPoint(level, origin, target, spellId, range);
     }
 
     public static void drawTrail(class_3222 player, Spell spell, CastParams params, double progress) {

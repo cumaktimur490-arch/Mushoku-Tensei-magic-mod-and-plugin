@@ -1,6 +1,6 @@
 package com.mushokumagic.world;
 
-import com.mushokumagic.MushokuMagic;
+import com.mushokumagic.weather.MushokuWeather;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,7 +22,7 @@ public final class LocalWeatherNetwork {
     private static final int MAX_STORMS = 8;
     private static final int MAX_DIMENSION_KEY_BYTES = 128;
     private static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
-            new class_2960(MushokuMagic.MOD_ID, "local_weather"),
+            new class_2960(MushokuWeather.MOD_ID, "local_weather"),
             () -> PROTOCOL,
             PROTOCOL::equals,
             PROTOCOL::equals);

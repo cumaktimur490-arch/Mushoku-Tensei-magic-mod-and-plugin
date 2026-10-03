@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   build-and-upload:
-    name: Build and attach Fabric, Forge, and NeoForge jars
+    name: Build and attach standalone Weather and Magic jars
     runs-on: ubuntu-latest
     steps:
       - name: Check out the release tag
@@ -24,25 +24,39 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
 
-      - name: Run tests and build the Fabric mod
-        run: ./gradlew --no-daemon clean build
+      - name: Run tests and build Fabric Weather and Magic
+        run: |
+          ./gradlew --no-daemon clean :weather:clean
+          ./gradlew --no-daemon :weather:build build
 
-      - name: Build both native 1.20.1 loader ports (Java 17 bytecode)
-        run: ./gradlew --no-daemon -p ports clean :forge:build :neoforge:build
+      - name: Build native Weather and Magic 1.20.1 loader ports
+        run: |
+          ./gradlew --no-daemon -p ports clean :weather-forge:clean :weather-neoforge:clean
+          ./gradlew --no-daemon -p ports :weather-forge:build :weather-neoforge:build :forge:build :neoforge:build
 
-      - name: Attach all platform jars to the release
+      - name: Attach all six platform jars to the release
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          fabric_version="$(sed -n 's/^mod_version=//p' gradle.properties)"
-          port_version="$(sed -n 's/^port_version=//p' ports/gradle.properties)"
-          test -n "$fabric_version"
-          test -n "$port_version"
-          fabric_jar="build/libs/mushoku-magic-${fabric_version}.jar"
-          forge_jar="ports/forge/build/libs/mushoku-magic-forge-1.20.1-${port_version}.jar"
-          neoforge_jar="ports/neoforge/build/libs/mushoku-magic-neoforge-1.20.1-${port_version}.jar"
-          test -f "$fabric_jar"
-          test -f "$forge_jar"
-          test -f "$neoforge_jar"
-          gh release upload "$GITHUB_REF_NAME" "$fabric_jar" "$forge_jar" "$neoforge_jar" --clobber
+          magic_version="$(sed -n 's/^mod_version=//p' gradle.properties)"
+          weather_version="$(sed -n 's/^weather_version=//p' gradle.properties)"
+          port_magic_version="$(sed -n 's/^port_version=//p' ports/gradle.properties)"
+          port_weather_version="$(sed -n 's/^weather_port_version=//p' ports/gradle.properties)"
+          for version in "$magic_version" "$weather_version" "$port_magic_version" "$port_weather_version"; do
+            test -n "$version"
+          done
+          fabric_magic="build/libs/mushoku-magic-${magic_version}.jar"
+          fabric_weather="weather/build/libs/mushoku-weather-${weather_version}.jar"
+          forge_magic="ports/forge/build/libs/mushoku-magic-forge-1.20.1-${port_magic_version}.jar"
+          forge_weather="ports/weather-forge/build/libs/mushoku-weather-forge-1.20.1-${port_weather_version}.jar"
+          neoforge_magic="ports/neoforge/build/libs/mushoku-magic-neoforge-1.20.1-${port_magic_version}.jar"
+          neoforge_weather="ports/weather-neoforge/build/libs/mushoku-weather-neoforge-1.20.1-${port_weather_version}.jar"
+          for jar in "$fabric_magic" "$fabric_weather" "$forge_magic" "$forge_weather" "$neoforge_magic" "$neoforge_weather"; do
+            test -f "$jar"
+          done
+          gh release upload "$GITHUB_REF_NAME" \
+            "$fabric_magic" "$fabric_weather" \
+            "$forge_magic" "$forge_weather" \
+            "$neoforge_magic" "$neoforge_weather" \
+            --clobber

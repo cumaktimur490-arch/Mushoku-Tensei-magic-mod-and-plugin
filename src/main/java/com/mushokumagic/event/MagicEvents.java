@@ -9,14 +9,9 @@ import com.mushokumagic.mana.ManaData;
 import com.mushokumagic.mana.ManaManager;
 import com.mushokumagic.spell.CastManager;
 import com.mushokumagic.util.Msg;
-import com.mushokumagic.world.LocalStormManager;
 import com.mushokumagic.world.MagicHitTracker;
-import com.mushokumagic.world.RegionalWeatherManager;
-import com.mushokumagic.world.SevereWeatherManager;
 import com.mushokumagic.world.TemporaryBlocks;
-import com.mushokumagic.world.WeatherPhysics;
 import java.util.Locale;
-import net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -48,20 +43,13 @@ public final class MagicEvents {
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             class_3222 player = handler.method_32311();
             MagicEvents.onJoin(player);
-            LocalStormManager.syncToPlayer(player);
         });
-        ServerEntityWorldChangeEvents.AFTER_PLAYER_CHANGE_WORLD.register(
-                (player, origin, destination) -> LocalStormManager.syncToPlayer(player));
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> CastManager.cancel(handler.method_32311()));
         ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> CastManager.cancel(newPlayer));
         UseItemCallback.EVENT.register(MagicEvents::onUseItem);
         ServerTickEvents.END_SERVER_TICK.register(MagicEvents::onServerTick);
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
             TemporaryBlocks.restoreAll(server);
-            RegionalWeatherManager.clear();
-            LocalStormManager.clear();
-            SevereWeatherManager.clear();
-            WeatherPhysics.clear();
         });
     }
 
@@ -107,10 +95,6 @@ public final class MagicEvents {
         for (class_3218 level : server.method_3738()) {
             TemporaryBlocks.tick(level);
         }
-        RegionalWeatherManager.tick(server);
-        LocalStormManager.tick(server);
-        SevereWeatherManager.tick(server);
-        WeatherPhysics.tick(server);
         for (class_3222 player : server.method_3760().method_14571()) {
             ManaManager.tickPlayer(player);
         }

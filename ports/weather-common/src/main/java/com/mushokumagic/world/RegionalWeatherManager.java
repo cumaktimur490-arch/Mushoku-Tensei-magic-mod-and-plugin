@@ -1,7 +1,7 @@
 package com.mushokumagic.world;
 
-import com.mushokumagic.config.MagicConfig;
-import com.mushokumagic.spell.MagicPalette;
+import com.mushokumagic.config.WeatherConfig;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -28,7 +28,7 @@ public final class RegionalWeatherManager {
     private static final long PARTICLE_INTERVAL = 10L;
     private static final int VANILLA_CLEAR_DURATION_TICKS = 12_000;
     private static final long VANILLA_WEATHER_REFRESH_TICKS = 6_000L;
-    private static final class_2394 DRY_DUST = MagicPalette.dust(0xBDA477, 0.8f);
+    private static final class_2394 DRY_DUST = WeatherPalette.dust(0xBDA477, 0.8f);
     private static final Map<class_3218, WorldState> WORLDS = new IdentityHashMap<>();
     private static final Map<class_3218, List<ManualOverride>> MANUAL_OVERRIDES = new IdentityHashMap<>();
 
@@ -37,7 +37,7 @@ public final class RegionalWeatherManager {
 
     public static void tick(MinecraftServer server) {
         Iterable<class_3218> levels = server.method_3738();
-        if (!MagicConfig.get().regionalWeatherEnabled) {
+        if (!WeatherConfig.get().regionalWeatherEnabled) {
             for (class_3218 level : levels) {
                 RegionalWeatherManager.pruneManualOverrides(level, level.method_8510());
             }
@@ -169,7 +169,7 @@ public final class RegionalWeatherManager {
                 level.method_8510(),
                 biomeTemperature,
                 hasPrecipitation);
-        if (MagicConfig.get().regionalWeatherEnabled) {
+        if (WeatherConfig.get().regionalWeatherEnabled) {
             ManualOverride override = RegionalWeatherManager.findManualOverride(
                     level,
                     x,
