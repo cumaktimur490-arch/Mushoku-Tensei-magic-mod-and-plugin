@@ -311,7 +311,10 @@ jobs:
     name: Publish verified release
     if: >-
       (github.event_name == 'workflow_dispatch' && inputs.publish_release) ||
-      (github.event_name == 'push' && contains(github.event.head_commit.message, '[publish-release]'))
+      (github.event_name == 'push' && (
+        contains(github.event.head_commit.message, '[publish-release]') ||
+        contains(github.event.head_commit.message, '[publish-beta]')
+      ))
     needs:
       - build
       - loader-ports
@@ -423,9 +426,17 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.release-jars.outputs.version }}
+          BETA_RELEASE: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, '[publish-beta]') }}
         shell: bash
         run: |
           tag="v${VERSION}"
+          title="Mushoku Tensei: Magic + Weather v${VERSION}"
+          release_flags=(--latest)
+          if [[ "${BETA_RELEASE}" == "true" ]]; then
+            tag="${tag}-beta.1"
+            title="${title} Beta 1"
+            release_flags=(--prerelease)
+          fi
           if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "Release $tag already exists" >&2
             exit 1
@@ -448,10 +459,19 @@ jobs:
           - GitHub Actions passed for all six Fabric, Forge, and NeoForge mod builds and their mod-specific test suites.
           - CI compiled and linked the GLSL vertex/fragment shader pair, verified both shader assets are packaged in all three Weather jars, and checked loader metadata, dependency direction, Forge-only optional Luxium metadata, and staff hand transforms.
           EOF
+          if [[ "${BETA_RELEASE}" == "true" ]]; then
+            cat > "$RUNNER_TEMP/beta-warning.md" <<'EOF'
+          > **Beta notice:** Automated builds, shader compilation, and JAR checks passed. The volumetric cloud renderer has not yet had an in-game visual or performance QA pass. On Fabric 1.21.11 the current draw hook runs before vanilla clouds and weather, so layer ordering still needs gameplay verification.
+
+          EOF
+            cat "$RUNNER_TEMP/beta-warning.md" "$RUNNER_TEMP/release-notes.md" > "$RUNNER_TEMP/final-release-notes.md"
+          else
+            cp "$RUNNER_TEMP/release-notes.md" "$RUNNER_TEMP/final-release-notes.md"
+          fi
           mapfile -t assets < "$RUNNER_TEMP/release-assets.txt"
           gh release create "$tag" "${assets[@]}" \
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
-            --title "Mushoku Tensei: Magic + Weather v${VERSION}" \
-            --notes-file "$RUNNER_TEMP/release-notes.md" \
-            --latest
+            --title "$title" \
+            --notes-file "$RUNNER_TEMP/final-release-notes.md" \
+            "${release_flags[@]}"
