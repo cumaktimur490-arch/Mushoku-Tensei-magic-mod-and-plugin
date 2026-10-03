@@ -39,6 +39,8 @@ jobs:
           sudo apt-get install --no-install-recommends -y glslang-tools
           cmp weather/src/main/resources/assets/mushoku_weather/shaders/volume_cloud.vert ports/weather-common/src/main/resources/assets/mushoku_weather/shaders/volume_cloud.vert
           cmp weather/src/main/resources/assets/mushoku_weather/shaders/volume_cloud.frag ports/weather-common/src/main/resources/assets/mushoku_weather/shaders/volume_cloud.frag
+          cmp weather/src/main/resources/assets/mushoku_weather/textures/cloud_noise.png ports/weather-common/src/main/resources/assets/mushoku_weather/textures/cloud_noise.png
+          python3 scripts/generate_weather_noise_texture.py --check
           glslangValidator -l \
             weather/src/main/resources/assets/mushoku_weather/shaders/volume_cloud.vert \
             weather/src/main/resources/assets/mushoku_weather/shaders/volume_cloud.frag
@@ -139,7 +141,8 @@ jobs:
                   raise SystemExit(f"{jars[0]} is missing its GPU cloud renderer")
               for shader in (
                       "assets/mushoku_weather/shaders/volume_cloud.vert",
-                      "assets/mushoku_weather/shaders/volume_cloud.frag"):
+                      "assets/mushoku_weather/shaders/volume_cloud.frag",
+                      "assets/mushoku_weather/textures/cloud_noise.png"):
                   if shader not in names:
                       raise SystemExit(f"{jars[0]} is missing shader resource {shader}")
               if "com/mushokumagic/spell/SpellEffects.class" in names:
@@ -288,7 +291,8 @@ jobs:
                           raise SystemExit(f"{jars[0]} is missing its GPU cloud renderer")
                       for shader in (
                               "assets/mushoku_weather/shaders/volume_cloud.vert",
-                              "assets/mushoku_weather/shaders/volume_cloud.frag"):
+                              "assets/mushoku_weather/shaders/volume_cloud.frag",
+                              "assets/mushoku_weather/textures/cloud_noise.png"):
                           if shader not in names:
                               raise SystemExit(f"{jars[0]} is missing shader resource {shader}")
                       if "com/mushokumagic/spell/SpellEffects.class" in names:
@@ -417,6 +421,13 @@ jobs:
                       raise SystemExit(f"{jar_path} incorrectly bundles the Weather mod")
                   if mod_kind == "weather" and "com/mushokumagic/weather/api/WeatherApi.class" not in names:
                       raise SystemExit(f"{jar_path} is missing the Weather integration API")
+                  if mod_kind == "weather":
+                      for resource in (
+                              "assets/mushoku_weather/shaders/volume_cloud.vert",
+                              "assets/mushoku_weather/shaders/volume_cloud.frag",
+                              "assets/mushoku_weather/textures/cloud_noise.png"):
+                          if resource not in names:
+                              raise SystemExit(f"{jar_path} is missing Weather rendering resource {resource}")
                   if mod_kind == "weather" and "com/mushokumagic/spell/SpellEffects.class" in names:
                       raise SystemExit(f"{jar_path} incorrectly bundles the Magic mod")
               print(f"Verified {label}: {jar_path}")
@@ -476,6 +487,7 @@ jobs:
           - Weather is now a standalone mod and can run without Magic. Magic requires Weather; install both matching jars to use weather-interacting spells.
           - Cumulonimbus synchronizes a real 20×20-chunk local storm sector and cast altitude; clients render its shader-raymarched volumetric cloud, rain, and thunder locally without changing dimension-wide server weather.
           - Adds GPU ray-marched 3D cloud volumes with procedural density/noise for cumulonimbus towers, supercell anvils and rotating wall clouds, squall shelves, cyclone bands, tornado funnels, sandstorm walls, and regional overcast. Particles are auxiliary rain, hail, wind, lightning, and ground dust—not cloud bodies.
+          - Adds an original seamless multi-channel cloud-noise texture, projected through the 3D raymarch to carve larger billows, soft edges, and fine erosion detail without drawing flat cloud sprites.
           - Cloud quality, active volume budget, and render distance are configurable; local moving storms retain formation, mature, strengthening, and dissipating phases with rain curtains, hail, and strong winds.
           - `/magicweather supercell` and `/magicweather squall` start local storms; spawn frequency, size, strength, active-system limits, and strengthening are configurable. Optional tornado/cyclone block damage is off by default and strictly capped.
           - Tornado and cyclone smoke receives bounded inward, rotational, and upward velocities without expensive all-pairs particle collisions.
@@ -487,13 +499,13 @@ jobs:
           ## Verification
 
           - GitHub Actions passed for all six Fabric, Forge, and NeoForge mod builds and their mod-specific test suites.
-          - CI compiled and linked the GLSL vertex/fragment shader pair, verified both shader assets are packaged in all three Weather jars, and checked loader metadata, dependency direction, Forge-only optional Luxium metadata, package uniqueness, and staff hand transforms.
+          - CI regenerated the expected cloud-noise pixels from a deterministic script, verified both PNG copies are identical, compiled and linked the GLSL vertex/fragment shader pair, verified all three Weather rendering assets are packaged in all Weather jars, and checked loader metadata, dependency direction, Forge-only optional Luxium metadata, package uniqueness, and staff hand transforms.
           EOF
           if [[ "${BETA_RELEASE}" == "true" ]]; then
             cat > "$RUNNER_TEMP/beta-warning.md" <<'EOF'
           > **Beta notice:** CI builds, tests, shader compilation, and native package checks passed. No in-game visual or performance QA has been performed; cloud appearance, rendering order, and performance remain unverified.
           >
-          > **Previous beta:** `v2.5.0-beta.1` has a known Forge/NeoForge 1.20.1 startup failure when its Magic and Weather jars are installed together. Use this release instead.
+          > **Earlier beta notice:** `v2.5.0-beta.1` had a Forge/NeoForge 1.20.1 split-package startup failure; it was fixed in `v2.5.0-beta.2` and remains fixed here.
 
           EOF
             cat "$RUNNER_TEMP/beta-warning.md" "$RUNNER_TEMP/release-notes.md" > "$RUNNER_TEMP/final-release-notes.md"

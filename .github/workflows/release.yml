@@ -34,6 +34,35 @@ jobs:
           ./gradlew --no-daemon -p ports clean :weather-forge:clean :weather-neoforge:clean
           ./gradlew --no-daemon -p ports :weather-forge:build :weather-neoforge:build :forge:build :neoforge:build
 
+      - name: Verify volumetric Weather rendering resources are packaged
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+
+          patterns = (
+              "weather/build/libs/mushoku-weather-*.jar",
+              "ports/weather-forge/build/libs/mushoku-weather-forge-1.20.1-*.jar",
+              "ports/weather-neoforge/build/libs/mushoku-weather-neoforge-1.20.1-*.jar",
+          )
+          required = (
+              "assets/mushoku_weather/shaders/volume_cloud.vert",
+              "assets/mushoku_weather/shaders/volume_cloud.frag",
+              "assets/mushoku_weather/textures/cloud_noise.png",
+          )
+          for pattern in patterns:
+              jars = [path for path in Path().glob(pattern) if not path.stem.endswith("-sources")]
+              if len(jars) != 1:
+                  raise SystemExit(f"Expected exactly one Weather jar for {pattern}, found {jars}")
+              with ZipFile(jars[0]) as jar:
+                  names = set(jar.namelist())
+                  missing = set(required) - names
+                  if missing:
+                      raise SystemExit(f"{jars[0]} is missing Weather rendering resources: {sorted(missing)}")
+              print(f"Verified volumetric Weather resources in {jars[0]}")
+          PY
+
       - name: Verify native Magic and Weather package sets are disjoint
         shell: bash
         run: |

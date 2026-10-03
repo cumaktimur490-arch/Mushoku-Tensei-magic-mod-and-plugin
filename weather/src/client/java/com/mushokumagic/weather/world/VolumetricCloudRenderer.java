@@ -3,6 +3,7 @@ package com.mushokumagic.weather.world;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mushokumagic.weather.config.WeatherConfig;
 import com.mushokumagic.weather.MushokuWeather;
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.FloatBuffer;
@@ -12,9 +13,11 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.imageio.ImageIO;
 import org.joml.Matrix4f;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL13;
 import org.lwjgl.opengl.GL14;
 import org.lwjgl.opengl.GL15;
 import org.lwjgl.opengl.GL20;
@@ -28,6 +31,8 @@ import org.lwjgl.opengl.GL30;
 public final class VolumetricCloudRenderer {
     private static final String VERTEX_RESOURCE = "/assets/mushoku_weather/shaders/volume_cloud.vert";
     private static final String FRAGMENT_RESOURCE = "/assets/mushoku_weather/shaders/volume_cloud.frag";
+    private static final String CLOUD_NOISE_RESOURCE = "/assets/mushoku_weather/textures/cloud_noise.png";
+    private static final int CLOUD_TEXTURE_UNIT = GL13.GL_TEXTURE3;
     private static final int MAX_RENDERED_VOLUMES = 6;
     private static final int MAX_SNAPSHOT_DIMENSIONS = 8;
     private static final double LOCAL_FADE_TICKS = 100.0;
@@ -37,6 +42,8 @@ public final class VolumetricCloudRenderer {
     private static int program;
     private static int vertexArray;
     private static int vertexBuffer;
+    private static int cloudNoiseTexture;
+    private static int cloudNoiseLocation;
     private static int stepsLocation;
     private static int centerLocation;
     private static int halfSizeLocation;
@@ -323,6 +330,9 @@ public final class VolumetricCloudRenderer {
             GL11.glEnable(GL11.GL_CULL_FACE);
             GL11.glCullFace(GL11.GL_FRONT);
             GL11.glFrontFace(GL11.GL_CCW);
+            GL13.glActiveTexture(CLOUD_TEXTURE_UNIT);
+            GL11.glBindTexture(GL11.GL_TEXTURE_2D, cloudNoiseTexture);
+            GL20.glUniform1i(cloudNoiseLocation, CLOUD_TEXTURE_UNIT - GL13.GL_TEXTURE0);
 
             int steps = requestedQuality <= 1 ? 20 : requestedQuality == 2 ? 32 : 48;
             GL20.glUniform1i(stepsLocation, steps);
@@ -375,6 +385,8 @@ public final class VolumetricCloudRenderer {
             intensityLocation = uniform("uIntensity");
             phaseLocation = uniform("uPhase");
             timeLocation = uniform("uTime");
+            cloudNoiseLocation = uniform("uCloudNoise");
+            cloudNoiseTexture = createCloudNoiseTexture();
             return true;
         } catch (Exception exception) {
             disabledAfterFailure = true;
@@ -410,6 +422,56 @@ public final class VolumetricCloudRenderer {
             }
             return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
         }
+    }
+
+    private static int createCloudNoiseTexture() throws IOException {
+        BufferedImage image;
+        try (InputStream stream = VolumetricCloudRenderer.class.getResourceAsStream(CLOUD_NOISE_RESOURCE)) {
+            if (stream == null) {
+                throw new IOException("Missing cloud-noise texture " + CLOUD_NOISE_RESOURCE);
+            }
+            image = ImageIO.read(stream);
+        }
+        if (image == null || image.getWidth() < 64 || image.getHeight() < 64) {
+            throw new IOException("Invalid cloud-noise texture " + CLOUD_NOISE_RESOURCE);
+        }
+        int width = image.getWidth();
+        int height = image.getHeight();
+        ByteBuffer pixels = BufferUtils.createByteBuffer(width * height * 3);
+        for (int y = 0; y < height; ++y) {
+            for (int x = 0; x < width; ++x) {
+                int argb = image.getRGB(x, y);
+                pixels.put((byte)(argb >> 16));
+                pixels.put((byte)(argb >> 8));
+                pixels.put((byte)argb);
+            }
+        }
+        pixels.flip();
+        image.flush();
+
+        int previousActiveTexture = GL11.glGetInteger(GL13.GL_ACTIVE_TEXTURE);
+        GL13.glActiveTexture(CLOUD_TEXTURE_UNIT);
+        int previousTexture = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_2D);
+        int previousUnpackAlignment = GL11.glGetInteger(GL11.GL_UNPACK_ALIGNMENT);
+        int texture = GL11.glGenTextures();
+        try {
+            GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture);
+            GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR);
+            GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_LINEAR);
+            GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL11.GL_REPEAT);
+            GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL11.GL_REPEAT);
+            GL11.glPixelStorei(GL11.GL_UNPACK_ALIGNMENT, 1);
+            GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_RGB8, width, height, 0,
+                    GL11.GL_RGB, GL11.GL_UNSIGNED_BYTE, pixels);
+        } catch (RuntimeException exception) {
+            GL11.glDeleteTextures(texture);
+            throw exception;
+        } finally {
+            GL11.glPixelStorei(GL11.GL_UNPACK_ALIGNMENT, previousUnpackAlignment);
+            GL11.glBindTexture(GL11.GL_TEXTURE_2D, previousTexture);
+            GL13.glActiveTexture(previousActiveTexture);
+        }
+        return texture;
     }
 
     private static void createCubeBuffer() {
@@ -521,6 +583,8 @@ public final class VolumetricCloudRenderer {
         private final int program;
         private final int vertexArray;
         private final int arrayBuffer;
+        private final int activeTexture;
+        private final int cloudTextureBinding;
 
         private GlState() {
             this.blend = GL11.glIsEnabled(GL11.GL_BLEND);
@@ -538,6 +602,10 @@ public final class VolumetricCloudRenderer {
             this.program = GL11.glGetInteger(GL20.GL_CURRENT_PROGRAM);
             this.vertexArray = GL11.glGetInteger(GL30.GL_VERTEX_ARRAY_BINDING);
             this.arrayBuffer = GL11.glGetInteger(GL15.GL_ARRAY_BUFFER_BINDING);
+            this.activeTexture = GL11.glGetInteger(GL13.GL_ACTIVE_TEXTURE);
+            GL13.glActiveTexture(CLOUD_TEXTURE_UNIT);
+            this.cloudTextureBinding = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_2D);
+            GL13.glActiveTexture(this.activeTexture);
         }
 
         private static GlState capture() {
@@ -557,6 +625,9 @@ public final class VolumetricCloudRenderer {
             GL20.glUseProgram(this.program);
             GL30.glBindVertexArray(this.vertexArray);
             GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, this.arrayBuffer);
+            GL13.glActiveTexture(CLOUD_TEXTURE_UNIT);
+            GL11.glBindTexture(GL11.GL_TEXTURE_2D, this.cloudTextureBinding);
+            GL13.glActiveTexture(this.activeTexture);
         }
     }
 }

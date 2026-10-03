@@ -12,6 +12,7 @@ uniform int uSteps;
 uniform float uIntensity;
 uniform float uPhase;
 uniform float uTime;
+uniform sampler2D uCloudNoise;
 
 float hash31(vec3 p) {
     p = fract(p * 0.1031);
@@ -19,32 +20,13 @@ float hash31(vec3 p) {
     return fract((p.x + p.y) * p.z);
 }
 
-float valueNoise(vec3 p) {
-    vec3 cell = floor(p);
-    vec3 f = fract(p);
-    f = f * f * (3.0 - 2.0 * f);
-    float a = hash31(cell + vec3(0.0, 0.0, 0.0));
-    float b = hash31(cell + vec3(1.0, 0.0, 0.0));
-    float c = hash31(cell + vec3(0.0, 1.0, 0.0));
-    float d = hash31(cell + vec3(1.0, 1.0, 0.0));
-    float e = hash31(cell + vec3(0.0, 0.0, 1.0));
-    float f1 = hash31(cell + vec3(1.0, 0.0, 1.0));
-    float g = hash31(cell + vec3(0.0, 1.0, 1.0));
-    float h = hash31(cell + vec3(1.0, 1.0, 1.0));
-    return mix(mix(mix(a, b, f.x), mix(c, d, f.x), f.y),
-               mix(mix(e, f1, f.x), mix(g, h, f.x), f.y), f.z);
-}
-
-float fbm(vec3 p) {
-    float value = 0.0;
-    float amplitude = 0.55;
-    mat3 rotate = mat3(0.00, 0.80, 0.60, -0.80, 0.36, -0.48, -0.60, -0.48, 0.64);
-    for (int octave = 0; octave < 4; ++octave) {
-        value += valueNoise(p) * amplitude;
-        p = rotate * p * 2.03 + vec3(13.1, 7.7, 3.4);
-        amplitude *= 0.48;
-    }
-    return value;
+// A seamless 2D detail texture is projected along all three axes so the
+// density field keeps its 3D shape instead of looking like a flat billboard.
+vec4 sampleCloudNoise(vec3 point) {
+    vec4 alongX = texture(uCloudNoise, point.yz);
+    vec4 alongY = texture(uCloudNoise, point.zx);
+    vec4 alongZ = texture(uCloudNoise, point.xy);
+    return (alongX + alongY + alongZ) * 0.3333333;
 }
 
 float smoothInside(float value, float edge, float feather) {
@@ -200,12 +182,18 @@ void main() {
         float shape = cloudShape(q, phase);
         if (shape > 0.002) {
             vec3 flowOffset = vec3(wind.x, 0.08, wind.y) * flowTime;
-            vec3 noisePoint = (local + flowOffset) * vec3(0.025, 0.040, 0.025);
-            float broadNoise = fbm(noisePoint);
-            float detailNoise = valueNoise(noisePoint * 3.1 + vec3(4.7, 13.1, 8.3));
-            float erosion = (broadNoise - 0.50) * 0.63 + (detailNoise - 0.50) * 0.20;
+            float frequency = uKind == 5 ? 0.0105 : (uKind == 6 ? 0.0095 : 0.0085);
+            vec3 noisePoint = (local + flowOffset) * vec3(frequency, frequency * 1.72, frequency)
+                    + vec3(uPhase * 0.31, uPhase * 0.17, uPhase * 0.43);
+            vec4 cloudNoise = sampleCloudNoise(noisePoint);
+            float broadNoise = cloudNoise.r;
+            float detailNoise = cloudNoise.g * 0.58 + cloudNoise.b * 0.42;
+            float erosion = (cloudNoise.r - 0.50) * 0.50
+                    + (cloudNoise.g - 0.50) * 0.31
+                    + (cloudNoise.b - 0.50) * 0.19;
+            float warpedShape = shape + (broadNoise - 0.50) * 0.12;
             float coverage = mix(0.72, 0.34, clamp(uIntensity, 0.0, 1.0));
-            float density = clamp((shape + erosion - coverage) * 2.45, 0.0, 1.0) * uIntensity;
+            float density = clamp((warpedShape + erosion - coverage) * 2.45, 0.0, 1.0) * uIntensity;
             if (density > 0.012) {
                 if (!foundDepth && density > 0.055) {
                     firstCloudDepth = distanceAlongRay;
@@ -213,8 +201,9 @@ void main() {
                 }
                 float absorption = (uKind == 6 ? 0.041 : 0.030) * stepLength * density;
                 float sampleAlpha = 1.0 - exp(-absorption);
-                float lighting = clamp(0.64 + q.y * 0.16 + broadNoise * 0.15, 0.34, 1.12);
-                vec3 color = cloudTint(q.y, detailNoise) * lighting;
+                float lighting = clamp(0.54 + q.y * 0.18 + broadNoise * 0.17 + cloudNoise.g * 0.08, 0.30, 1.15);
+                float silverEdge = pow(clamp(1.0 - abs(detailNoise - 0.5) * 2.0, 0.0, 1.0), 3.0) * 0.10;
+                vec3 color = cloudTint(q.y, detailNoise) * (lighting + silverEdge);
                 accumulatedColor += (1.0 - accumulatedAlpha) * sampleAlpha * color;
                 accumulatedAlpha += (1.0 - accumulatedAlpha) * sampleAlpha;
             }
