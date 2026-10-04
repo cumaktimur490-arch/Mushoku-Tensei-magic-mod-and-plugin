@@ -32,6 +32,29 @@ STRUCTURE_BIOME_TAGS = {
     "village_taiga": ["mushoku_worldgen:emerald_highlands"],
     "pillager_outpost": [f"mushoku_worldgen:{biome}" for biome in CUSTOM_BIOMES],
 }
+MVS_BIOME_TAGS = {
+    "is_birch_forest": ["mushoku_worldgen:whispering_forest"],
+    "is_floral": ["mushoku_worldgen:riverside_meadow"],
+    "is_forest": ["mushoku_worldgen:whispering_forest"],
+    "is_mountain": ["mushoku_worldgen:skyreach_mountains"],
+    "is_on_land_overworld": [f"mushoku_worldgen:{biome}" for biome in CUSTOM_BIOMES],
+    "is_overworld": [f"mushoku_worldgen:{biome}" for biome in CUSTOM_BIOMES],
+    "is_plains": [
+        "mushoku_worldgen:golden_steppe",
+        "mushoku_worldgen:riverside_meadow",
+    ],
+    "is_snowy": ["mushoku_worldgen:skyreach_mountains"],
+    "is_taiga": ["mushoku_worldgen:emerald_highlands"],
+}
+FORGE_BIOME_TAGS = {
+    "is_coniferous": ["mushoku_worldgen:emerald_highlands"],
+    "is_mountain": ["mushoku_worldgen:skyreach_mountains"],
+    "is_plains": [
+        "mushoku_worldgen:golden_steppe",
+        "mushoku_worldgen:riverside_meadow",
+    ],
+    "is_snowy": ["mushoku_worldgen:skyreach_mountains"],
+}
 RETAINED_VANILLA_BIOMES = {
     "minecraft:deep_ocean",
     "minecraft:ocean",
@@ -163,6 +186,15 @@ def verify(jar_path: Path, loader: str) -> None:
                 f"data/minecraft/tags/worldgen/biome/has_structure/{tag_name}.json"
                 for tag_name in STRUCTURE_BIOME_TAGS
             )
+            required.update(
+                f"data/mvs/tags/worldgen/biome/{tag_name}.json"
+                for tag_name in MVS_BIOME_TAGS
+            )
+            if loader != "fabric":
+                required.update(
+                    f"data/forge/tags/worldgen/biome/{tag_name}.json"
+                    for tag_name in FORGE_BIOME_TAGS
+                )
             required.add(NOISE_SETTINGS)
             required.update(DENSITY_FUNCTIONS.values())
             required.update(WHEAT_RESOURCES.values())
@@ -215,7 +247,18 @@ def verify(jar_path: Path, loader: str) -> None:
                     f"data/minecraft/tags/worldgen/biome/has_structure/{tag_name}.json": values
                     for tag_name, values in STRUCTURE_BIOME_TAGS.items()
                 },
+                **{
+                    f"data/mvs/tags/worldgen/biome/{tag_name}.json": values
+                    for tag_name, values in MVS_BIOME_TAGS.items()
+                },
             }
+            if loader != "fabric":
+                expected_tags.update(
+                    {
+                        f"data/forge/tags/worldgen/biome/{tag_name}.json": values
+                        for tag_name, values in FORGE_BIOME_TAGS.items()
+                    }
+                )
             for path, values in expected_tags.items():
                 tag = load_json(jar, path)
                 if tag != {"replace": False, "values": values}:

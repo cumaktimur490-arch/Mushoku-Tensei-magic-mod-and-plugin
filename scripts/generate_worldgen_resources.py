@@ -227,6 +227,29 @@ STRUCTURE_BIOME_TAGS = {
     "village_taiga": ["mushoku_worldgen:emerald_highlands"],
     "pillager_outpost": list(CUSTOM_BIOME_IDS),
 }
+MVS_BIOME_TAGS = {
+    "is_birch_forest": ["mushoku_worldgen:whispering_forest"],
+    "is_floral": ["mushoku_worldgen:riverside_meadow"],
+    "is_forest": ["mushoku_worldgen:whispering_forest"],
+    "is_mountain": ["mushoku_worldgen:skyreach_mountains"],
+    "is_on_land_overworld": list(CUSTOM_BIOME_IDS),
+    "is_overworld": list(CUSTOM_BIOME_IDS),
+    "is_plains": [
+        "mushoku_worldgen:golden_steppe",
+        "mushoku_worldgen:riverside_meadow",
+    ],
+    "is_snowy": ["mushoku_worldgen:skyreach_mountains"],
+    "is_taiga": ["mushoku_worldgen:emerald_highlands"],
+}
+FORGE_BIOME_TAGS = {
+    "is_coniferous": ["mushoku_worldgen:emerald_highlands"],
+    "is_mountain": ["mushoku_worldgen:skyreach_mountains"],
+    "is_plains": [
+        "mushoku_worldgen:golden_steppe",
+        "mushoku_worldgen:riverside_meadow",
+    ],
+    "is_snowy": ["mushoku_worldgen:skyreach_mountains"],
+}
 CUSTOM_NOISE_SETTINGS_ID = "mushoku_worldgen:mushoku_overworld"
 CUSTOM_DENSITY_FUNCTION_IDS = (
     "mushoku_worldgen:macro_continents",
@@ -1459,6 +1482,19 @@ def generated_files(resource_root: Path, legacy: bool) -> dict[Path, dict[str, A
             "replace": False,
             "values": biome_ids,
         }
+    mvs_biome_tag_root = resource_root / "data/mvs/tags/worldgen/biome"
+    for tag_name, biome_ids in MVS_BIOME_TAGS.items():
+        files[mvs_biome_tag_root / f"{tag_name}.json"] = {
+            "replace": False,
+            "values": biome_ids,
+        }
+    if legacy:
+        forge_biome_tag_root = resource_root / "data/forge/tags/worldgen/biome"
+        for tag_name, biome_ids in FORGE_BIOME_TAGS.items():
+            files[forge_biome_tag_root / f"{tag_name}.json"] = {
+                "replace": False,
+                "values": biome_ids,
+            }
 
     files[resource_root / "assets/mushoku_worldgen/lang/en_us.json"] = {
         "generator.mushoku_worldgen.mushoku_world": "Mushoku: Vast Lands",
@@ -1646,25 +1682,38 @@ def check_vegetation_resources(resource_root: Path) -> None:
                 )
 
 
-def check_biome_compatibility_tags(resource_root: Path) -> None:
+def check_biome_compatibility_tags(resource_root: Path, legacy: bool) -> None:
     expected: dict[str, list[str]] = {
-        "is_overworld": list(CUSTOM_BIOME_IDS),
-        **BIOME_CATEGORY_TAGS,
+        "data/minecraft/tags/worldgen/biome/is_overworld.json": list(CUSTOM_BIOME_IDS),
         **{
-            f"has_structure/{tag_name}": biome_ids
+            f"data/minecraft/tags/worldgen/biome/{tag_name}.json": biome_ids
+            for tag_name, biome_ids in BIOME_CATEGORY_TAGS.items()
+        },
+        **{
+            f"data/minecraft/tags/worldgen/biome/has_structure/{tag_name}.json": biome_ids
             for tag_name, biome_ids in STRUCTURE_BIOME_TAGS.items()
         },
+        **{
+            f"data/mvs/tags/worldgen/biome/{tag_name}.json": biome_ids
+            for tag_name, biome_ids in MVS_BIOME_TAGS.items()
+        },
     }
-    tag_root = resource_root / "data/minecraft/tags/worldgen/biome"
-    for tag_name, biome_ids in expected.items():
-        path = tag_root / f"{tag_name}.json"
+    if legacy:
+        expected.update(
+            {
+                f"data/forge/tags/worldgen/biome/{tag_name}.json": biome_ids
+                for tag_name, biome_ids in FORGE_BIOME_TAGS.items()
+            }
+        )
+    for relative_path, biome_ids in expected.items():
+        path = resource_root / relative_path
         try:
             tag = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as error:
             raise ValueError(f"Missing or invalid biome compatibility tag {path}: {error}") from error
         if tag.get("replace") is not False or tag.get("values") != biome_ids:
             raise ValueError(
-                f"Biome compatibility tag {tag_name} must append only its intended Mushoku biomes"
+                f"Biome compatibility tag {relative_path} must append only its intended Mushoku biomes"
             )
 
 
@@ -1747,7 +1796,7 @@ def check_world_preset(preset: dict[str, Any], resource_root: Path) -> None:
             raise ValueError(f"Missing biome definition for {biome_id}: {biome_file}")
     check_wheat_field_resources(resource_root)
     check_vegetation_resources(resource_root)
-    check_biome_compatibility_tags(resource_root)
+    check_biome_compatibility_tags(resource_root, legacy=pack_format == 15)
 
 
 def render(value: dict[str, Any]) -> str:

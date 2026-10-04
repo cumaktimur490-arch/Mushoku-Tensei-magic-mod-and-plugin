@@ -52,7 +52,20 @@ The 1.20.1 Forge/NeoForge and Fabric 1.21.11 data packs use the same append-only
 | `minecraft:has_structure/village_snowy` | Skyreach Mountains | Snowy villages |
 | `minecraft:has_structure/pillager_outpost` | All five custom biomes | Pillager outposts |
 
-Every tag uses `"replace": false` and only appends Mushoku biome IDs. The standard Overworld has no Mushoku biomes in its generator, so it remains unchanged. This helps mods and structure datapacks that consult these vanilla tags (including tag-based MVS configurations); it does not promise that every third-party tree pack or structure has matching tag rules. The native Mushoku jars do not require Connector, Quark, Dynamic Trees, or MVS.
+For the supplied [Moog's Voyager Structures 5.1.3-1.20](https://github.com/Moog-s-Mods/MoogsVoyagerStructures/releases/tag/5.1.3-1.20), Worldgen also extends the mod's own append-only biome tags:
+
+| MVS biome tag | Mushoku biome(s) |
+| --- | --- |
+| `mvs:is_plains` | Golden Steppe, Riverside Meadow |
+| `mvs:is_floral` | Riverside Meadow |
+| `mvs:is_forest`, `mvs:is_birch_forest` | Whispering Forest |
+| `mvs:is_taiga` | Emerald Highlands |
+| `mvs:is_mountain`, `mvs:is_snowy` | Skyreach Mountains |
+| `mvs:is_overworld`, `mvs:is_on_land_overworld` | All five custom biomes |
+
+The native Forge/NeoForge 1.20.1 artifacts also append Golden Steppe and Riverside Meadow to `forge:is_plains`, Emerald Highlands to `forge:is_coniferous`, and Skyreach Mountains to `forge:is_mountain` and `forge:is_snowy`. This gives MVS's optional Forge tag references and other Forge tag-based features the appropriate custom biomes without requiring MVS in the mod metadata. Every tag uses `"replace": false`; only the custom Mushoku IDs are added. Structure mods may consequently consider their matching structures in these new biomes; their own rarity settings still control placement.
+
+The standard Overworld has no Mushoku biomes in its generator, so it remains unchanged. These tags improve integrations that consult the same categories; they do not promise that every third-party tree pack or structure has a rule for every custom biome. The native Mushoku jars do not require Connector, Quark, Dynamic Trees, or MVS.
 
 For a Forge 1.20.1 pack already running ModernFix and FerriteCore, Worldgen adds no second optimization library or renderer. Its vegetation layer uses a small number of count/rarity placements per custom biome; the potentially heavier costs are initial terrain generation, third-party structures, and Distant Horizons LOD generation. On an unknown CPU/GPU, start with a modest render/LOD distance and increase it only after testing; if pre-generating a large area, use a chunk pre-generator gradually and monitor server tick time. Adding `is_forest`, `is_taiga`, and other semantic tags can make tag-aware structures eligible in those Mushoku biomes, so structure density remains controlled by those mods' own configs.
 
