@@ -14,6 +14,10 @@ The preset provides five custom surface biomes:
 
 The custom palette replaces many vanilla surface climates inside this preset; deserts, jungles, swamps, savannas, and badlands are intentionally not selected. Vanilla oceans, beaches, rivers, and cave biomes are retained. The custom biomes are added to compatible vanilla structure tags so plains-style villages and pillager outposts can use them.
 
+## Golden wheat fields
+
+Golden Steppe now generates broad, irregular fields of ripe wheat on moist farmland, with a large patch attempted in each steppe chunk. Field edges follow the terrain and existing flowers and trees are left as natural breaks, so the crop does not turn every biome into one flat farm. Other biomes keep their own meadow, forest, and mountain character. Wheat fields generate only in newly created chunks of the Mushoku preset.
+
 ## Broad landmasses and blended relief
 
 Only the Mushoku preset's Overworld uses `mushoku_worldgen:mushoku_overworld`. Its low-frequency continentalness field, with a smaller coast-detail octave, still drives both terrain density and the broad biome layout. The underlying vanilla `sloped_cheese` terrain profile, aquifers, ore veins, and 3D cave-density router remain the foundation, preserving the large continents already introduced without replacing Minecraft's terrain model.

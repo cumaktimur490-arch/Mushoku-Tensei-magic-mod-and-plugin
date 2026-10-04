@@ -35,6 +35,15 @@ DENSITY_FUNCTIONS = {
     "landmass_density": "data/mushoku_worldgen/worldgen/density_function/landmass_density.json",
     "tectonic_relief": "data/mushoku_worldgen/worldgen/density_function/tectonic_relief.json",
 }
+WHEAT_RESOURCES = {
+    "ripe_wheat_configured": "data/mushoku_worldgen/worldgen/configured_feature/ripe_wheat.json",
+    "golden_field_configured": "data/mushoku_worldgen/worldgen/configured_feature/golden_wheat_field.json",
+    "ripe_wheat_placed": "data/mushoku_worldgen/worldgen/placed_feature/ripe_wheat.json",
+    "golden_fields_placed": "data/mushoku_worldgen/worldgen/placed_feature/golden_wheat_fields.json",
+}
+GOLDEN_WHEAT_FIELDS_ID = "mushoku_worldgen:golden_wheat_fields"
+GOLDEN_WHEAT_FIELD_CONFIG_ID = "mushoku_worldgen:golden_wheat_field"
+RIPE_WHEAT_ID = "mushoku_worldgen:ripe_wheat"
 MACRO_CONTINENTS_ID = "mushoku_worldgen:macro_continents"
 LANDMASS_DENSITY_ID = "mushoku_worldgen:landmass_density"
 TECTONIC_RELIEF_ID = "mushoku_worldgen:tectonic_relief"
@@ -81,6 +90,7 @@ def verify(jar_path: Path, loader: str) -> None:
             )
             required.add(NOISE_SETTINGS)
             required.update(DENSITY_FUNCTIONS.values())
+            required.update(WHEAT_RESOURCES.values())
             missing = sorted(required - names)
             if missing:
                 raise ValueError(f"{jar_path} is missing resources: {missing}")
@@ -154,6 +164,43 @@ def verify(jar_path: Path, loader: str) -> None:
                 for field in ("minecraft:overworld/erosion", "minecraft:overworld/ridges")
             ):
                 raise ValueError(f"{jar_path} terrain relief omits erosion/ridge shaping")
+
+            wheat = {
+                name: load_json(jar, resource)
+                for name, resource in WHEAT_RESOURCES.items()
+            }
+            ripe_wheat = wheat["ripe_wheat_configured"].get("config", {}).get(
+                "to_place", {}
+            ).get("state", {})
+            field_config = wheat["golden_field_configured"].get("config", {})
+            ground_state = field_config.get("ground_state", {}).get("state", {})
+            if not (
+                ripe_wheat.get("Name") == "minecraft:wheat"
+                and ripe_wheat.get("Properties", {}).get("age") == "7"
+                and wheat["golden_field_configured"].get("type") == "minecraft:vegetation_patch"
+                and ground_state.get("Name") == "minecraft:farmland"
+                and field_config.get("vegetation_feature") == RIPE_WHEAT_ID
+                and field_config.get("vegetation_chance", 0.0) >= 0.7
+                and field_config.get("xz_radius", {}).get("value", {}).get("min_inclusive", 0) >= 6
+                and wheat["golden_fields_placed"].get("feature") == GOLDEN_WHEAT_FIELD_CONFIG_ID
+            ):
+                raise ValueError(f"{jar_path} wheat fields are not configured as dense mature crops")
+            field_placements = wheat["golden_fields_placed"].get("placement", [])
+            if not (
+                any(item.get("type") == "minecraft:in_square" for item in field_placements)
+                and any(
+                    item.get("type") == "minecraft:heightmap"
+                    and item.get("heightmap") == "WORLD_SURFACE_WG"
+                    for item in field_placements
+                )
+                and any(item.get("type") == "minecraft:biome" for item in field_placements)
+            ):
+                raise ValueError(f"{jar_path} wheat-field placement is missing its surface spread")
+            if not contains_value(
+                wheat["ripe_wheat_placed"].get("placement", []), "minecraft:farmland"
+            ):
+                raise ValueError(f"{jar_path} mature wheat placement is missing its farmland filter")
+
             entries = overworld.get("biome_source", {}).get("biomes", [])
             biome_ids = {entry.get("biome") for entry in entries}
             expected_biomes = {
@@ -176,6 +223,8 @@ def verify(jar_path: Path, loader: str) -> None:
                 feature_stages = definition.get("features", [])
                 if len(feature_stages) != 11:
                     raise ValueError(f"{jar_path} biome {biome_id} has invalid feature stages")
+                if (GOLDEN_WHEAT_FIELDS_ID in feature_stages[9]) != (biome == "golden_steppe"):
+                    raise ValueError(f"{jar_path} wheat fields are not limited to Golden Steppe")
                 if biome == "golden_steppe":
                     deep_dark_order = [
                         "minecraft:glow_lichen",

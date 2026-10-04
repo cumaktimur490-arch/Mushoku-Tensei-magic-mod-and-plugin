@@ -35,6 +35,7 @@ BIOMES: dict[str, dict[str, Any]] = {
             "minecraft:red_mushroom_normal",
             "minecraft:patch_sugar_cane",
             "minecraft:patch_pumpkin",
+            "mushoku_worldgen:golden_wheat_fields",
         ],
         "vegetation_fabric": [
             "minecraft:glow_lichen",
@@ -48,6 +49,7 @@ BIOMES: dict[str, dict[str, Any]] = {
             "minecraft:patch_pumpkin",
             "minecraft:patch_sugar_cane",
             "minecraft:patch_firefly_bush_near_water",
+            "mushoku_worldgen:golden_wheat_fields",
         ],
     },
     "riverside_meadow": {
@@ -189,6 +191,9 @@ CUSTOM_DENSITY_FUNCTION_IDS = (
     "mushoku_worldgen:landmass_density",
     "mushoku_worldgen:tectonic_relief",
 )
+GOLDEN_WHEAT_FIELDS_ID = "mushoku_worldgen:golden_wheat_fields"
+GOLDEN_WHEAT_FIELD_CONFIG_ID = "mushoku_worldgen:golden_wheat_field"
+RIPE_WHEAT_ID = "mushoku_worldgen:ripe_wheat"
 RETAINED_VANILLA_BIOME_IDS = [
     "minecraft:deep_ocean",
     "minecraft:ocean",
@@ -299,9 +304,9 @@ def biome_features(spec: dict[str, Any], legacy: bool) -> list[list[str]]:
 
 
 # FeatureSorter converts the order inside each decoration step into ordering
-# constraints. Keep each generated vegetation list as a subsequence of its
-# vanilla template; in particular, deep_dark places tall grass before plains
-# trees, so reversing those two in Golden Steppe creates a cycle.
+# constraints. Preserve the relative order of shared vanilla features while
+# allowing standalone Mushoku features; the merged graph below still rejects
+# cross-biome cycles such as reversing deep_dark's tall-grass/tree constraints.
 VANILLA_VEGETATION_ORDER: dict[str, dict[str, list[str]]] = {
     "legacy": {
         "plains": [
@@ -496,9 +501,13 @@ def check_feature_ordering(legacy: bool) -> None:
         actual = biome_features(spec, legacy)
         expected = profile_sequences[profile]
         for stage, feature_list in enumerate(actual):
-            if not is_ordered_subsequence(feature_list, expected[stage]):
+            vanilla_features = set(expected[stage])
+            shared_features = [
+                feature for feature in feature_list if feature in vanilla_features
+            ]
+            if not is_ordered_subsequence(shared_features, expected[stage]):
                 raise ValueError(
-                    f"{version} {biome_name} features in decoration step {stage} "
+                    f"{version} {biome_name} vanilla features in decoration step {stage} "
                     f"are not ordered like vanilla {profile}: {feature_list}"
                 )
         if biome_name == "golden_steppe":
@@ -1114,6 +1123,84 @@ def world_preset() -> dict[str, Any]:
     }
 
 
+def ripe_wheat_configured_feature() -> dict[str, Any]:
+    return {
+        "type": "minecraft:simple_block",
+        "config": {
+            "to_place": {
+                "type": "minecraft:simple_state_provider",
+                "state": {
+                    "Name": "minecraft:wheat",
+                    "Properties": {"age": "7"},
+                },
+            }
+        },
+    }
+
+
+def ripe_wheat_placed_feature() -> dict[str, Any]:
+    return {
+        "feature": RIPE_WHEAT_ID,
+        "placement": [
+            {
+                "type": "minecraft:block_predicate_filter",
+                "predicate": {
+                    "type": "minecraft:all_of",
+                    "predicates": [
+                        {
+                            "type": "minecraft:matching_blocks",
+                            "blocks": ["minecraft:air"],
+                        },
+                        {
+                            "type": "minecraft:matching_blocks",
+                            "blocks": ["minecraft:farmland"],
+                            "offset": [0, -1, 0],
+                        },
+                    ],
+                },
+            },
+        ],
+    }
+
+
+def golden_wheat_field_configured_feature() -> dict[str, Any]:
+    return {
+        "type": "minecraft:vegetation_patch",
+        "config": {
+            "depth": 1,
+            "extra_bottom_block_chance": 0.0,
+            "extra_edge_column_chance": 0.5,
+            "ground_state": {
+                "type": "minecraft:simple_state_provider",
+                "state": {
+                    "Name": "minecraft:farmland",
+                    "Properties": {"moisture": "7"},
+                },
+            },
+            "replaceable": "#minecraft:dirt",
+            "surface": "floor",
+            "vegetation_chance": 0.82,
+            "vegetation_feature": RIPE_WHEAT_ID,
+            "vertical_range": 5,
+            "xz_radius": {
+                "type": "minecraft:uniform",
+                "value": {"min_inclusive": 6, "max_inclusive": 9},
+            },
+        },
+    }
+
+
+def golden_wheat_fields_placed_feature() -> dict[str, Any]:
+    return {
+        "feature": GOLDEN_WHEAT_FIELD_CONFIG_ID,
+        "placement": [
+            {"type": "minecraft:in_square"},
+            {"type": "minecraft:heightmap", "heightmap": "WORLD_SURFACE_WG"},
+            {"type": "minecraft:biome"},
+        ],
+    }
+
+
 def generated_files(resource_root: Path, legacy: bool) -> dict[Path, dict[str, Any]]:
     files: dict[Path, dict[str, Any]] = {}
     biome_root = resource_root / "data/mushoku_worldgen/worldgen/biome"
@@ -1125,6 +1212,10 @@ def generated_files(resource_root: Path, legacy: bool) -> dict[Path, dict[str, A
     files[worldgen_root / "density_function/macro_continents.json"] = macro_continents_function()
     files[worldgen_root / "density_function/landmass_density.json"] = landmass_density_function()
     files[worldgen_root / "density_function/tectonic_relief.json"] = tectonic_relief_function()
+    files[worldgen_root / "configured_feature/ripe_wheat.json"] = ripe_wheat_configured_feature()
+    files[worldgen_root / "configured_feature/golden_wheat_field.json"] = golden_wheat_field_configured_feature()
+    files[worldgen_root / "placed_feature/ripe_wheat.json"] = ripe_wheat_placed_feature()
+    files[worldgen_root / "placed_feature/golden_wheat_fields.json"] = golden_wheat_fields_placed_feature()
 
     files[
         resource_root / "data/mushoku_worldgen/worldgen/world_preset/mushoku_world.json"
@@ -1187,6 +1278,79 @@ def contains_value(value: Any, expected: Any) -> bool:
     if isinstance(value, list):
         return any(contains_value(child, expected) for child in value)
     return False
+
+
+def check_wheat_field_resources(resource_root: Path) -> None:
+    feature_root = resource_root / "data/mushoku_worldgen/worldgen"
+    paths = {
+        "wheat": feature_root / "configured_feature/ripe_wheat.json",
+        "field": feature_root / "configured_feature/golden_wheat_field.json",
+        "wheat_placed": feature_root / "placed_feature/ripe_wheat.json",
+        "field_placed": feature_root / "placed_feature/golden_wheat_fields.json",
+    }
+    documents: dict[str, dict[str, Any]] = {}
+    for name, path in paths.items():
+        if not path.is_file():
+            raise ValueError(f"Missing wheat-field worldgen resource: {path}")
+        try:
+            documents[name] = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as error:
+            raise ValueError(f"Invalid wheat-field resource {path}: {error}") from error
+
+    wheat_state = (
+        documents["wheat"].get("config", {}).get("to_place", {}).get("state", {})
+    )
+    if documents["wheat"].get("type") != "minecraft:simple_block" or not (
+        wheat_state.get("Name") == "minecraft:wheat"
+        and wheat_state.get("Properties", {}).get("age") == "7"
+    ):
+        raise ValueError("Golden Steppe fields must place fully grown wheat")
+
+    field_config = documents["field"].get("config", {})
+    farmland = field_config.get("ground_state", {}).get("state", {})
+    if not (
+        documents["field"].get("type") == "minecraft:vegetation_patch"
+        and field_config.get("replaceable") == "#minecraft:dirt"
+        and farmland.get("Name") == "minecraft:farmland"
+        and farmland.get("Properties", {}).get("moisture") == "7"
+        and field_config.get("vegetation_feature") == RIPE_WHEAT_ID
+        and field_config.get("vegetation_chance", 0.0) >= 0.7
+        and field_config.get("xz_radius", {}).get("type") == "minecraft:uniform"
+        and field_config.get("xz_radius", {}).get("value", {}).get("min_inclusive", 0) >= 6
+        and field_config.get("xz_radius", {}).get("value", {}).get("max_inclusive", 0) >= 9
+    ):
+        raise ValueError("Golden Steppe needs dense mature-wheat patches on moist farmland")
+
+    if documents["field_placed"].get("feature") != GOLDEN_WHEAT_FIELD_CONFIG_ID:
+        raise ValueError("Golden wheat placed feature points to the wrong configured feature")
+    field_placements = documents["field_placed"].get("placement", [])
+    if not all(
+        any(placement.get("type") == placement_type for placement in field_placements)
+        for placement_type in ("minecraft:in_square", "minecraft:heightmap", "minecraft:biome")
+    ):
+        raise ValueError("Golden wheat fields need surface-spread and biome placement filters")
+
+    wheat_placed = documents["wheat_placed"]
+    if wheat_placed.get("feature") != RIPE_WHEAT_ID or not contains_value(
+        wheat_placed.get("placement", []), "minecraft:farmland"
+    ):
+        raise ValueError("Mature wheat placement must be limited to farmland")
+
+    for biome_name in BIOMES:
+        biome_path = resource_root / f"data/mushoku_worldgen/worldgen/biome/{biome_name}.json"
+        try:
+            biome = json.loads(biome_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as error:
+            raise ValueError(f"Invalid biome resource {biome_path}: {error}") from error
+        feature_stages = biome.get("features", [])
+        if len(feature_stages) != 11:
+            raise ValueError(f"Biome {biome_name} has invalid worldgen feature stages")
+        vegetation = feature_stages[9]
+        has_fields = GOLDEN_WHEAT_FIELDS_ID in vegetation
+        if has_fields != (biome_name == "golden_steppe"):
+            raise ValueError(
+                "Golden wheat fields must be exclusive to the Golden Steppe biome"
+            )
 
 
 def check_world_preset(preset: dict[str, Any], resource_root: Path) -> None:
@@ -1266,6 +1430,7 @@ def check_world_preset(preset: dict[str, Any], resource_root: Path) -> None:
         biome_file = resource_root / "data" / biome_id.split(":", 1)[0] / "worldgen/biome" / f"{biome_id.split(':', 1)[1]}.json"
         if not biome_file.is_file():
             raise ValueError(f"Missing biome definition for {biome_id}: {biome_file}")
+    check_wheat_field_resources(resource_root)
 
 
 def render(value: dict[str, Any]) -> str:

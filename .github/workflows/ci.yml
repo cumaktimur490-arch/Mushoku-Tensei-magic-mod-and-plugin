@@ -551,6 +551,7 @@ jobs:
           - Adds standalone Mushoku Tensei: Worldgen with a selectable **Mushoku: Vast Lands** preset; the vanilla `minecraft:normal` world and its Overworld generation remain unchanged.
           - Adds five custom surface biomes—Golden Steppe, Riverside Meadow, Whispering Forest, Emerald Highlands, and Skyreach Mountains—while retaining vanilla oceans, beaches, rivers, cave biomes, and structure compatibility.
           - Blends Tectonic/TerraForged-inspired landforms into the existing large continents: gentle inland plateau uplift, erosion-aware mountain ridges, and softly carved river corridors. Vanilla `sloped_cheese`, aquifers, and 3D caves remain the terrain foundation; the coefficients are experimental.
+          - Adds abundant fully grown wheat fields to the Golden Steppe, placed as broad irregular farmland patches that follow the existing terrain while preserving flower and tree breaks. Other Mushoku biomes retain their distinct scenery.
           - Weather is now a standalone mod and can run without Magic. Magic requires Weather; install both matching jars to use weather-interacting spells.
           - Cumulonimbus synchronizes a real 20×20-chunk local storm sector and cast altitude; clients render its shader-raymarched volumetric cloud, rain, and thunder locally without changing dimension-wide server weather.
           - Adds GPU ray-marched 3D cloud volumes with procedural density/noise for cumulonimbus towers, supercell anvils and rotating wall clouds, squall shelves, cyclone bands, tornado funnels, sandstorm walls, and regional overcast. Particles are auxiliary rain, hail, wind, lightning, and ground dust—not cloud bodies.
@@ -569,12 +570,12 @@ jobs:
 
           ## Verification
 
-          - GitHub Actions passed for all nine Fabric, Forge, and NeoForge Magic, Weather, and Worldgen mod builds; Magic and Weather test suites ran, and Worldgen resource-generation, preset, biome-stage, metadata, and packaged-resource checks passed.
+          - GitHub Actions passed for all nine Fabric, Forge, and NeoForge Magic, Weather, and Worldgen mod builds; Magic and Weather test suites ran, and Worldgen resource-generation, preset, biome-stage, wheat-field configuration, metadata, and packaged-resource checks passed.
           - CI regenerated the expected cloud-noise pixels from a deterministic script, verified both PNG copies are identical, compiled and linked the GLSL vertex/fragment shader pair, verified all rendering and pack metadata resources are packaged in every Weather jar, and checked loader metadata, dependency direction, Forge-only optional Luxium metadata, package uniqueness, and staff hand transforms.
           EOF
           if [[ "${BETA_RELEASE}" == "true" ]]; then
             cat > "$RUNNER_TEMP/beta-warning.md" <<'EOF'
-          > **Beta notice:** CI builds, tests, shader compilation, native metadata, and worldgen data checks passed. No in-game visual or performance QA has been performed. Weather-cloud appearance, rendering order, and performance remain unverified. The Worldgen preset, biome distribution, and new relief blend have not been explored in a fresh world; its terrain shape is experimental, not a visually confirmed map-generation result.
+          > **Beta notice:** CI builds, tests, shader compilation, native metadata, and worldgen data checks passed. No in-game visual or performance QA has been performed. Weather-cloud appearance, rendering order, and performance remain unverified. The Worldgen preset, biome distribution, relief blend, and wheat-field density have not been explored in a fresh world; their layout is experimental, not a visually confirmed map-generation result.
           >
           > **Earlier beta notice:** `v2.5.0-beta.1` had a Forge/NeoForge 1.20.1 split-package startup failure; it was fixed in `v2.5.0-beta.2` and remains fixed here.
 
