@@ -25,3 +25,10 @@ mandatory=true
 versionRange="[1.0.0,)"
 ordering="AFTER"
 side="BOTH"
+
+[[dependencies.mushoku_magic]]
+modId="aaa_particles"
+mandatory=false
+versionRange="[1.0.0,)"
+ordering="AFTER"
+side="CLIENT"

@@ -321,6 +321,15 @@ jobs:
               print(f"Verified {loader}: {jars[0]}")
           PY
 
+      - name: Verify optional AAA Particles spell effect assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          magic_version="$(sed -n 's/^port_version=//p' ports/gradle.properties)"
+          python3 scripts/verify_aaa_particles_artifact.py \
+            --forge "ports/forge/build/libs/mushoku-magic-forge-1.20.1-${magic_version}.jar" \
+            --neoforge "ports/neoforge/build/libs/mushoku-magic-neoforge-1.20.1-${magic_version}.jar"
+
       - name: Verify native Worldgen jars
         shell: bash
         run: |
@@ -496,6 +505,12 @@ jobs:
           python3 scripts/verify_worldgen_artifact.py --loader fabric "$fabric_worldgen_jar"
           python3 scripts/verify_worldgen_artifact.py --loader forge "$forge_worldgen_jar"
           python3 scripts/verify_worldgen_artifact.py --loader neoforge "$neoforge_worldgen_jar"
+          native_magic_version="$(sed -n 's/^port_version=//p' ports/gradle.properties)"
+          forge_magic_jar="$(find release-assets -type f -name "mushoku-magic-forge-1.20.1-${native_magic_version}.jar" -print -quit)"
+          neoforge_magic_jar="$(find release-assets -type f -name "mushoku-magic-neoforge-1.20.1-${native_magic_version}.jar" -print -quit)"
+          python3 scripts/verify_aaa_particles_artifact.py \
+            --forge "$forge_magic_jar" \
+            --neoforge "$neoforge_magic_jar"
           version="$(sed -n 's/^mod_version=//p' gradle.properties)"
           echo "version=$version" >> "$GITHUB_OUTPUT"
           mapfile -t assets < <(find release-assets -type f -name '*.jar' ! -name '*-sources.jar' | sort)
@@ -564,6 +579,7 @@ jobs:
           - `/magicweather supercell` and `/magicweather squall` start local storms; spawn frequency, size, strength, active-system limits, and strengthening are configurable. Optional tornado/cyclone block damage is off by default and strictly capped.
           - Tornado and cyclone smoke receives bounded inward, rotational, and upward velocities without expensive all-pairs particle collisions.
           - Staff and enchanted-stick models have per-item hand orientation, scale, translation, and left/right first- and third-person transforms.
+          - Adds optional client-side AAA Particles spell-burst effects to Forge/NeoForge 1.20.1 Magic for fire, water/ice, and earth; the server does not require AAA Particles and vanilla spell particles remain the fallback. Fabric 1.21.11 does not advertise AAA compatibility because no matching AAA Particles Fabric build is published.
           - Includes separate Fabric 1.21.11 and native Forge/NeoForge 1.20.1 Weather and Magic jars, plus standalone Worldgen jars for all three supported loader targets. Install only the matching loader/version pair.
           - Fixes the native Forge/NeoForge split-package conflict that stopped startup when Magic and Weather were installed together; CI now verifies that both jars in each native pair expose disjoint Java packages.
           - The Forge Magic jar declares Luxium and Embeddium as optional client-side dependencies. No Luxium-specific renderer patch is claimed.
@@ -571,11 +587,14 @@ jobs:
           ## Verification
 
           - GitHub Actions passed for all nine Fabric, Forge, and NeoForge Magic, Weather, and Worldgen mod builds; Magic and Weather test suites ran, and Worldgen resource-generation, preset, biome-stage, wheat-field configuration, metadata, and packaged-resource checks passed.
-          - CI regenerated the expected cloud-noise pixels from a deterministic script, verified both PNG copies are identical, compiled and linked the GLSL vertex/fragment shader pair, verified all rendering and pack metadata resources are packaged in every Weather jar, and checked loader metadata, dependency direction, Forge-only optional Luxium metadata, package uniqueness, and staff hand transforms.
+          - CI regenerated the expected cloud-noise pixels from a deterministic script, verified both PNG copies are identical, compiled and linked the GLSL vertex/fragment shader pair, verified all rendering and pack metadata resources are packaged in every Weather jar, and checked loader metadata, dependency direction, Forge-only optional Luxium metadata, package uniqueness, staff hand transforms, and optional AAA Particles asset packaging/license metadata.
+          - The AAA Particles bridge is additive and optional: automated validation checks the Effekseer resources, metadata, client-side optional dependency declarations, and packaged MIT notice, but cannot validate rendered appearance, driver behavior, or GPU cost in-game.
           EOF
           if [[ "${BETA_RELEASE}" == "true" ]]; then
             cat > "$RUNNER_TEMP/beta-warning.md" <<'EOF'
           > **Beta notice:** CI builds, tests, shader compilation, native metadata, and worldgen data checks passed. No in-game visual or performance QA has been performed. Weather-cloud appearance, rendering order, and performance remain unverified. The Worldgen preset, biome distribution, relief blend, and wheat-field density have not been explored in a fresh world; their layout is experimental, not a visually confirmed map-generation result.
+          >
+          > **AAA Particles beta notice:** the optional effect bridge is available only in the Forge/NeoForge 1.20.1 Magic jars. Its rendered size, timing, and GPU cost have not been visually or performance-tested in-game. Fabric 1.21.11 is not claimed compatible because AAA Particles has no published matching build.
           >
           > **Earlier beta notice:** `v2.5.0-beta.1` had a Forge/NeoForge 1.20.1 split-package startup failure; it was fixed in `v2.5.0-beta.2` and remains fixed here.
 

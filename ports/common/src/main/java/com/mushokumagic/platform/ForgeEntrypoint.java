@@ -22,6 +22,7 @@ public final class ForgeEntrypoint {
         MagicItems.ITEMS.register(modBus);
         MagicEffects.EFFECTS.register(modBus);
         modBus.addListener(MagicItems::addToCreativeTab);
+        MagicFxNetwork.register();
         MinecraftForge.EVENT_BUS.register(new ForgeEventHandlers());
         MinecraftForge.EVENT_BUS.register(this);
 

@@ -34,6 +34,13 @@ ordering="AFTER"
 side="BOTH"
 
 [[dependencies.mushoku_magic]]
+modId="aaa_particles"
+mandatory=false
+versionRange="[1.0.0,)"
+ordering="AFTER"
+side="CLIENT"
+
+[[dependencies.mushoku_magic]]
 modId="embeddium"
 mandatory=false
 versionRange="[0.3.31,)"

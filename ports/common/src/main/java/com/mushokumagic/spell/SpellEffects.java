@@ -662,6 +662,7 @@ public final class SpellEffects {
         double x = center.method_10216();
         double y = center.method_10214();
         double z = center.method_10215();
+        MagicAaaParticleEffects.burst(level, center, element, radius);
         level.method_14199(MagicPalette.core(element, Math.min(1.7f, (0.8f + intensity * 0.05f) * particleScale)), x, y, z, 8 + intensity + particleBoost / 3, spread, spread * 0.55, spread, 0.035);
         level.method_14199(MagicPalette.body(element, Math.min(1.6f, (0.7f + intensity * 0.045f) * particleScale)), x, y, z, 12 + intensity * 2 + particleBoost, spread * 0.85, spread * 0.65, spread * 0.85, 0.045);
         level.method_14199(MagicPalette.edge(element, 0.7f * particleScale), x, y, z, 6 + intensity + particleBoost / 2, spread, spread * 0.8, spread, 0.025);

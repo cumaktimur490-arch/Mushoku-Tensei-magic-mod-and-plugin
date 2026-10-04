@@ -47,6 +47,8 @@ public final class MagicConfig {
     public double wandRightClickCooldownSeconds = 2.0;
     /** Allow fire spells to ignite or destroy blocks; disable for a safer server. */
     public boolean fireSpellsModifyBlocks = true;
+    /** Send optional, range-limited Effekseer bursts to clients running AAA Particles. */
+    public boolean aaaParticlesSpellEffects = true;
     public boolean announceOnJoin = true;
     /** One-time migration marker for the anime spell pack. */
     public int spellPackVersion = 0;

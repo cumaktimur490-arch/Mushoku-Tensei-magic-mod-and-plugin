@@ -26,7 +26,7 @@ Building requires JDK 25 because the recovered Fabric Loom version runs on Java 
 ./gradlew :weather:build :worldgen:build build
 ```
 
-The outputs include `build/libs/mushoku-magic-2.5.3.jar`, `weather/build/libs/mushoku-weather-1.1.3.jar`, and `worldgen/build/libs/mushoku-worldgen-0.1.3-beta.1.jar` (versions are configured in the root `gradle.properties`). Worldgen is optional; install it to select the Mushoku preset during new-world creation. Install the Weather jar for regional weather and both Weather and Magic jars to enable Magic. The Magic metadata enforces the Weather dependency.
+The outputs include `build/libs/mushoku-magic-2.5.4.jar`, `weather/build/libs/mushoku-weather-1.1.3.jar`, and `worldgen/build/libs/mushoku-worldgen-0.1.3-beta.1.jar` (versions are configured in the root `gradle.properties`). Worldgen is optional; install it to select the Mushoku preset during new-world creation. Install the Weather jar for regional weather and both Weather and Magic jars to enable Magic. The Magic metadata enforces the Weather dependency.
 
 The three supplied wand textures are alpha-trimmed but not resized, preserving their original pixel detail at 103×123, 242×604, and 117×85 pixels.
 
@@ -38,7 +38,7 @@ The existing Fabric 1.21.11 build is retained alongside native Forge and NeoForg
 ./gradlew -p ports :weather-forge:build :weather-neoforge:build :worldgen-forge:build :worldgen-neoforge:build :forge:build :neoforge:build
 ```
 
-For each loader, install both matching jars to use Magic: `mushoku-weather-<loader>-1.20.1-1.1.3.jar` and `mushoku-magic-<loader>-1.20.1-2.5.3.jar`. Weather works without the Magic jar. The optional standalone worldgen jars are `mushoku-worldgen-forge-1.20.1-0.1.3-beta.1.jar` and `mushoku-worldgen-neoforge-1.20.1-0.1.3-beta.1.jar`. Forge alone lists Embeddium and Luxium as optional client dependencies; neither is required. The weather mod does not patch Luxium's renderer. See [ports/README.md](ports/README.md) for build and loader details.
+For each loader, install both matching jars to use Magic: `mushoku-weather-<loader>-1.20.1-1.1.3.jar` and `mushoku-magic-<loader>-1.20.1-2.5.4.jar`. Weather works without the Magic jar. The optional standalone worldgen jars are `mushoku-worldgen-forge-1.20.1-0.1.3-beta.1.jar` and `mushoku-worldgen-neoforge-1.20.1-0.1.3-beta.1.jar`. Forge alone lists Embeddium and Luxium as optional client dependencies; neither is required. The weather mod does not patch Luxium's renderer. See [ports/README.md](ports/README.md) for build and loader details.
 
 ## Weather mod and magic integration
 
@@ -55,5 +55,13 @@ Existing spells also recognize aliases such as **Stone Cannon**, **Quagmire**, *
 ## Wand-powered magic
 
 Wands multiply spell damage and amplify range, area, and visual effects. Spell trails and impact bursts use layered anime-inspired colors: white-hot orange-red fire with a restrained violet overcharge accent, cyan-blue water, frost-white ice, stone-and-ochre earth, pale-cyan wind, and green-gold healing. The area and cast range are bounded to keep extreme custom multipliers manageable. At the base rank with no extra-word bonuses, the ×50 staff lets the default fire bolt reach about 87 blocks and affect an approximately 52×52-block area; the explosive fireball can affect up to about 64×64 blocks. Add `big`, `large`, or `huge` (or Russian forms such as «большой», «огромный», «большого шара», or «большого размера») before or after a fire or water spell phrase to create a much larger particle burst without changing damage or gameplay area. Existing custom keyword definitions are retained when this modifier is added to older configs. Fire spells set fire and explosions can damage terrain by default. Set `fireSpellsModifyBlocks` to `false` in `config/mushoku_magic.json` to disable those world changes while keeping the spell visuals and entity damage; an administrator can apply the change with `/magicadmin reload` (or restart the server). Large explosions can substantially alter the world.
+
+## Optional AAA Particles spell effects
+
+The native Forge and NeoForge Magic builds for Minecraft 1.20.1 can optionally use [AAA Particles](https://modrinth.com/mod/En8uHTOK) to play Effekseer fire, blue-water/ice, and earth/gold burst effects. AAA Particles is a client-side optional dependency: install it only on clients that want the enhanced bursts; the server does not need it. Standard Mushoku spell particles remain active as the fallback, and the integration can be disabled with `aaaParticlesSpellEffects: false` in `config/mushoku_magic.json`.
+
+The root Fabric build targets Minecraft 1.21.11, for which AAA Particles does not currently publish a compatible Fabric build, so that artifact does not advertise the integration. See [aaa-particles.md](docs/aaa-particles.md) for the loader matrix and the third-party Effekseer asset license.
+
+**Beta QA caveat:** the integration is build/resource-verified only. It has not been visually or performance-tested in-game with AAA Particles, graphics drivers, or other client mods; treat the rendered size, timing, and GPU cost as unverified until tested in Minecraft.
 
 Minecraft's displayed sharpness still depends on the in-game render size and filtering. The test suite checks the ×2/×15/×50 staff defaults, wand and config migrations, anime phrase aliases, large-modifier grammar, localized storm-sector bounds, regional-weather determinism and climate rules, supercell/squall/cyclone/tornado/hail/sandstorm conditions and lifecycle, smoke-vortex rotation/convergence/updraft, weather wetness and spell interactions, staged spell-visual timing, and spell scaling. GitHub Actions builds Magic, Weather, and Worldgen for Fabric, Forge, and NeoForge; it runs the Magic and Weather test suites, validates generated/packaged Worldgen data and metadata, and checks staff hand transforms in the packaged Magic jars. Download the release jars from the repository's [Releases](https://github.com/cumaktimur490-arch/Mushoku-Tensei-magic-mod-and-plugin/releases) page.
