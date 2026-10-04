@@ -239,6 +239,7 @@ MVS_BIOME_TAGS = {
         "mushoku_worldgen:riverside_meadow",
     ],
     "is_snowy": ["mushoku_worldgen:skyreach_mountains"],
+    "snowy_biomes": ["mushoku_worldgen:skyreach_mountains"],
     "is_taiga": ["mushoku_worldgen:emerald_highlands"],
 }
 FORGE_BIOME_TAGS = {

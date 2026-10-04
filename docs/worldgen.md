@@ -60,8 +60,10 @@ For the supplied [Moog's Voyager Structures 5.1.3-1.20](https://github.com/Moog-
 | `mvs:is_floral` | Riverside Meadow |
 | `mvs:is_forest`, `mvs:is_birch_forest` | Whispering Forest |
 | `mvs:is_taiga` | Emerald Highlands |
-| `mvs:is_mountain`, `mvs:is_snowy` | Skyreach Mountains |
+| `mvs:is_mountain`, `mvs:is_snowy`, `mvs:snowy_biomes` | Skyreach Mountains |
 | `mvs:is_overworld`, `mvs:is_on_land_overworld` | All five custom biomes |
+
+I audited the 130 structure biome selectors in the MVS 5.1.3-1.20 source. Direct selectors include `mvs:is_overworld` in 58 structures, `mvs:is_plains` in 4, `mvs:is_floral` in 1, `mvs:is_birch_forest` in 6, `mvs:is_forest` in 2, `mvs:is_taiga` in 11, `mvs:is_mountain` in 1 and `mvs:is_snowy` in 5. `mvs:snowy_biomes` is selected by `snowy_fossil`; Skyreach Mountains is appended to that tag as well, so it is eligible on Fabric too, where Forge's optional `forge:is_snowy` entry is unavailable. This is a source-data eligibility check, not a claim that generated structures have been tested in-game.
 
 The native Forge/NeoForge 1.20.1 artifacts also append Golden Steppe and Riverside Meadow to `forge:is_plains`, Emerald Highlands to `forge:is_coniferous`, and Skyreach Mountains to `forge:is_mountain` and `forge:is_snowy`. This gives MVS's optional Forge tag references and other Forge tag-based features the appropriate custom biomes without requiring MVS in the mod metadata. Every tag uses `"replace": false`; only the custom Mushoku IDs are added. Structure mods may consequently consider their matching structures in these new biomes; their own rarity settings still control placement.
 

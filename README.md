@@ -26,7 +26,7 @@ Building requires JDK 25 because the recovered Fabric Loom version runs on Java 
 ./gradlew :weather:build :worldgen:build build
 ```
 
-The outputs include `build/libs/mushoku-magic-2.5.7.jar`, `weather/build/libs/mushoku-weather-1.1.3.jar`, and `worldgen/build/libs/mushoku-worldgen-0.1.6-beta.1.jar` (versions are configured in the root `gradle.properties`). Worldgen is optional; install it to select the Mushoku preset during new-world creation. Install the Weather jar for regional weather and both Weather and Magic jars to enable Magic. The Magic metadata enforces the Weather dependency.
+The outputs include `build/libs/mushoku-magic-2.5.7.jar`, `weather/build/libs/mushoku-weather-1.1.3.jar`, and `worldgen/build/libs/mushoku-worldgen-0.1.6-beta.2.jar` (versions are configured in the root `gradle.properties`). Worldgen is optional; install it to select the Mushoku preset during new-world creation. Install the Weather jar for regional weather and both Weather and Magic jars to enable Magic. The Magic metadata enforces the Weather dependency.
 
 The three supplied wand textures are alpha-trimmed but not resized, preserving their original pixel detail at 103×123, 242×604, and 117×85 pixels.
 
@@ -38,7 +38,7 @@ The existing Fabric 1.21.11 build is retained alongside native Forge and NeoForg
 ./gradlew -p ports :weather-forge:build :weather-neoforge:build :worldgen-forge:build :worldgen-neoforge:build :forge:build :neoforge:build
 ```
 
-For each loader, install both matching jars to use Magic: `mushoku-weather-<loader>-1.20.1-1.1.3.jar` and `mushoku-magic-<loader>-1.20.1-2.5.7.jar`. Weather works without the Magic jar. The optional standalone worldgen jars are `mushoku-worldgen-forge-1.20.1-0.1.6-beta.1.jar` and `mushoku-worldgen-neoforge-1.20.1-0.1.6-beta.1.jar`. Forge alone lists Embeddium and Luxium as optional client dependencies; neither is required. The weather mod does not patch Luxium's renderer. See [ports/README.md](ports/README.md) for build and loader details.
+For each loader, install both matching jars to use Magic: `mushoku-weather-<loader>-1.20.1-1.1.3.jar` and `mushoku-magic-<loader>-1.20.1-2.5.7.jar`. Weather works without the Magic jar. The optional standalone worldgen jars are `mushoku-worldgen-forge-1.20.1-0.1.6-beta.2.jar` and `mushoku-worldgen-neoforge-1.20.1-0.1.6-beta.2.jar`. Forge alone lists Embeddium and Luxium as optional client dependencies; neither is required. The weather mod does not patch Luxium's renderer. See [ports/README.md](ports/README.md) for build and loader details.
 
 ## Weather mod and magic integration
 
