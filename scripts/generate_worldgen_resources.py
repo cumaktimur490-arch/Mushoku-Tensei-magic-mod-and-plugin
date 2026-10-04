@@ -211,6 +211,22 @@ BIOMES: dict[str, dict[str, Any]] = {
 }
 
 CUSTOM_BIOME_IDS = [f"mushoku_worldgen:{name}" for name in BIOMES]
+BIOME_CATEGORY_TAGS = {
+    "is_forest": ["mushoku_worldgen:whispering_forest"],
+    "is_hill": ["mushoku_worldgen:emerald_highlands"],
+    "is_mountain": ["mushoku_worldgen:skyreach_mountains"],
+    "is_taiga": ["mushoku_worldgen:emerald_highlands"],
+}
+STRUCTURE_BIOME_TAGS = {
+    "village_plains": [
+        "mushoku_worldgen:golden_steppe",
+        "mushoku_worldgen:riverside_meadow",
+        "mushoku_worldgen:whispering_forest",
+    ],
+    "village_snowy": ["mushoku_worldgen:skyreach_mountains"],
+    "village_taiga": ["mushoku_worldgen:emerald_highlands"],
+    "pillager_outpost": list(CUSTOM_BIOME_IDS),
+}
 CUSTOM_NOISE_SETTINGS_ID = "mushoku_worldgen:mushoku_overworld"
 CUSTOM_DENSITY_FUNCTION_IDS = (
     "mushoku_worldgen:macro_continents",
@@ -1428,34 +1444,21 @@ def generated_files(resource_root: Path, legacy: bool) -> dict[Path, dict[str, A
         "replace": False,
         "values": ["mushoku_worldgen:mushoku_world"],
     }
-    files[resource_root / "data/minecraft/tags/worldgen/biome/is_overworld.json"] = {
+    biome_tag_root = resource_root / "data/minecraft/tags/worldgen/biome"
+    files[biome_tag_root / "is_overworld.json"] = {
         "replace": False,
         "values": CUSTOM_BIOME_IDS,
     }
-    files[
-        resource_root
-        / "data/minecraft/tags/worldgen/biome/has_structure/village_plains.json"
-    ] = {
-        "replace": False,
-        "values": [
-            "mushoku_worldgen:golden_steppe",
-            "mushoku_worldgen:riverside_meadow",
-            "mushoku_worldgen:whispering_forest",
-        ],
-    }
-    files[
-        resource_root
-        / "data/minecraft/tags/worldgen/biome/has_structure/pillager_outpost.json"
-    ] = {
-        "replace": False,
-        "values": [
-            "mushoku_worldgen:golden_steppe",
-            "mushoku_worldgen:riverside_meadow",
-            "mushoku_worldgen:whispering_forest",
-            "mushoku_worldgen:emerald_highlands",
-            "mushoku_worldgen:skyreach_mountains",
-        ],
-    }
+    for tag_name, biome_ids in BIOME_CATEGORY_TAGS.items():
+        files[biome_tag_root / f"{tag_name}.json"] = {
+            "replace": False,
+            "values": biome_ids,
+        }
+    for tag_name, biome_ids in STRUCTURE_BIOME_TAGS.items():
+        files[biome_tag_root / f"has_structure/{tag_name}.json"] = {
+            "replace": False,
+            "values": biome_ids,
+        }
 
     files[resource_root / "assets/mushoku_worldgen/lang/en_us.json"] = {
         "generator.mushoku_worldgen.mushoku_world": "Mushoku: Vast Lands",
@@ -1643,6 +1646,28 @@ def check_vegetation_resources(resource_root: Path) -> None:
                 )
 
 
+def check_biome_compatibility_tags(resource_root: Path) -> None:
+    expected: dict[str, list[str]] = {
+        "is_overworld": list(CUSTOM_BIOME_IDS),
+        **BIOME_CATEGORY_TAGS,
+        **{
+            f"has_structure/{tag_name}": biome_ids
+            for tag_name, biome_ids in STRUCTURE_BIOME_TAGS.items()
+        },
+    }
+    tag_root = resource_root / "data/minecraft/tags/worldgen/biome"
+    for tag_name, biome_ids in expected.items():
+        path = tag_root / f"{tag_name}.json"
+        try:
+            tag = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as error:
+            raise ValueError(f"Missing or invalid biome compatibility tag {path}: {error}") from error
+        if tag.get("replace") is not False or tag.get("values") != biome_ids:
+            raise ValueError(
+                f"Biome compatibility tag {tag_name} must append only its intended Mushoku biomes"
+            )
+
+
 def check_world_preset(preset: dict[str, Any], resource_root: Path) -> None:
     dimensions = preset.get("dimensions", {})
     expected_dimensions = {
@@ -1722,6 +1747,7 @@ def check_world_preset(preset: dict[str, Any], resource_root: Path) -> None:
             raise ValueError(f"Missing biome definition for {biome_id}: {biome_file}")
     check_wheat_field_resources(resource_root)
     check_vegetation_resources(resource_root)
+    check_biome_compatibility_tags(resource_root)
 
 
 def render(value: dict[str, Any]) -> str:

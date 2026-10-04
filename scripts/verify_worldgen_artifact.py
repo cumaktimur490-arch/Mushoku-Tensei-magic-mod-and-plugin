@@ -16,6 +16,22 @@ CUSTOM_BIOMES = (
     "emerald_highlands",
     "skyreach_mountains",
 )
+BIOME_CATEGORY_TAGS = {
+    "is_forest": ["mushoku_worldgen:whispering_forest"],
+    "is_hill": ["mushoku_worldgen:emerald_highlands"],
+    "is_mountain": ["mushoku_worldgen:skyreach_mountains"],
+    "is_taiga": ["mushoku_worldgen:emerald_highlands"],
+}
+STRUCTURE_BIOME_TAGS = {
+    "village_plains": [
+        "mushoku_worldgen:golden_steppe",
+        "mushoku_worldgen:riverside_meadow",
+        "mushoku_worldgen:whispering_forest",
+    ],
+    "village_snowy": ["mushoku_worldgen:skyreach_mountains"],
+    "village_taiga": ["mushoku_worldgen:emerald_highlands"],
+    "pillager_outpost": [f"mushoku_worldgen:{biome}" for biome in CUSTOM_BIOMES],
+}
 RETAINED_VANILLA_BIOMES = {
     "minecraft:deep_ocean",
     "minecraft:ocean",
@@ -132,14 +148,20 @@ def verify(jar_path: Path, loader: str) -> None:
                 PRESET,
                 NORMAL_TAG,
                 "data/minecraft/tags/worldgen/biome/is_overworld.json",
-                "data/minecraft/tags/worldgen/biome/has_structure/village_plains.json",
-                "data/minecraft/tags/worldgen/biome/has_structure/pillager_outpost.json",
                 "assets/mushoku_worldgen/lang/en_us.json",
                 "assets/mushoku_worldgen/lang/ru_ru.json",
             }
             required.update(
                 f"data/mushoku_worldgen/worldgen/biome/{biome}.json"
                 for biome in CUSTOM_BIOMES
+            )
+            required.update(
+                f"data/minecraft/tags/worldgen/biome/{tag_name}.json"
+                for tag_name in BIOME_CATEGORY_TAGS
+            )
+            required.update(
+                f"data/minecraft/tags/worldgen/biome/has_structure/{tag_name}.json"
+                for tag_name in STRUCTURE_BIOME_TAGS
             )
             required.add(NOISE_SETTINGS)
             required.update(DENSITY_FUNCTIONS.values())
@@ -180,6 +202,26 @@ def verify(jar_path: Path, loader: str) -> None:
                     f"{jar_path} has pack format {pack.get('pack_format')}; "
                     f"expected {expected_pack_format} for {loader}"
                 )
+
+            expected_tags = {
+                "data/minecraft/tags/worldgen/biome/is_overworld.json": [
+                    f"mushoku_worldgen:{biome}" for biome in CUSTOM_BIOMES
+                ],
+                **{
+                    f"data/minecraft/tags/worldgen/biome/{tag_name}.json": values
+                    for tag_name, values in BIOME_CATEGORY_TAGS.items()
+                },
+                **{
+                    f"data/minecraft/tags/worldgen/biome/has_structure/{tag_name}.json": values
+                    for tag_name, values in STRUCTURE_BIOME_TAGS.items()
+                },
+            }
+            for path, values in expected_tags.items():
+                tag = load_json(jar, path)
+                if tag != {"replace": False, "values": values}:
+                    raise ValueError(
+                        f"{jar_path} has an invalid append-only biome compatibility tag {path}"
+                    )
 
             preset = load_json(jar, PRESET)
             dimensions = preset.get("dimensions", {})

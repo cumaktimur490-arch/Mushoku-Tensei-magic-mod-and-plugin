@@ -12,7 +12,7 @@ The preset provides five custom surface biomes:
 - **Emerald Highlands** — cool, evergreen highlands.
 - **Skyreach Mountains** — cold, rugged uplands with sparse alpine vegetation.
 
-The custom palette replaces many vanilla surface climates inside this preset; deserts, jungles, swamps, savannas, and badlands are intentionally not selected. Vanilla oceans, beaches, rivers, and cave biomes are retained. The custom biomes are added to compatible vanilla structure tags so plains-style villages and pillager outposts can use them.
+The custom palette replaces many vanilla surface climates inside this preset; deserts, jungles, swamps, savannas, and badlands are intentionally not selected. Vanilla oceans, beaches, rivers, and cave biomes are retained. Mushoku biomes are appended to compatible vanilla biome-category and structure tags, so tag-driven integrations can recognize the forest, taiga, hill, mountain, and village roles without replacing any vanilla tag contents.
 
 ## Golden wheat fields
 
@@ -38,6 +38,26 @@ The 1.20.1 crash was a `Feature order cycle` between Golden Steppe and vanilla D
 
 This automated preflight is not a substitute for launching the game and generating chunks. A fresh Forge 1.20.1 world still needs in-game verification; that runtime path has not been confirmed visually or performance-tested in this workspace.
 
+## Modpack integration and generation cost
+
+The 1.20.1 Forge/NeoForge and Fabric 1.21.11 data packs use the same append-only compatibility mapping:
+
+| Vanilla biome tag | Mushoku biome(s) | Purpose |
+| --- | --- | --- |
+| `minecraft:is_forest` | Whispering Forest | Forest-aware features and structures |
+| `minecraft:is_taiga`, `minecraft:is_hill` | Emerald Highlands | Taiga/hill integrations, including tag-based tree and structure packs |
+| `minecraft:is_mountain` | Skyreach Mountains | Mountain-aware structures and features |
+| `minecraft:has_structure/village_plains` | Golden Steppe, Riverside Meadow, Whispering Forest | Plains-style villages |
+| `minecraft:has_structure/village_taiga` | Emerald Highlands | Taiga villages |
+| `minecraft:has_structure/village_snowy` | Skyreach Mountains | Snowy villages |
+| `minecraft:has_structure/pillager_outpost` | All five custom biomes | Pillager outposts |
+
+Every tag uses `"replace": false` and only appends Mushoku biome IDs. The standard Overworld has no Mushoku biomes in its generator, so it remains unchanged. This helps mods and structure datapacks that consult these vanilla tags (including tag-based MVS configurations); it does not promise that every third-party tree pack or structure has matching tag rules. The native Mushoku jars do not require Connector, Quark, Dynamic Trees, or MVS.
+
+For a Forge 1.20.1 pack already running ModernFix and FerriteCore, Worldgen adds no second optimization library or renderer. Its vegetation layer uses a small number of count/rarity placements per custom biome; the potentially heavier costs are initial terrain generation, third-party structures, and Distant Horizons LOD generation. On an unknown CPU/GPU, start with a modest render/LOD distance and increase it only after testing; if pre-generating a large area, use a chunk pre-generator gradually and monitor server tick time. Adding `is_forest`, `is_taiga`, and other semantic tags can make tag-aware structures eligible in those Mushoku biomes, so structure density remains controlled by those mods' own configs.
+
+Mushoku Weather applies local precipitation state inside its storm sector. Particle Rain replaces the vanilla precipitation renderer and also adds its own wind/haze/dust effects, so using both can create overlapping visuals or particle cost. Configure one precipitation layer at a time if duplication appears; keep the Mushoku Weather simulation enabled if you need localized storms. Fog Overrides and Luxium affect client rendering rather than terrain generation; for visual faults, test a clean Forge profile without the optional fog/renderer overlays before treating it as a Worldgen failure. This combination has not yet received in-game compatibility or performance QA.
+
 ## Choosing the preset
 
 Create a **new** world and select **Mushoku: Vast Lands** from the world-type/preset selector. Install only the artifact that matches the loader and Minecraft version:
@@ -50,4 +70,4 @@ Create a **new** world and select **Mushoku: Vast Lands** from the world-type/pr
 
 The mod has no dependency on Mushoku Magic or Mushoku Weather. The Fabric 1.21.11 and native Forge/NeoForge 1.20.1 artifacts contain version-appropriate worldgen data and resource-pack metadata.
 
-World presets affect newly generated chunks. For a clean test of the terrain blend and the fixed feature order, create a fresh world with the Mushoku preset rather than reusing the world that crashed during first generation.
+World presets affect newly generated chunks. For a clean test of the terrain blend and the fixed feature order, create a fresh world with the Mushoku preset rather than reusing the world that crashed during first generation. See [forge-1.20.1-modpack-compatibility.md](forge-1.20.1-modpack-compatibility.md) for the mod-list observations and a focused runtime test checklist.
