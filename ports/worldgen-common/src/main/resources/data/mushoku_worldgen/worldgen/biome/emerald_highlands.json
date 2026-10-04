@@ -63,6 +63,10 @@
     [
       "minecraft:glow_lichen",
       "minecraft:patch_large_fern",
+      "mushoku_worldgen:highland_groundcover_grass",
+      "mushoku_worldgen:highland_tall_grass",
+      "mushoku_worldgen:highland_fern_sprigs",
+      "mushoku_worldgen:highland_bloom_patches",
       "minecraft:trees_old_growth_pine_taiga",
       "minecraft:flower_default",
       "minecraft:patch_grass_taiga",

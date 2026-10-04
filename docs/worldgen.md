@@ -18,6 +18,12 @@ The custom palette replaces many vanilla surface climates inside this preset; de
 
 Golden Steppe now generates broad, irregular fields of ripe wheat on moist farmland, with a large patch attempted in each steppe chunk. Field edges follow the terrain and existing flowers and trees are left as natural breaks, so the crop does not turn every biome into one flat farm. Other biomes keep their own meadow, forest, and mountain character. Wheat fields generate only in newly created chunks of the Mushoku preset.
 
+## Natural ground cover
+
+The five Mushoku biomes now add a second, biome-specific vegetation layer on top of their vanilla-style feature sets. It uses compact patches of short and tall grass, fern sprigs beneath the forest/highland canopy, and occasional supplemental flower clusters. Riverside Meadow gets the fullest grass-and-flower cover; Golden Steppe remains open and keeps its wheat fields as the final accent; Whispering Forest and Emerald Highlands gain fern-rich floors; Skyreach Mountains keeps a lighter alpine grass-and-bloom edge. These placed features are added only to the custom Mushoku biomes, with matching resources for Fabric 1.21.11 and Forge/NeoForge 1.20.1.
+
+The supplied YouTube timestamp was not available for frame-by-frame inspection in this workspace, so this pass targets the visible grassy, flower-dotted hillside direction without claiming an exact recreation. Fresh-chunk in-game visual and performance QA have not been performed.
+
 ## Broad landmasses and blended relief
 
 Only the Mushoku preset's Overworld uses `mushoku_worldgen:mushoku_overworld`. Its low-frequency continentalness field, with a smaller coast-detail octave, still drives both terrain density and the broad biome layout. The underlying vanilla `sloped_cheese` terrain profile, aquifers, ore veins, and 3D cave-density router remain the foundation, preserving the large continents already introduced without replacing Minecraft's terrain model.

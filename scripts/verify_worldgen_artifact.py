@@ -41,6 +41,59 @@ WHEAT_RESOURCES = {
     "ripe_wheat_placed": "data/mushoku_worldgen/worldgen/placed_feature/ripe_wheat.json",
     "golden_fields_placed": "data/mushoku_worldgen/worldgen/placed_feature/golden_wheat_fields.json",
 }
+VEGETATION_CONFIGURED_FEATURES = {
+    "tall_grass_clump": "data/mushoku_worldgen/worldgen/configured_feature/tall_grass_clump.json",
+    "fern_sprig_patch": "data/mushoku_worldgen/worldgen/configured_feature/fern_sprig_patch.json",
+}
+VEGETATION_PLACED_FEATURES = {
+    "groundcover_grass_lush": ("minecraft:patch_grass", "minecraft:count", 2, "WORLD_SURFACE_WG"),
+    "groundcover_tall_grass": ("mushoku_worldgen:tall_grass_clump", "minecraft:count", 1, "WORLD_SURFACE_WG"),
+    "groundcover_tall_grass_lush": ("mushoku_worldgen:tall_grass_clump", "minecraft:count", 2, "WORLD_SURFACE_WG"),
+    "steppe_bloom_patches": ("minecraft:flower_plain", "minecraft:rarity_filter", 8, "MOTION_BLOCKING"),
+    "meadow_bloom_patches": ("minecraft:flower_meadow", "minecraft:rarity_filter", 4, "MOTION_BLOCKING"),
+    "forest_groundcover_grass": ("minecraft:patch_grass", "minecraft:count", 1, "WORLD_SURFACE_WG"),
+    "forest_tall_grass": ("mushoku_worldgen:tall_grass_clump", "minecraft:count", 1, "WORLD_SURFACE_WG"),
+    "forest_fern_sprigs": ("mushoku_worldgen:fern_sprig_patch", "minecraft:count", 1, "WORLD_SURFACE_WG"),
+    "forest_bloom_patches": ("minecraft:flower_default", "minecraft:rarity_filter", 10, "MOTION_BLOCKING"),
+    "highland_groundcover_grass": ("minecraft:patch_grass", "minecraft:count", 1, "WORLD_SURFACE_WG"),
+    "highland_tall_grass": ("mushoku_worldgen:tall_grass_clump", "minecraft:count", 1, "WORLD_SURFACE_WG"),
+    "highland_fern_sprigs": ("mushoku_worldgen:fern_sprig_patch", "minecraft:count", 1, "WORLD_SURFACE_WG"),
+    "highland_bloom_patches": ("minecraft:flower_default", "minecraft:rarity_filter", 8, "MOTION_BLOCKING"),
+    "alpine_groundcover_grass": ("minecraft:patch_grass", "minecraft:count", 1, "WORLD_SURFACE_WG"),
+    "alpine_bloom_patches": ("minecraft:flower_meadow", "minecraft:rarity_filter", 5, "MOTION_BLOCKING"),
+}
+VEGETATION_PLACED_FEATURE_PATHS = {
+    name: f"data/mushoku_worldgen/worldgen/placed_feature/{name}.json"
+    for name in VEGETATION_PLACED_FEATURES
+}
+VEGETATION_OVERLAYS_BY_BIOME = {
+    "golden_steppe": {
+        "mushoku_worldgen:groundcover_grass_lush",
+        "mushoku_worldgen:groundcover_tall_grass",
+        "mushoku_worldgen:steppe_bloom_patches",
+    },
+    "riverside_meadow": {
+        "mushoku_worldgen:groundcover_grass_lush",
+        "mushoku_worldgen:groundcover_tall_grass_lush",
+        "mushoku_worldgen:meadow_bloom_patches",
+    },
+    "whispering_forest": {
+        "mushoku_worldgen:forest_groundcover_grass",
+        "mushoku_worldgen:forest_tall_grass",
+        "mushoku_worldgen:forest_fern_sprigs",
+        "mushoku_worldgen:forest_bloom_patches",
+    },
+    "emerald_highlands": {
+        "mushoku_worldgen:highland_groundcover_grass",
+        "mushoku_worldgen:highland_tall_grass",
+        "mushoku_worldgen:highland_fern_sprigs",
+        "mushoku_worldgen:highland_bloom_patches",
+    },
+    "skyreach_mountains": {
+        "mushoku_worldgen:alpine_groundcover_grass",
+        "mushoku_worldgen:alpine_bloom_patches",
+    },
+}
 GOLDEN_WHEAT_FIELDS_ID = "mushoku_worldgen:golden_wheat_fields"
 GOLDEN_WHEAT_FIELD_CONFIG_ID = "mushoku_worldgen:golden_wheat_field"
 RIPE_WHEAT_ID = "mushoku_worldgen:ripe_wheat"
@@ -91,6 +144,8 @@ def verify(jar_path: Path, loader: str) -> None:
             required.add(NOISE_SETTINGS)
             required.update(DENSITY_FUNCTIONS.values())
             required.update(WHEAT_RESOURCES.values())
+            required.update(VEGETATION_CONFIGURED_FEATURES.values())
+            required.update(VEGETATION_PLACED_FEATURE_PATHS.values())
             missing = sorted(required - names)
             if missing:
                 raise ValueError(f"{jar_path} is missing resources: {missing}")
@@ -201,6 +256,57 @@ def verify(jar_path: Path, loader: str) -> None:
             ):
                 raise ValueError(f"{jar_path} mature wheat placement is missing its farmland filter")
 
+            vegetation_configured = {
+                name: load_json(jar, resource)
+                for name, resource in VEGETATION_CONFIGURED_FEATURES.items()
+            }
+            expected_plant_patches = {
+                "tall_grass_clump": (
+                    {"Name": "minecraft:tall_grass", "Properties": {"half": "lower"}},
+                    24,
+                ),
+                "fern_sprig_patch": ({"Name": "minecraft:fern"}, 16),
+            }
+            for name, (state, tries) in expected_plant_patches.items():
+                configured = vegetation_configured[name]
+                config = configured.get("config", {})
+                placed_state = (
+                    config.get("feature", {})
+                    .get("feature", {})
+                    .get("config", {})
+                    .get("to_place", {})
+                    .get("state", {})
+                )
+                if not (
+                    configured.get("type") == "minecraft:random_patch"
+                    and placed_state == state
+                    and config.get("tries") == tries
+                ):
+                    raise ValueError(
+                        f"{jar_path} vegetation feature {name} has an unexpected plant patch"
+                    )
+
+            vegetation_placed = {
+                name: load_json(jar, resource)
+                for name, resource in VEGETATION_PLACED_FEATURE_PATHS.items()
+            }
+            for name, (target, modifier, value, heightmap) in VEGETATION_PLACED_FEATURES.items():
+                placed = vegetation_placed[name]
+                placements = placed.get("placement", [])
+                if not (
+                    placed.get("feature") == target
+                    and len(placements) == 4
+                    and placements[0].get("type") == modifier
+                    and placements[0].get("count", placements[0].get("chance")) == value
+                    and placements[1].get("type") == "minecraft:in_square"
+                    and placements[2].get("type") == "minecraft:heightmap"
+                    and placements[2].get("heightmap") == heightmap
+                    and placements[3].get("type") == "minecraft:biome"
+                ):
+                    raise ValueError(
+                        f"{jar_path} vegetation placement {name} has an invalid target or spread"
+                    )
+
             entries = overworld.get("biome_source", {}).get("biomes", [])
             biome_ids = {entry.get("biome") for entry in entries}
             expected_biomes = {
@@ -223,8 +329,42 @@ def verify(jar_path: Path, loader: str) -> None:
                 feature_stages = definition.get("features", [])
                 if len(feature_stages) != 11:
                     raise ValueError(f"{jar_path} biome {biome_id} has invalid feature stages")
-                if (GOLDEN_WHEAT_FIELDS_ID in feature_stages[9]) != (biome == "golden_steppe"):
+                vegetation = feature_stages[9]
+                if (GOLDEN_WHEAT_FIELDS_ID in vegetation) != (biome == "golden_steppe"):
                     raise ValueError(f"{jar_path} wheat fields are not limited to Golden Steppe")
+                custom_vegetation_ids = {
+                    f"mushoku_worldgen:{name}"
+                    for name in VEGETATION_PLACED_FEATURES
+                }
+                actual_overlay = custom_vegetation_ids.intersection(vegetation)
+                expected_overlay = VEGETATION_OVERLAYS_BY_BIOME[biome]
+                if actual_overlay != expected_overlay:
+                    raise ValueError(
+                        f"{jar_path} biome {biome_id} has an unexpected ground-cover overlay: "
+                        f"missing={sorted(expected_overlay - actual_overlay)}, "
+                        f"unexpected={sorted(actual_overlay - expected_overlay)}"
+                    )
+                if biome == "golden_steppe":
+                    field_index = vegetation.index(GOLDEN_WHEAT_FIELDS_ID)
+                    if max(vegetation.index(feature) for feature in expected_overlay) >= field_index:
+                        raise ValueError(f"{jar_path} Golden Steppe wheat fields must follow ground cover")
+                if biome in {"whispering_forest", "emerald_highlands"}:
+                    if biome == "whispering_forest":
+                        tree_feature = (
+                            "minecraft:trees_birch_and_oak_leaf_litter"
+                            if loader == "fabric"
+                            else "minecraft:trees_birch_and_oak"
+                        )
+                    else:
+                        tree_feature = "minecraft:trees_old_growth_pine_taiga"
+                    if (
+                        tree_feature not in vegetation
+                        or max(vegetation.index(feature) for feature in expected_overlay)
+                        >= vegetation.index(tree_feature)
+                    ):
+                        raise ValueError(
+                            f"{jar_path} biome {biome_id} ground cover must precede its trees"
+                        )
                 if biome == "golden_steppe":
                     deep_dark_order = [
                         "minecraft:glow_lichen",

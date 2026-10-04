@@ -25,6 +25,11 @@ BIOMES: dict[str, dict[str, Any]] = {
         "sky_color": 0x78A7FF,
         "fog_color": 0xD9E4E8,
         "vegetation_profile": "plains",
+        "vegetation_overlay": [
+            "mushoku_worldgen:groundcover_grass_lush",
+            "mushoku_worldgen:groundcover_tall_grass",
+            "mushoku_worldgen:steppe_bloom_patches",
+        ],
         "vegetation": [
             "minecraft:glow_lichen",
             "minecraft:patch_tall_grass_2",
@@ -63,6 +68,11 @@ BIOMES: dict[str, dict[str, Any]] = {
         "sky_color": 0x78A7FF,
         "fog_color": 0xD5E9E8,
         "vegetation_profile": "meadow",
+        "vegetation_overlay": [
+            "mushoku_worldgen:groundcover_grass_lush",
+            "mushoku_worldgen:groundcover_tall_grass_lush",
+            "mushoku_worldgen:meadow_bloom_patches",
+        ],
         "vegetation": [
             "minecraft:glow_lichen",
             "minecraft:patch_tall_grass_2",
@@ -90,6 +100,12 @@ BIOMES: dict[str, dict[str, Any]] = {
         "sky_color": 0x72A9FF,
         "fog_color": 0xC8DDDA,
         "vegetation_profile": "forest",
+        "vegetation_overlay": [
+            "mushoku_worldgen:forest_groundcover_grass",
+            "mushoku_worldgen:forest_tall_grass",
+            "mushoku_worldgen:forest_fern_sprigs",
+            "mushoku_worldgen:forest_bloom_patches",
+        ],
         "vegetation": [
             "minecraft:glow_lichen",
             "minecraft:forest_flowers",
@@ -126,6 +142,12 @@ BIOMES: dict[str, dict[str, Any]] = {
         "sky_color": 0x77A3D0,
         "fog_color": 0xB8C9D7,
         "vegetation_profile": "old_growth_pine_taiga",
+        "vegetation_overlay": [
+            "mushoku_worldgen:highland_groundcover_grass",
+            "mushoku_worldgen:highland_tall_grass",
+            "mushoku_worldgen:highland_fern_sprigs",
+            "mushoku_worldgen:highland_bloom_patches",
+        ],
         "vegetation": [
             "minecraft:glow_lichen",
             "minecraft:patch_large_fern",
@@ -169,6 +191,10 @@ BIOMES: dict[str, dict[str, Any]] = {
         "sky_color": 0x91B3DB,
         "fog_color": 0xC0CDDE,
         "vegetation_profile": "grove",
+        "vegetation_overlay": [
+            "mushoku_worldgen:alpine_groundcover_grass",
+            "mushoku_worldgen:alpine_bloom_patches",
+        ],
         "vegetation": [
             "minecraft:glow_lichen",
             "minecraft:trees_grove",
@@ -194,6 +220,33 @@ CUSTOM_DENSITY_FUNCTION_IDS = (
 GOLDEN_WHEAT_FIELDS_ID = "mushoku_worldgen:golden_wheat_fields"
 GOLDEN_WHEAT_FIELD_CONFIG_ID = "mushoku_worldgen:golden_wheat_field"
 RIPE_WHEAT_ID = "mushoku_worldgen:ripe_wheat"
+TALL_GRASS_PATCH_ID = "mushoku_worldgen:tall_grass_clump"
+FERN_SPRIG_PATCH_ID = "mushoku_worldgen:fern_sprig_patch"
+VEGETATION_PLACED_FEATURE_IDS = {
+    "groundcover_grass_lush": "mushoku_worldgen:groundcover_grass_lush",
+    "groundcover_tall_grass": "mushoku_worldgen:groundcover_tall_grass",
+    "groundcover_tall_grass_lush": "mushoku_worldgen:groundcover_tall_grass_lush",
+    "steppe_bloom_patches": "mushoku_worldgen:steppe_bloom_patches",
+    "meadow_bloom_patches": "mushoku_worldgen:meadow_bloom_patches",
+    "forest_groundcover_grass": "mushoku_worldgen:forest_groundcover_grass",
+    "forest_tall_grass": "mushoku_worldgen:forest_tall_grass",
+    "forest_fern_sprigs": "mushoku_worldgen:forest_fern_sprigs",
+    "forest_bloom_patches": "mushoku_worldgen:forest_bloom_patches",
+    "highland_groundcover_grass": "mushoku_worldgen:highland_groundcover_grass",
+    "highland_tall_grass": "mushoku_worldgen:highland_tall_grass",
+    "highland_fern_sprigs": "mushoku_worldgen:highland_fern_sprigs",
+    "highland_bloom_patches": "mushoku_worldgen:highland_bloom_patches",
+    "alpine_groundcover_grass": "mushoku_worldgen:alpine_groundcover_grass",
+    "alpine_bloom_patches": "mushoku_worldgen:alpine_bloom_patches",
+}
+VEGETATION_PLACED_FEATURE_PATHS = {
+    feature_id: f"worldgen/placed_feature/{feature_id.split(':', 1)[1]}.json"
+    for feature_id in VEGETATION_PLACED_FEATURE_IDS.values()
+}
+VEGETATION_CONFIGURED_FEATURE_PATHS = {
+    TALL_GRASS_PATCH_ID: "worldgen/configured_feature/tall_grass_clump.json",
+    FERN_SPRIG_PATCH_ID: "worldgen/configured_feature/fern_sprig_patch.json",
+}
 RETAINED_VANILLA_BIOME_IDS = [
     "minecraft:deep_ocean",
     "minecraft:ocean",
@@ -288,6 +341,27 @@ def biome_features(spec: dict[str, Any], legacy: bool) -> list[list[str]]:
     vegetation = list(
         spec["vegetation"] if legacy else spec.get("vegetation_fabric", spec["vegetation"])
     )
+    overlay = list(spec.get("vegetation_overlay", []))
+    if GOLDEN_WHEAT_FIELDS_ID in vegetation:
+        # Keep the selected steppe-only crop feature last so fields remain the
+        # dominant ground-cover accent where their patches are generated.
+        wheat_index = vegetation.index(GOLDEN_WHEAT_FIELDS_ID)
+        vegetation[wheat_index:wheat_index] = overlay
+    elif spec["vegetation_profile"] in {"forest", "old_growth_pine_taiga"}:
+        # Lay undergrowth before the canopy is placed so surface-height sampling
+        # reaches the forest floor rather than the tops of leaves.
+        if spec["vegetation_profile"] == "forest":
+            tree_feature = (
+                "minecraft:trees_birch_and_oak"
+                if legacy
+                else "minecraft:trees_birch_and_oak_leaf_litter"
+            )
+        else:
+            tree_feature = "minecraft:trees_old_growth_pine_taiga"
+        tree_index = vegetation.index(tree_feature)
+        vegetation[tree_index:tree_index] = overlay
+    else:
+        vegetation.extend(overlay)
     return [
         [],
         ["minecraft:lake_lava_underground", "minecraft:lake_lava_surface"],
@@ -1201,6 +1275,126 @@ def golden_wheat_fields_placed_feature() -> dict[str, Any]:
     }
 
 
+def small_plant_patch_configured_feature(
+    state: dict[str, Any], *, tries: int
+) -> dict[str, Any]:
+    return {
+        "type": "minecraft:random_patch",
+        "config": {
+            "feature": {
+                "feature": {
+                    "type": "minecraft:simple_block",
+                    "config": {
+                        "to_place": {
+                            "type": "minecraft:simple_state_provider",
+                            "state": state,
+                        }
+                    },
+                },
+                "placement": [
+                    {
+                        "type": "minecraft:block_predicate_filter",
+                        "predicate": {
+                            "type": "minecraft:matching_blocks",
+                            "blocks": "minecraft:air",
+                        },
+                    }
+                ],
+            },
+            "tries": tries,
+            "xz_spread": 7,
+            "y_spread": 3,
+        },
+    }
+
+
+def vegetation_groundcover_configured_features() -> dict[str, dict[str, Any]]:
+    return {
+        TALL_GRASS_PATCH_ID: small_plant_patch_configured_feature(
+            {"Name": "minecraft:tall_grass", "Properties": {"half": "lower"}},
+            tries=24,
+        ),
+        FERN_SPRIG_PATCH_ID: small_plant_patch_configured_feature(
+            {"Name": "minecraft:fern"}, tries=16
+        ),
+    }
+
+
+def vegetation_placed_feature(
+    feature: str,
+    *,
+    count: int | None = None,
+    rarity: int | None = None,
+    heightmap: str = "WORLD_SURFACE_WG",
+) -> dict[str, Any]:
+    if (count is None) == (rarity is None):
+        raise ValueError("Vegetation placement needs exactly one count or rarity")
+    placement: list[dict[str, Any]] = []
+    if count is not None:
+        placement.append({"type": "minecraft:count", "count": count})
+    else:
+        placement.append({"type": "minecraft:rarity_filter", "chance": rarity})
+    placement.extend(
+        [
+            {"type": "minecraft:in_square"},
+            {"type": "minecraft:heightmap", "heightmap": heightmap},
+            {"type": "minecraft:biome"},
+        ]
+    )
+    return {"feature": feature, "placement": placement}
+
+
+def vegetation_groundcover_placed_features() -> dict[str, dict[str, Any]]:
+    placed = VEGETATION_PLACED_FEATURE_IDS
+    return {
+        placed["groundcover_grass_lush"]: vegetation_placed_feature(
+            "minecraft:patch_grass", count=2
+        ),
+        placed["groundcover_tall_grass"]: vegetation_placed_feature(
+            TALL_GRASS_PATCH_ID, count=1
+        ),
+        placed["groundcover_tall_grass_lush"]: vegetation_placed_feature(
+            TALL_GRASS_PATCH_ID, count=2
+        ),
+        placed["steppe_bloom_patches"]: vegetation_placed_feature(
+            "minecraft:flower_plain", rarity=8, heightmap="MOTION_BLOCKING"
+        ),
+        placed["meadow_bloom_patches"]: vegetation_placed_feature(
+            "minecraft:flower_meadow", rarity=4, heightmap="MOTION_BLOCKING"
+        ),
+        placed["forest_groundcover_grass"]: vegetation_placed_feature(
+            "minecraft:patch_grass", count=1
+        ),
+        placed["forest_tall_grass"]: vegetation_placed_feature(
+            TALL_GRASS_PATCH_ID, count=1
+        ),
+        placed["forest_fern_sprigs"]: vegetation_placed_feature(
+            FERN_SPRIG_PATCH_ID, count=1
+        ),
+        placed["forest_bloom_patches"]: vegetation_placed_feature(
+            "minecraft:flower_default", rarity=10, heightmap="MOTION_BLOCKING"
+        ),
+        placed["highland_groundcover_grass"]: vegetation_placed_feature(
+            "minecraft:patch_grass", count=1
+        ),
+        placed["highland_tall_grass"]: vegetation_placed_feature(
+            TALL_GRASS_PATCH_ID, count=1
+        ),
+        placed["highland_fern_sprigs"]: vegetation_placed_feature(
+            FERN_SPRIG_PATCH_ID, count=1
+        ),
+        placed["highland_bloom_patches"]: vegetation_placed_feature(
+            "minecraft:flower_default", rarity=8, heightmap="MOTION_BLOCKING"
+        ),
+        placed["alpine_groundcover_grass"]: vegetation_placed_feature(
+            "minecraft:patch_grass", count=1
+        ),
+        placed["alpine_bloom_patches"]: vegetation_placed_feature(
+            "minecraft:flower_meadow", rarity=5, heightmap="MOTION_BLOCKING"
+        ),
+    }
+
+
 def generated_files(resource_root: Path, legacy: bool) -> dict[Path, dict[str, Any]]:
     files: dict[Path, dict[str, Any]] = {}
     biome_root = resource_root / "data/mushoku_worldgen/worldgen/biome"
@@ -1216,6 +1410,16 @@ def generated_files(resource_root: Path, legacy: bool) -> dict[Path, dict[str, A
     files[worldgen_root / "configured_feature/golden_wheat_field.json"] = golden_wheat_field_configured_feature()
     files[worldgen_root / "placed_feature/ripe_wheat.json"] = ripe_wheat_placed_feature()
     files[worldgen_root / "placed_feature/golden_wheat_fields.json"] = golden_wheat_fields_placed_feature()
+    configured_groundcover = vegetation_groundcover_configured_features()
+    for feature_id, relative_path in VEGETATION_CONFIGURED_FEATURE_PATHS.items():
+        files[resource_root / "data/mushoku_worldgen" / relative_path] = (
+            configured_groundcover[feature_id]
+        )
+    placed_groundcover = vegetation_groundcover_placed_features()
+    for feature_id, relative_path in VEGETATION_PLACED_FEATURE_PATHS.items():
+        files[resource_root / "data/mushoku_worldgen" / relative_path] = (
+            placed_groundcover[feature_id]
+        )
 
     files[
         resource_root / "data/mushoku_worldgen/worldgen/world_preset/mushoku_world.json"
@@ -1353,6 +1557,92 @@ def check_wheat_field_resources(resource_root: Path) -> None:
             )
 
 
+def check_vegetation_resources(resource_root: Path) -> None:
+    feature_root = resource_root / "data/mushoku_worldgen/worldgen"
+    configured = vegetation_groundcover_configured_features()
+    expected_states = {
+        TALL_GRASS_PATCH_ID: (
+            {"Name": "minecraft:tall_grass", "Properties": {"half": "lower"}},
+            24,
+        ),
+        FERN_SPRIG_PATCH_ID: ({"Name": "minecraft:fern"}, 16),
+    }
+    for feature_id, relative_path in VEGETATION_CONFIGURED_FEATURE_PATHS.items():
+        path = resource_root / "data/mushoku_worldgen" / relative_path
+        try:
+            actual = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as error:
+            raise ValueError(f"Invalid vegetation configured feature {path}: {error}") from error
+        expected_state, expected_tries = expected_states[feature_id]
+        config = actual.get("config", {})
+        feature_state = (
+            config.get("feature", {})
+            .get("feature", {})
+            .get("config", {})
+            .get("to_place", {})
+            .get("state", {})
+        )
+        if not (
+            actual.get("type") == "minecraft:random_patch"
+            and feature_state == expected_state
+            and config.get("tries") == expected_tries
+            and config.get("xz_spread") == 7
+        ):
+            raise ValueError(f"Vegetation patch {feature_id} has an unexpected plant or density")
+        if actual != configured[feature_id]:
+            raise ValueError(f"Vegetation patch {feature_id} differs from its generated definition")
+
+    expected_placed = vegetation_groundcover_placed_features()
+    for feature_id, relative_path in VEGETATION_PLACED_FEATURE_PATHS.items():
+        path = resource_root / "data/mushoku_worldgen" / relative_path
+        try:
+            actual = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as error:
+            raise ValueError(f"Invalid vegetation placed feature {path}: {error}") from error
+        if actual != expected_placed[feature_id]:
+            raise ValueError(f"Vegetation placement {feature_id} differs from its generated definition")
+
+    all_overlay_ids = set(VEGETATION_PLACED_FEATURE_IDS.values())
+    for biome_name, spec in BIOMES.items():
+        path = resource_root / f"data/mushoku_worldgen/worldgen/biome/{biome_name}.json"
+        try:
+            biome = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as error:
+            raise ValueError(f"Invalid vegetation biome resource {path}: {error}") from error
+        feature_stages = biome.get("features", [])
+        if len(feature_stages) != 11:
+            raise ValueError(f"Biome {biome_name} has invalid vegetation feature stages")
+        vegetation = feature_stages[9]
+        actual_overlay = all_overlay_ids.intersection(vegetation)
+        expected_overlay = set(spec.get("vegetation_overlay", []))
+        if actual_overlay != expected_overlay:
+            raise ValueError(
+                f"Biome {biome_name} has the wrong Mushoku vegetation overlay: "
+                f"missing={sorted(expected_overlay - actual_overlay)}, "
+                f"unexpected={sorted(actual_overlay - expected_overlay)}"
+            )
+        if GOLDEN_WHEAT_FIELDS_ID in vegetation and not (
+            max(vegetation.index(feature) for feature in expected_overlay)
+            < vegetation.index(GOLDEN_WHEAT_FIELDS_ID)
+        ):
+            raise ValueError("Golden Steppe vegetation overlays must precede its wheat fields")
+        if spec["vegetation_profile"] in {"forest", "old_growth_pine_taiga"}:
+            if spec["vegetation_profile"] == "forest":
+                tree_feature = (
+                    "minecraft:trees_birch_and_oak"
+                    if resource_root == LEGACY_RESOURCES
+                    else "minecraft:trees_birch_and_oak_leaf_litter"
+                )
+            else:
+                tree_feature = "minecraft:trees_old_growth_pine_taiga"
+            if tree_feature not in vegetation or max(
+                vegetation.index(feature) for feature in expected_overlay
+            ) >= vegetation.index(tree_feature):
+                raise ValueError(
+                    f"Biome {biome_name} ground cover must be placed before its canopy feature"
+                )
+
+
 def check_world_preset(preset: dict[str, Any], resource_root: Path) -> None:
     dimensions = preset.get("dimensions", {})
     expected_dimensions = {
@@ -1431,6 +1721,7 @@ def check_world_preset(preset: dict[str, Any], resource_root: Path) -> None:
         if not biome_file.is_file():
             raise ValueError(f"Missing biome definition for {biome_id}: {biome_file}")
     check_wheat_field_resources(resource_root)
+    check_vegetation_resources(resource_root)
 
 
 def render(value: dict[str, Any]) -> str:

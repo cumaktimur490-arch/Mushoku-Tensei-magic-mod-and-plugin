@@ -70,6 +70,9 @@
       "minecraft:red_mushroom_normal",
       "minecraft:patch_sugar_cane",
       "minecraft:patch_pumpkin",
+      "mushoku_worldgen:groundcover_grass_lush",
+      "mushoku_worldgen:groundcover_tall_grass",
+      "mushoku_worldgen:steppe_bloom_patches",
       "mushoku_worldgen:golden_wheat_fields"
     ],
     [

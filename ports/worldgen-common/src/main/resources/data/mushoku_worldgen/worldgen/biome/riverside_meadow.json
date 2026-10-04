@@ -65,7 +65,10 @@
       "minecraft:patch_tall_grass_2",
       "minecraft:patch_grass_plain",
       "minecraft:flower_meadow",
-      "minecraft:trees_meadow"
+      "minecraft:trees_meadow",
+      "mushoku_worldgen:groundcover_grass_lush",
+      "mushoku_worldgen:groundcover_tall_grass_lush",
+      "mushoku_worldgen:meadow_bloom_patches"
     ],
     [
       "minecraft:freeze_top_layer"

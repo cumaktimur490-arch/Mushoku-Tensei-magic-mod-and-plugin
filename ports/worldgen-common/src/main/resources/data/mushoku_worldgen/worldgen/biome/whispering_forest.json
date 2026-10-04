@@ -63,6 +63,10 @@
     [
       "minecraft:glow_lichen",
       "minecraft:forest_flowers",
+      "mushoku_worldgen:forest_groundcover_grass",
+      "mushoku_worldgen:forest_tall_grass",
+      "mushoku_worldgen:forest_fern_sprigs",
+      "mushoku_worldgen:forest_bloom_patches",
       "minecraft:trees_birch_and_oak",
       "minecraft:flower_default",
       "minecraft:patch_grass_forest",
