@@ -446,7 +446,7 @@ public final class PreviewMain {
         img.text(8, groundTop - 12, title, 0xFFFFFF, 1);
         double km = Math.hypot(x1 - x0, z1 - z0) * MPB / 1000.0;
         img.text(8, groundTop - 26, String.format(Locale.ROOT,
-                "%.1f km long   vertical 1:%.1f   %d m per pixel",
+                "%.1f km long   vertical 1:%.1f   %.1f m per pixel",
                 km, (vRange / py) / (Math.hypot(x1 - x0, z1 - z0) / px), MPB * vRange / py), 0xA8B4C4, 1);
         // Y axis labels.
         for (int e = -1500; e <= 3000; e += 500) {

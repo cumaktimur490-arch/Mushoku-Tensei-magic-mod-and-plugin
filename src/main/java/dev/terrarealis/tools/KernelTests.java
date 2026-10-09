@@ -7,6 +7,7 @@ import dev.terrarealis.kernel.Stratigrapher;
 import dev.terrarealis.kernel.TerraKernel;
 import dev.terrarealis.kernel.biome.BiomeKind;
 import dev.terrarealis.kernel.geo.Erosion;
+import dev.terrarealis.kernel.math.Interp;
 import dev.terrarealis.kernel.region.RegionTile;
 
 import java.util.EnumSet;
@@ -196,14 +197,20 @@ public final class KernelTests {
 
     private static void aridLandforms(TerraKernel k, GenParams p) {
         // Find an arid tile and require that the desert systems actually fire.
+        // Pick the most desert-like basin-and-range tile in a wide scan: highest aridity weighted by
+        // local relief. This always returns a candidate, so a world with no deserts at all fails the
+        // landform check below rather than silently skipping it.
         int tx = -1;
         int tz = -1;
-        outer:
-        for (int z = -220; z < 220; z += 4) {
-            for (int x = -220; x < 220; x += 4) {
+        double best = -1;
+        for (int z = -400; z < 400; z += 4) {
+            for (int x = -400; x < 400; x += 4) {
                 int bx = x * k.tileBlocks() + 64;
                 int bz = z * k.tileBlocks() + 64;
                 double cont = k.continentalness(bx, bz);
+                if (cont < 0.10) {
+                    continue;
+                }
                 double arid = k.continents().aridityProxyAt(bx, bz, cont);
                 double sum = 0;
                 for (int d = 0; d < 8; d++) {
@@ -213,10 +220,11 @@ public final class KernelTests {
                     sum += dh * dh;
                 }
                 double relief = Math.sqrt(sum / 8.0);
-                if (cont > 0.10 && arid > 0.55 && relief > 8.0) {
+                double score = arid * arid * (0.30 + Interp.smoothstep(6.0, 42.0, relief));
+                if (score > best) {
+                    best = score;
                     tx = x;
                     tz = z;
-                    break outer;
                 }
             }
         }

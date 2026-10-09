@@ -128,10 +128,16 @@ public final class Erosion {
         public final double[] channelThreshold;
         /** Reused by the talus pass so worldgen does not allocate per cell. */
         double[] talusScratch;
+        /** World block coordinate of grid cell (0,0). Needed by every pass that hashes or samples
+         *  noise in world space; without it the pattern repeats identically in every tile. */
+        public final int originBlockX;
+        public final int originBlockZ;
 
         public static final double NO_WATER = -1e9;
 
-        Grid(int w, int halo, GenParams params, double[] base) {
+        Grid(int w, int halo, GenParams params, double[] base, int originBlockX, int originBlockZ) {
+            this.originBlockX = originBlockX;
+            this.originBlockZ = originBlockZ;
             this.w = w;
             this.halo = halo;
             this.interior = w - 2 * halo;
@@ -187,6 +193,8 @@ public final class Erosion {
         double[] arr = new double[w * w];
         int originX = tileX * p.tileCells - halo;
         int originZ = tileZ * p.tileCells - halo;
+        int obx = originX * cell;
+        int obz = originZ * cell;
         for (int cz = 0; cz < w; cz++) {
             for (int cx = 0; cx < w; cx++) {
                 int bx = (originX + cx) * cell;
@@ -194,7 +202,7 @@ public final class Erosion {
                 arr[cz * w + cx] = base.heightAt(bx, bz);
             }
         }
-        return new Grid(w, halo, p, arr);
+        return new Grid(w, halo, p, arr, obx, obz);
     }
 
     /**
@@ -202,7 +210,9 @@ public final class Erosion {
      * field on a coarse lattice and interpolate, which is four times cheaper than sampling it per cell.
      */
     public static Grid gridFromBase(GenParams p, int tileX, int tileZ, double[] base) {
-        return new Grid(p.gridWidth(), p.haloCells, p, base);
+        int obx = (tileX * p.tileCells - p.haloCells) * p.erosionCellSize;
+        int obz = (tileZ * p.tileCells - p.haloCells) * p.erosionCellSize;
+        return new Grid(p.gridWidth(), p.haloCells, p, base, obx, obz);
     }
 
     /** Supplies the uplift surface; implemented by {@code TerraKernel}. */
@@ -550,6 +560,7 @@ public final class Erosion {
         double kf = p.fluvialK * gain;
         double seq = Math.tan(Math.toRadians(1.4)); // equilibrium slope below which deposition wins
 
+        int sea = p.seaLevel;
         for (long k : order) {
             int i = keyIndex(k);
             int d = g.dir[i];
@@ -561,6 +572,12 @@ public final class Erosion {
             int nx = cx + DX[d];
             int nz = cz + DZ[d];
             if (nx <= 0 || nz <= 0 || nx >= w - 1 || nz >= w - 1) {
+                continue;
+            }
+            // The abyssal plain is not a fluvial system: letting rivers incise and, worse, deposit
+            // their whole load into the tile's marine sink planes the ocean floor into tile-shaped
+            // flats. Marine morphology stops a few blocks below sea level.
+            if (g.base[i] < sea - 3) {
                 continue;
             }
             int j = nz * w + nx;
@@ -625,6 +642,9 @@ public final class Erosion {
         for (int cz = 1; cz < w - 1; cz++) {
             for (int cx = 1; cx < w - 1; cx++) {
                 int i = cz * w + cx;
+                if (g.base[i] < g.params.seaLevel - 3) {
+                    continue;
+                }
                 double hi = src[i];
                 double repose = Interp.lerp(Interp.clamp(erodibility[i], 0, 1.35), talusRock, talusSoft);
                 // No soil and no roots means no bioturbation creep: desert ridges stay knife-edged.
@@ -778,7 +798,7 @@ public final class Erosion {
             for (int cx = 1; cx < w - 1; cx++) {
                 int i = cz * w + cx;
                 double a = g.acc[i];
-                if (a < g.channelThreshold[i]) {
+                if (a < g.channelThreshold[i] || g.base[i] < sea - 3) {
                     continue;
                 }
                 double t = Math.log(a / g.channelThreshold[i]) / Math.log(2.0);

@@ -40,8 +40,8 @@ public final class Karst {
                              long seed, GenParams p) {
         int w = g.w;
         int cell = p.erosionCellSize;
-        int originX = -g.halo * cell;
-        int originZ = originX;
+        int originX = g.originBlockX;
+        int originZ = g.originBlockZ;
 
         // ------------------------------------------------------------- dolines
         for (int cz = 2; cz < w - 2; cz++) {

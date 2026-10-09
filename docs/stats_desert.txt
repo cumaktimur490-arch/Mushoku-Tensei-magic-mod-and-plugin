@@ -1,0 +1,23 @@
+# desert field  620x620 px  1 blocks/px  6154 ms  384400 column calls
+land 59.8%  water 40.2%  elevation -506 m .. 703 m  mean aridity 0.72  arid 63.6%
+painted badlands 0.00%  fans 0.00%  dunes 2.21%  playas 3.19%  riparian 36.89%
+lava 0.00%  karst 2.23%  channels 11.96%  glacier 0.00%  biomes 19
+  River                       39.11%
+  Tropical rainforest         18.73%
+  Coastal desert              14.37%
+  Floodplain                   4.89%
+  Monsoon forest               4.32%
+  Savanna                      3.12%
+  Warm ocean                   2.94%
+  Lukewarm ocean               2.81%
+  Deep lukewarm ocean          2.75%
+  Beach                        2.42%
+  Seasonal tropical woodland   2.33%
+  Badlands                     0.88%
+  Windswept gravel             0.62%
+  Wetland                      0.26%
+  Wooded badlands              0.22%
+  Stony shore                  0.19%
+  Eroded badlands              0.06%
+  Savanna plateau              0.01%
+  Fen                          0.01%

@@ -282,11 +282,6 @@ public final class TerraKernel implements RegionTile.Source {
         out.strike = out.site.strike;
         out.strataSpacing = out.site.strataSpacing;
 
-        // -------------------------------------------------------- aeolian
-        Arid.dunes(x, z, ts.windX, ts.windZ, ts.sandSupply, aridity, ts.slope, p, aeolian, s.dunes);
-        out.duneHeight = s.dunes.height;
-        out.duneSlipFace = s.dunes.slipFace;
-
         // ------------------------------------------------- volcanic surface
         volcanism.sample(x, z, s.setting.arc, s.setting.rift, s.edifice);
         out.volcanoVent = s.edifice.vent;
@@ -313,7 +308,7 @@ public final class TerraKernel implements RegionTile.Source {
             microVal += painted * 2.6 * (rib - 0.5);
         }
 
-        double surface = ts.height + microVal + out.duneHeight;
+        double surface = ts.height + microVal;
 
         // Wave-cut notch at the waterline on steep coasts.
         double waterDepthAt = ts.waterLevel == Erosion.Grid.NO_WATER ? 0.0 : ts.waterLevel - surface;
@@ -333,10 +328,13 @@ public final class TerraKernel implements RegionTile.Source {
             out.marine = out.continentalness < 0.02 && ts.oceanDistance > 24;
             out.river = !out.marine && ts.channel > 0.18;
             out.lake = !out.marine && !out.river;
-        } else if (out.surfaceY < p.seaLevel) {
-            // Below sea level with no local water body means the sea itself: the ocean is not a lake
-            // the hydrology has to discover, it is the base level. Without this the abyss would render
-            // as a dry hole and the biome classifier would call it grassland.
+        } else if (out.surfaceY < p.seaLevel
+                && ts.oceanDistance * p.erosionCellSize < 240.0) {
+            // Below sea level, no local water body, and within a stone's throw of open ocean: that is
+            // the sea itself, which is the base level and not a lake the hydrology has to discover.
+            // The distance gate matters: a closed basin 100 m under sea level in the middle of a
+            // continent (Salton Trough, Turfan, the Dead Sea) is endorheic, dry and often full of
+            // dunes - calling it "marine" would flood it and delete its desert.
             out.waterY = p.seaLevel;
             out.waterDepth = p.seaLevel - surface;
             out.marine = true;
@@ -350,6 +348,20 @@ public final class TerraKernel implements RegionTile.Source {
                 Math.max(out.waterTableY == Column.NO_WATER ? 0.0
                                 : 1.0 - (out.surfaceY - out.waterTableY) / 7.0,
                         out.waterY == Column.NO_WATER ? 0.0 : 1.0), 0.0, 1.0);
+
+        // -------------------------------------------------------- aeolian
+        // Aeolian transport is a subaerial process: no dunes under the sea. The gate is "marine", not
+        // "below sea level", because endorheic desert basins sit below sea level and carry some of the
+        // finest dune fields on Earth (the Imperial and Cuatro Cienegas sands).
+        if (!out.marine) {
+            Arid.dunes(x, z, ts.windX, ts.windZ, ts.sandSupply, aridity, ts.slope, p, aeolian, s.dunes);
+            out.duneHeight = s.dunes.height;
+            out.duneSlipFace = s.dunes.slipFace;
+            if (out.duneHeight > 0.05) {
+                out.surfaceY = Interp.clamp(out.surfaceY + (int) Math.round(out.duneHeight),
+                        p.minY + 1, p.maxY - 12);
+            }
+        }
         out.playa = ts.playa;
         out.permafrost = tempC < -3.5 && glacialPotential < 0.6;
 

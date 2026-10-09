@@ -202,8 +202,8 @@ public final class Volcanism {
         int w = g.w;
         int cell = p.erosionCellSize;
         double minGradient = Math.tan(Math.toRadians(1.6)) * cell;
-        int originX = -g.halo * cell;
-        int originZ = originX;
+        int originX = g.originBlockX;
+        int originZ = g.originBlockZ;
         Edifice e = new Edifice();
         Tectonics.Setting t = new Tectonics.Setting();
 
@@ -235,6 +235,11 @@ public final class Volcanism {
                         break;
                     }
                     int n = ncz * w + ncx;
+                    // A subaerial flow dies at the shoreline: lava entering the sea quenches and
+                    // builds a small delta, it does not pave the abyssal plain along a D8 straight.
+                    if (g.base[n] < p.seaLevel - 2) {
+                        break;
+                    }
                     level -= minGradient * Erosion.DIST[d];
                     if (g.height[n] > level) {
                         // Flow is thicker than the valley: it climbs the far side and stops.
