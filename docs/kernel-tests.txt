@@ -1,0 +1,29 @@
+compiled 37 files -> /home/user/Mushoku-Tensei-magic-mod-and-plugin/build/offline
+  [PASS] determinism: same seed, same column
+  [PASS] determinism: different seed, different world
+  [PASS] seam continuity: mean |dh| 0.10 blocks (< 1.5), p99 0.48 (< 6), max 0.51
+  [PASS] hypsometry: uplift within build limits (-57..294 in -64..320)
+  [PASS] hypsometry: ocean fraction 0.376 within 0.08 of target 0.4
+  [PASS] hypsometry: mean land elevation 625 m is Earth-like (200..1400)
+  [PASS] hypsometry: mountains above 1500 m exist (1.4%)
+  [PASS] drainage: humid tile has a channel network (4.93% of cells)
+  [PASS] drainage: accumulation concentrates (max acc 1360 > 800 cells)
+  [PASS] drainage: perennial water exists in a humid tile (3892 cells)
+  [PASS] arid: located a desert basin-and-range tile
+  [PASS] arid: desert landforms present (painted 18, fans 0, dunes 81, playas 38)
+  [PASS] arid: dissected relief present (steep cells 84)
+  [PASS] arid: tile heights finite
+  [PASS] column: surface is solid ground and within build limits
+  [PASS] column: bedrock floor present
+  [PASS] column: water sits above the surface and only where declared
+  [PASS] caves: void fraction 0.040 within 0.002..0.15
+  [PASS] biomes: 26 distinct biomes over 11200 samples in 6 climate windows (> 14)
+  [PASS] biomes: ocean biomes present
+  [PASS] biomes: montane/alpine biomes present
+  [PASS] biomes: desert biomes present
+  [PASS] performance: column 2.44 us (< 12 us, i.e. < 3 ms/chunk)
+  [PASS] performance: tile 132.0 ms for 64 chunks (< 6 ms/chunk)
+
+24 checks, 0 failures
+KERNEL OK
+EXIT=0
