@@ -1,13 +1,19 @@
 #!/usr/bin/env python3
-"""Apply Minecraft 1.21.11 API compatibility fixes to the v3.0.0 source checkout."""
+"""Adapt the Terra Realis v3.0.0 checkout to Minecraft 1.21.11 without replacing vanilla Default."""
 
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 
 GENERATOR = Path("src/main/java/dev/terrarealis/fabric/worldgen/RealisChunkGenerator.java")
 BIOME_SOURCE = Path("src/main/java/dev/terrarealis/fabric/worldgen/RealisBiomeSource.java")
+MATERIAL_BLOCKS = Path("src/main/java/dev/terrarealis/fabric/worldgen/MaterialBlocks.java")
+COMMAND = Path("src/main/java/dev/terrarealis/fabric/command/RealisCommand.java")
+METADATA = Path("src/main/resources/fabric.mod.json")
+VANILLA_PRESET = Path("src/main/resources/data/minecraft/worldgen/world_preset/normal.json")
+REALIS_PRESET = Path("src/main/resources/data/terra_realis/worldgen/world_preset/realis.json")
 
 
 def replace_exact(source: str, old: str, new: str, expected_count: int, path: Path) -> str:
@@ -18,12 +24,13 @@ def replace_exact(source: str, old: str, new: str, expected_count: int, path: Pa
 
 
 def patch(source_root: Path) -> None:
-    generator_path = source_root / GENERATOR
-    biome_source_path = source_root / BIOME_SOURCE
-    for path in (generator_path, biome_source_path):
+    paths = (GENERATOR, BIOME_SOURCE, MATERIAL_BLOCKS, COMMAND, METADATA, VANILLA_PRESET, REALIS_PRESET)
+    for relative_path in paths:
+        path = source_root / relative_path
         if not path.is_file():
             raise ValueError(f"Terra Realis v3.0.0 source is missing {path}")
 
+    generator_path = source_root / GENERATOR
     source = generator_path.read_text(encoding="utf-8")
     for old, new, count in (
         (
@@ -52,6 +59,7 @@ def patch(source_root: Path) -> None:
         source = replace_exact(source, old, new, count, generator_path)
     generator_path.write_text(source, encoding="utf-8")
 
+    biome_source_path = source_root / BIOME_SOURCE
     source = biome_source_path.read_text(encoding="utf-8")
     source = replace_exact(
         source,
@@ -62,6 +70,64 @@ def patch(source_root: Path) -> None:
     )
     biome_source_path.write_text(source, encoding="utf-8")
 
+    material_blocks_path = source_root / MATERIAL_BLOCKS
+    source = material_blocks_path.read_text(encoding="utf-8")
+    source = replace_exact(source, "Blocks.SNOW_LAYER", "Blocks.SNOW", 2, material_blocks_path)
+    material_blocks_path.write_text(source, encoding="utf-8")
+
+    command_path = source_root / COMMAND
+    source = command_path.read_text(encoding="utf-8")
+    source = replace_exact(
+        source,
+        "import net.minecraft.network.chat.Component;",
+        "import net.minecraft.network.chat.Component;\nimport net.minecraft.server.permissions.Permissions;",
+        1,
+        command_path,
+    )
+    source = replace_exact(
+        source,
+        ".requires(s -> s.hasPermission(2))",
+        ".requires(s -> s.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER))",
+        1,
+        command_path,
+    )
+    command_path.write_text(source, encoding="utf-8")
+
+    metadata_path = source_root / METADATA
+    source = metadata_path.read_text(encoding="utf-8")
+    source = replace_exact(
+        source,
+        '"note": "The generator overrides the vanilla Default world preset via data/minecraft/worldgen/world_preset/normal.json. Delete that one file to restore vanilla terrain."',
+        '"note": "The generator is available as a separate Terra Realis preset at data/terra_realis/worldgen/world_preset/realis.json. The vanilla Default world preset is unchanged."',
+        1,
+        metadata_path,
+    )
+    metadata_path.write_text(source, encoding="utf-8")
+
+    vanilla_preset_path = source_root / VANILLA_PRESET
+    vanilla_preset = json.loads(vanilla_preset_path.read_text(encoding="utf-8"))
+    generator_type = (
+        vanilla_preset.get("dimensions", {})
+        .get("minecraft:overworld", {})
+        .get("generator", {})
+        .get("type")
+    )
+    if generator_type != "terra_realis:realis":
+        raise ValueError(f"Refusing to remove unexpected vanilla preset override in {vanilla_preset_path}")
+
+    realis_preset_path = source_root / REALIS_PRESET
+    realis_preset = json.loads(realis_preset_path.read_text(encoding="utf-8"))
+    realis_generator_type = (
+        realis_preset.get("dimensions", {})
+        .get("minecraft:overworld", {})
+        .get("generator", {})
+        .get("type")
+    )
+    if realis_generator_type != "terra_realis:realis":
+        raise ValueError(f"Terra Realis preset is missing its generator in {realis_preset_path}")
+
+    vanilla_preset_path.unlink()
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -69,9 +135,9 @@ def main() -> int:
     args = parser.parse_args()
     try:
         patch(args.source_root)
-    except ValueError as error:
+    except (OSError, json.JSONDecodeError, ValueError) as error:
         parser.error(str(error))
-    print(f"Applied Minecraft 1.21.11 API compatibility fixes in {args.source_root}")
+    print(f"Applied Minecraft 1.21.11 API fixes and preserved the vanilla Default preset in {args.source_root}")
     return 0
 
 

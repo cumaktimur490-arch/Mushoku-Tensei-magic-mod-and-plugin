@@ -12,9 +12,10 @@ from zipfile import BadZipFile, ZipFile
 
 EXPECTED_VERSION = "3.0.0"
 EXPECTED_ID = "terra_realis"
+VANILLA_DEFAULT_PRESET = "data/minecraft/worldgen/world_preset/normal.json"
+REALIS_PRESET = "data/terra_realis/worldgen/world_preset/realis.json"
 REQUIRED_RESOURCES = (
-    "data/minecraft/worldgen/world_preset/normal.json",
-    "data/terra_realis/worldgen/world_preset/realis.json",
+    REALIS_PRESET,
     "assets/terra_realis/lang/en_us.json",
 )
 REQUIRED_CLASSES = (
@@ -52,6 +53,12 @@ def verify(jar_path: Path) -> None:
             if dependencies.get("minecraft") != "~1.21.11":
                 raise ValueError(f"{jar_path} does not target Minecraft 1.21.11")
 
+            if VANILLA_DEFAULT_PRESET in names:
+                raise ValueError(
+                    f"{jar_path} overrides vanilla Default via {VANILLA_DEFAULT_PRESET}; "
+                    "the standard Overworld must remain unchanged"
+                )
+
             missing = [
                 path
                 for path in (*REQUIRED_RESOURCES, *REQUIRED_CLASSES)
@@ -60,14 +67,14 @@ def verify(jar_path: Path) -> None:
             if missing:
                 raise ValueError(f"{jar_path} is incomplete; missing: {', '.join(missing)}")
 
-            normal = json.loads(jar.read(REQUIRED_RESOURCES[0]))
+            realis = json.loads(jar.read(REALIS_PRESET))
             generator = (
-                normal.get("dimensions", {})
+                realis.get("dimensions", {})
                 .get("minecraft:overworld", {})
                 .get("generator", {})
             )
             if generator.get("type") != "terra_realis:realis":
-                raise ValueError(f"{jar_path} does not install Terra Realis as the Default generator")
+                raise ValueError(f"{jar_path} does not expose Terra Realis as a separate world preset")
 
             mod_class = jar.read(REQUIRED_CLASSES[0])
             if len(mod_class) < 8 or struct.unpack(">H", mod_class[6:8])[0] != 65:
@@ -85,7 +92,7 @@ def main() -> int:
     except ValueError as error:
         print(f"Terra Realis artifact verification failed: {error}", file=sys.stderr)
         return 1
-    print(f"Verified complete Terra Realis Fabric 1.21.11 jar: {args.jar}")
+    print(f"Verified complete Terra Realis Fabric 1.21.11 jar with vanilla Default preserved: {args.jar}")
     return 0
 
 

@@ -34,7 +34,7 @@ jobs:
           path: terra-realis-source
           fetch-depth: 1
 
-      - name: Adapt chunk API calls for Minecraft 1.21.11
+      - name: Adapt Terra Realis for Minecraft 1.21.11 and preserve vanilla Default
         shell: bash
         run: python3 scripts/patch_terra_realis_source.py terra-realis-source
 
@@ -116,10 +116,10 @@ jobs:
 
           ## Полный Fabric-модовый JAR
 
-          - `terra-realis-3.0.0.jar` — полный мод для Minecraft 1.21.11 (Fabric Loader 0.19.0+, Java 21+), собран GitHub Actions из исходников тега `v3.0.0` с поправками для текущего chunk API. Сборка Gradle и 24 детерминированные проверки ядра прошли.
-          - Для Fabric 1.21.11 этот JAR заменяет прежний `mushoku-worldgen` при генерации. Удалите старый Worldgen JAR перед установкой Terra Realis; не устанавливайте оба мода вместе.
-          - Terra Realis включает собственный ресурс `data/minecraft/worldgen/world_preset/normal.json`: тип мира **Default** использует его генератор для Overworld. Nether и End остаются ванильными. Чтобы вернуть стандартный Overworld, удалите Terra Realis JAR.
-          - Этот релизный JAR предназначен только для Fabric 1.21.11. Сборок Terra Realis для Forge/NeoForge 1.20.1 в этом релизе нет.
+          - `terra-realis-3.0.0.jar` — полный мод для Minecraft 1.21.11 (Fabric Loader 0.19.0+, Java 21+), собран GitHub Actions из исходников тега `v3.0.0` с поправками для API Minecraft 1.21.11. Полная сборка Gradle и детерминированные проверки ядра прошли.
+          - Для Fabric 1.21.11 этот JAR заменяет прежний `mushoku-worldgen`. Удалите старый Worldgen JAR перед установкой Terra Realis; не устанавливайте оба мода вместе.
+          - Terra Realis доступен как отдельный пресет **Terra Realis**. Ресурс `minecraft:normal` не переопределяется: ванильный пресет **Default** и стандартный Overworld остаются неизменными. Nether и End также остаются ванильными.
+          - Этот JAR предназначен только для Fabric 1.21.11. Сборок Terra Realis для Forge/NeoForge 1.20.1 в этом релизе нет.
           """
           notes_path.write_text(notes, encoding="utf-8")
           PY
