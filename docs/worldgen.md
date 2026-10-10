@@ -20,7 +20,7 @@ Golden Steppe now generates broad, irregular fields of ripe wheat on moist farml
 
 ## Natural ground cover
 
-The five Mushoku biomes now add a second, biome-specific vegetation layer on top of their vanilla-style feature sets. It uses compact patches of short and tall grass, fern sprigs beneath the forest/highland canopy, and occasional supplemental flower clusters. Riverside Meadow gets the fullest grass-and-flower cover; Golden Steppe remains open and keeps its wheat fields as the final accent; Whispering Forest and Emerald Highlands gain fern-rich floors; Skyreach Mountains keeps a lighter alpine grass-and-bloom edge. These placed features are added only to the custom Mushoku biomes, with matching resources for Fabric 1.21.11 and Forge/NeoForge 1.20.1.
+The five Mushoku biomes add a second, biome-specific vegetation layer on top of their vanilla-style feature sets. This update doubles the patch attempts for ground grass, tall grass, and fern understory in Whispering Forest and Emerald Highlands, and makes their supplemental blooms slightly more frequent. Riverside Meadow keeps the fullest grass-and-flower cover; Golden Steppe remains open and keeps its wheat fields as the final accent; Skyreach Mountains retains a lighter alpine edge. These changes apply only to the custom Mushoku biomes, with matching resources for Fabric 1.21.11 and Forge/NeoForge 1.20.1. More vegetation means more feature-placement work in those two biomes; performance still needs fresh-world testing.
 
 The supplied YouTube timestamp was not available for frame-by-frame inspection in this workspace, so this pass targets the visible grassy, flower-dotted hillside direction without claiming an exact recreation. Fresh-chunk in-game visual and performance QA have not been performed.
 
@@ -52,6 +52,8 @@ The 1.20.1 Forge/NeoForge and Fabric 1.21.11 data packs use the same append-only
 | `minecraft:has_structure/village_snowy` | Skyreach Mountains | Snowy villages |
 | `minecraft:has_structure/pillager_outpost` | All five custom biomes | Pillager outposts |
 
+Worldgen appends common `c:` biome categories with only the matching Mushoku biomes. It ships the older names (`c:in_overworld`, `c:plains`, `c:floral`, `c:forest`, `c:birch_forest`, `c:taiga`, `c:mountain`, `c:snowy`) alongside their `c:is_*` selector aliases, plus `c:tree_coniferous`, `c:tree_deciduous`, and dense/sparse vegetation tags. This covers both the older Fabric convention-tag names used around 1.20.1 and the newer `is_*` family used by later/cross-loader selectors, without a library dependency; vanilla tag contents are append-only.
+
 For the supplied [Moog's Voyager Structures 5.1.3-1.20](https://github.com/Moog-s-Mods/MoogsVoyagerStructures/releases/tag/5.1.3-1.20), Worldgen also extends the mod's own append-only biome tags:
 
 | MVS biome tag | Mushoku biome(s) |
@@ -65,7 +67,7 @@ For the supplied [Moog's Voyager Structures 5.1.3-1.20](https://github.com/Moog-
 
 I audited the 130 structure biome selectors in the MVS 5.1.3-1.20 source. Direct selectors include `mvs:is_overworld` in 58 structures, `mvs:is_plains` in 4, `mvs:is_floral` in 1, `mvs:is_birch_forest` in 6, `mvs:is_forest` in 2, `mvs:is_taiga` in 11, `mvs:is_mountain` in 1 and `mvs:is_snowy` in 5. `mvs:snowy_biomes` is selected by `snowy_fossil`; Skyreach Mountains is appended to that tag as well, so it is eligible on Fabric too, where Forge's optional `forge:is_snowy` entry is unavailable. This is a source-data eligibility check, not a claim that generated structures have been tested in-game.
 
-The native Forge/NeoForge 1.20.1 artifacts also append Golden Steppe and Riverside Meadow to `forge:is_plains`, Emerald Highlands to `forge:is_coniferous`, and Skyreach Mountains to `forge:is_mountain` and `forge:is_snowy`. This gives MVS's optional Forge tag references and other Forge tag-based features the appropriate custom biomes without requiring MVS in the mod metadata. Every tag uses `"replace": false`; only the custom Mushoku IDs are added. Structure mods may consequently consider their matching structures in these new biomes; their own rarity settings still control placement.
+The native Forge/NeoForge 1.20.1 artifacts also append Golden Steppe and Riverside Meadow to `forge:is_plains`; Emerald Highlands to `forge:is_coniferous`; the forest, meadow, and highlands to `forge:is_dense` and `forge:is_wet`; Emerald Highlands and Skyreach Mountains to `forge:is_cold` and `forge:is_slope`; Skyreach Mountains to `forge:is_mountain`, `forge:is_peak`, and `forge:is_snowy`; and Golden Steppe plus Skyreach Mountains to `forge:is_sparse`. These use existing Forge 1.20.1 biome-tag identifiers and help Forge tag-based features recognize the new biomes without requiring MVS in the mod metadata. Every tag uses `"replace": false`; only the custom Mushoku IDs are added. Structure mods may consequently consider their matching structures in these new biomes; their own rarity settings still control placement.
 
 The standard Overworld has no Mushoku biomes in its generator, so it remains unchanged. These tags improve integrations that consult the same categories; they do not promise that every third-party tree pack or structure has a rule for every custom biome. The native Mushoku jars do not require Connector, Quark, Dynamic Trees, or MVS.
 

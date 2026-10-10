@@ -53,6 +53,7 @@ public final class MushokuWeatherClient {
                 camera.method_10214(),
                 camera.method_10215(),
                 world.method_8510(),
+                world.method_8401().method_217(),
                 event.getPartialTick());
     }
 }

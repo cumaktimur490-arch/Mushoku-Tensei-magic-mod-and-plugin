@@ -12,6 +12,9 @@ uniform int uSteps;
 uniform float uIntensity;
 uniform float uPhase;
 uniform float uTime;
+uniform float uDaylight;
+uniform float uTwilight;
+uniform float uLightning;
 uniform sampler2D uCloudNoise;
 
 float hash31(vec3 p) {
@@ -135,10 +138,17 @@ vec3 cloudTint(float qy, float detail) {
         underside = vec3(0.20, 0.28, 0.36);
         body = vec3(0.48, 0.59, 0.68);
         sunlit = vec3(0.86, 0.93, 0.98);
+    } else if (uKind == 7) {
+        underside = vec3(0.27, 0.32, 0.38);
+        body = vec3(0.54, 0.61, 0.67);
+        sunlit = vec3(0.89, 0.93, 0.96);
     }
     float topLight = smoothstep(-0.48, 0.86, qy);
-    vec3 color = mix(underside, body, 0.48 + topLight * 0.35);
-    color = mix(color, sunlit, clamp(topLight * 0.42 + detail * 0.12, 0.0, 0.62));
+    vec3 color = mix(underside, body, 0.43 + topLight * 0.38);
+    color = mix(color, sunlit, clamp(topLight * 0.46 + detail * 0.15, 0.0, 0.68));
+    vec3 nightTint = vec3(0.66, 0.75, 0.94);
+    color *= mix(nightTint, vec3(1.0), clamp(uDaylight, 0.0, 1.0));
+    color = mix(color, color * vec3(1.12, 0.78, 0.58), clamp(uTwilight * 0.48, 0.0, 0.48));
     return color;
 }
 
@@ -192,12 +202,13 @@ void main() {
             float erosion = (cloudNoise.r - 0.50) * 0.50
                     + (cloudNoise.g - 0.50) * 0.31
                     + (cloudNoise.b - 0.50) * 0.19;
-            float warpedShape = shape + (broadNoise - 0.50) * 0.12;
+            float fineErosion = (detailNoise - 0.50) * (uKind == 7 ? 0.20 : 0.34);
+            float warpedShape = shape + (broadNoise - 0.50) * 0.14;
             float coverage = mix(0.70, 0.32, clamp(uIntensity, 0.0, 1.0));
             if (uKind == 7) {
                 coverage -= 0.025;
             }
-            float density = clamp((warpedShape + erosion * 0.82 - coverage) * 2.7, 0.0, 1.0) * uIntensity;
+            float density = clamp((warpedShape + erosion * 0.82 + fineErosion - coverage) * 2.85, 0.0, 1.0) * uIntensity;
             if (density > 0.012) {
                 if (!foundDepth && density > 0.055) {
                     firstCloudDepth = distanceAlongRay;
@@ -205,9 +216,15 @@ void main() {
                 }
                 float absorption = (uKind == 6 ? 0.041 : 0.033) * stepLength * density;
                 float sampleAlpha = 1.0 - exp(-absorption);
-                float lighting = clamp(0.54 + q.y * 0.18 + broadNoise * 0.17 + cloudNoise.g * 0.08, 0.30, 1.15);
-                float silverEdge = pow(clamp(1.0 - abs(detailNoise - 0.5) * 2.0, 0.0, 1.0), 3.0) * 0.10;
+                float lighting = clamp(0.48 + q.y * 0.20 + broadNoise * 0.18 + cloudNoise.g * 0.09, 0.28, 1.18);
+                float silverEdge = pow(clamp(1.0 - abs(detailNoise - 0.5) * 2.0, 0.0, 1.0), 3.0)
+                        * mix(0.075, 0.15, clamp(uDaylight, 0.0, 1.0));
                 vec3 color = cloudTint(q.y, detailNoise) * (lighting + silverEdge);
+                if (uLightning > 0.5 && uKind != 5 && uKind != 6 && uKind != 7) {
+                    float flashWave = sin((uTime + uPhase * 41.0) * 0.021);
+                    float lightning = pow(max(flashWave, 0.0), 64.0) * clamp(uIntensity, 0.0, 1.0);
+                    color += vec3(0.32, 0.40, 0.52) * lightning;
+                }
                 accumulatedColor += (1.0 - accumulatedAlpha) * sampleAlpha * color;
                 accumulatedAlpha += (1.0 - accumulatedAlpha) * sampleAlpha;
             }

@@ -32,6 +32,60 @@ STRUCTURE_BIOME_TAGS = {
     "village_taiga": ["mushoku_worldgen:emerald_highlands"],
     "pillager_outpost": [f"mushoku_worldgen:{biome}" for biome in CUSTOM_BIOMES],
 }
+COMMON_BIOME_TAGS = {
+    "birch_forest": ["mushoku_worldgen:whispering_forest"],
+    "floral": ["mushoku_worldgen:riverside_meadow"],
+    "forest": ["mushoku_worldgen:whispering_forest"],
+    "in_overworld": [f"mushoku_worldgen:{biome}" for biome in CUSTOM_BIOMES],
+    "is_birch_forest": ["mushoku_worldgen:whispering_forest"],
+    "is_coniferous": ["mushoku_worldgen:emerald_highlands"],
+    "is_floral": ["mushoku_worldgen:riverside_meadow"],
+    "is_forest": ["mushoku_worldgen:whispering_forest"],
+    "is_mountain": ["mushoku_worldgen:skyreach_mountains"],
+    "is_overworld": [f"mushoku_worldgen:{biome}" for biome in CUSTOM_BIOMES],
+    "is_plains": [
+        "mushoku_worldgen:golden_steppe",
+        "mushoku_worldgen:riverside_meadow",
+    ],
+    "is_snowy": ["mushoku_worldgen:skyreach_mountains"],
+    "is_taiga": ["mushoku_worldgen:emerald_highlands"],
+    "is_vegetation_dense": [
+        "mushoku_worldgen:riverside_meadow",
+        "mushoku_worldgen:whispering_forest",
+        "mushoku_worldgen:emerald_highlands",
+    ],
+    "is_vegetation_dense_overworld": [
+        "mushoku_worldgen:riverside_meadow",
+        "mushoku_worldgen:whispering_forest",
+        "mushoku_worldgen:emerald_highlands",
+    ],
+    "is_vegetation_sparse": [
+        "mushoku_worldgen:golden_steppe",
+        "mushoku_worldgen:skyreach_mountains",
+    ],
+    "is_vegetation_sparse_overworld": [
+        "mushoku_worldgen:golden_steppe",
+        "mushoku_worldgen:skyreach_mountains",
+    ],
+    "mountain": ["mushoku_worldgen:skyreach_mountains"],
+    "plains": [
+        "mushoku_worldgen:golden_steppe",
+        "mushoku_worldgen:riverside_meadow",
+    ],
+    "snowy": ["mushoku_worldgen:skyreach_mountains"],
+    "taiga": ["mushoku_worldgen:emerald_highlands"],
+    "tree_coniferous": ["mushoku_worldgen:emerald_highlands"],
+    "tree_deciduous": ["mushoku_worldgen:whispering_forest"],
+    "vegetation_dense": [
+        "mushoku_worldgen:riverside_meadow",
+        "mushoku_worldgen:whispering_forest",
+        "mushoku_worldgen:emerald_highlands",
+    ],
+    "vegetation_sparse": [
+        "mushoku_worldgen:golden_steppe",
+        "mushoku_worldgen:skyreach_mountains",
+    ],
+}
 MVS_BIOME_TAGS = {
     "is_birch_forest": ["mushoku_worldgen:whispering_forest"],
     "is_floral": ["mushoku_worldgen:riverside_meadow"],
@@ -48,13 +102,36 @@ MVS_BIOME_TAGS = {
     "is_taiga": ["mushoku_worldgen:emerald_highlands"],
 }
 FORGE_BIOME_TAGS = {
+    "is_cold": [
+        "mushoku_worldgen:emerald_highlands",
+        "mushoku_worldgen:skyreach_mountains",
+    ],
     "is_coniferous": ["mushoku_worldgen:emerald_highlands"],
+    "is_dense": [
+        "mushoku_worldgen:riverside_meadow",
+        "mushoku_worldgen:whispering_forest",
+        "mushoku_worldgen:emerald_highlands",
+    ],
     "is_mountain": ["mushoku_worldgen:skyreach_mountains"],
+    "is_peak": ["mushoku_worldgen:skyreach_mountains"],
     "is_plains": [
         "mushoku_worldgen:golden_steppe",
         "mushoku_worldgen:riverside_meadow",
     ],
     "is_snowy": ["mushoku_worldgen:skyreach_mountains"],
+    "is_slope": [
+        "mushoku_worldgen:emerald_highlands",
+        "mushoku_worldgen:skyreach_mountains",
+    ],
+    "is_sparse": [
+        "mushoku_worldgen:golden_steppe",
+        "mushoku_worldgen:skyreach_mountains",
+    ],
+    "is_wet": [
+        "mushoku_worldgen:riverside_meadow",
+        "mushoku_worldgen:whispering_forest",
+        "mushoku_worldgen:emerald_highlands",
+    ],
 }
 RETAINED_VANILLA_BIOMES = {
     "minecraft:deep_ocean",
@@ -91,14 +168,14 @@ VEGETATION_PLACED_FEATURES = {
     "groundcover_tall_grass_lush": ("mushoku_worldgen:tall_grass_clump", "minecraft:count", 2, "WORLD_SURFACE_WG"),
     "steppe_bloom_patches": ("minecraft:flower_plain", "minecraft:rarity_filter", 8, "MOTION_BLOCKING"),
     "meadow_bloom_patches": ("minecraft:flower_meadow", "minecraft:rarity_filter", 4, "MOTION_BLOCKING"),
-    "forest_groundcover_grass": ("minecraft:patch_grass", "minecraft:count", 1, "WORLD_SURFACE_WG"),
-    "forest_tall_grass": ("mushoku_worldgen:tall_grass_clump", "minecraft:count", 1, "WORLD_SURFACE_WG"),
-    "forest_fern_sprigs": ("mushoku_worldgen:fern_sprig_patch", "minecraft:count", 1, "WORLD_SURFACE_WG"),
-    "forest_bloom_patches": ("minecraft:flower_default", "minecraft:rarity_filter", 10, "MOTION_BLOCKING"),
-    "highland_groundcover_grass": ("minecraft:patch_grass", "minecraft:count", 1, "WORLD_SURFACE_WG"),
-    "highland_tall_grass": ("mushoku_worldgen:tall_grass_clump", "minecraft:count", 1, "WORLD_SURFACE_WG"),
-    "highland_fern_sprigs": ("mushoku_worldgen:fern_sprig_patch", "minecraft:count", 1, "WORLD_SURFACE_WG"),
-    "highland_bloom_patches": ("minecraft:flower_default", "minecraft:rarity_filter", 8, "MOTION_BLOCKING"),
+    "forest_groundcover_grass": ("minecraft:patch_grass", "minecraft:count", 2, "WORLD_SURFACE_WG"),
+    "forest_tall_grass": ("mushoku_worldgen:tall_grass_clump", "minecraft:count", 2, "WORLD_SURFACE_WG"),
+    "forest_fern_sprigs": ("mushoku_worldgen:fern_sprig_patch", "minecraft:count", 2, "WORLD_SURFACE_WG"),
+    "forest_bloom_patches": ("minecraft:flower_default", "minecraft:rarity_filter", 7, "MOTION_BLOCKING"),
+    "highland_groundcover_grass": ("minecraft:patch_grass", "minecraft:count", 2, "WORLD_SURFACE_WG"),
+    "highland_tall_grass": ("mushoku_worldgen:tall_grass_clump", "minecraft:count", 2, "WORLD_SURFACE_WG"),
+    "highland_fern_sprigs": ("mushoku_worldgen:fern_sprig_patch", "minecraft:count", 2, "WORLD_SURFACE_WG"),
+    "highland_bloom_patches": ("minecraft:flower_default", "minecraft:rarity_filter", 6, "MOTION_BLOCKING"),
     "alpine_groundcover_grass": ("minecraft:patch_grass", "minecraft:count", 1, "WORLD_SURFACE_WG"),
     "alpine_bloom_patches": ("minecraft:flower_meadow", "minecraft:rarity_filter", 5, "MOTION_BLOCKING"),
 }
@@ -188,6 +265,10 @@ def verify(jar_path: Path, loader: str) -> None:
                 for tag_name in STRUCTURE_BIOME_TAGS
             )
             required.update(
+                f"data/c/tags/worldgen/biome/{tag_name}.json"
+                for tag_name in COMMON_BIOME_TAGS
+            )
+            required.update(
                 f"data/mvs/tags/worldgen/biome/{tag_name}.json"
                 for tag_name in MVS_BIOME_TAGS
             )
@@ -247,6 +328,10 @@ def verify(jar_path: Path, loader: str) -> None:
                 **{
                     f"data/minecraft/tags/worldgen/biome/has_structure/{tag_name}.json": values
                     for tag_name, values in STRUCTURE_BIOME_TAGS.items()
+                },
+                **{
+                    f"data/c/tags/worldgen/biome/{tag_name}.json": values
+                    for tag_name, values in COMMON_BIOME_TAGS.items()
                 },
                 **{
                     f"data/mvs/tags/worldgen/biome/{tag_name}.json": values

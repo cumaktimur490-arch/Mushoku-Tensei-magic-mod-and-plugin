@@ -48,6 +48,7 @@ public final class MushokuWeatherClient implements ClientModInitializer {
                     camera.method_10214(),
                     camera.method_10215(),
                     world.method_75260(),
+                    world.method_8401().method_217(),
                     partialTick,
                     projectionMatrix);
         });

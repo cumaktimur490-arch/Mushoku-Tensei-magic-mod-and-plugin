@@ -6,7 +6,7 @@ Recovered Fabric mod source for Minecraft 1.21.11. The Java classes were decompi
 
 Weather is now an independent mod: **Mushoku Tensei: Weather** (`mushoku_weather`). It runs without the Magic mod and owns regional weather, severe storms, weather configuration, local weather commands, and the local rendering/network state. **Mushoku Tensei: Magic** (`mushoku_magic`) has a required dependency on Weather because spells use its weather API. Weather does not depend on Magic. Install both jars when playing with Magic; the Weather jar can also be used by itself.
 
-The repository builds Fabric 1.21.11 mods at the root and native Forge/NeoForge 1.20.1 mods under `ports/`. For each game/loader combination, the Weather and Magic jars are separate and must match that same loader. **Mushoku Tensei: Worldgen** (`mushoku_worldgen`) is a third, standalone mod that adds the selectable **Mushoku: Vast Lands** preset with broad continents, a restrained Tectonic/TerraForged-inspired relief blend, extensive ripe-wheat fields in Golden Steppe, and append-only vanilla, Forge and MVS biome tags for compatible structures and tree integrations; the ordinary vanilla Overworld and other dimensions are unchanged. It has no dependency on Magic or Weather. See [worldgen.md](docs/worldgen.md) for the biome palette, vegetation, tag mapping, terrain blend, and beta QA caveat, and [the Forge 1.20.1 modpack notes](docs/forge-1.20.1-modpack-compatibility.md) for the static compatibility review.
+The repository builds Fabric 1.21.11 mods at the root and native Forge/NeoForge 1.20.1 mods under `ports/`. For each game/loader combination, the Weather and Magic jars are separate and must match that same loader. **Mushoku Tensei: Worldgen** (`mushoku_worldgen`) is a third, standalone mod that adds the selectable **Mushoku: Vast Lands** preset with broad continents, a restrained Tectonic/TerraForged-inspired relief blend, Golden Steppe wheat fields, denser forest/highland understory, and append-only vanilla, common `c:`, Forge, and MVS biome tags for compatible structures and tree integrations. The ordinary vanilla Overworld and other dimensions remain unchanged. It has no dependency on Magic or Weather. See [worldgen.md](docs/worldgen.md) for the biome palette, vegetation, tag mapping, terrain blend, and beta QA caveat, and [the Forge 1.20.1 modpack notes](docs/forge-1.20.1-modpack-compatibility.md) for the static compatibility review.
 
 ## Staff power
 
@@ -26,7 +26,7 @@ Building requires JDK 25 because the recovered Fabric Loom version runs on Java 
 ./gradlew :weather:build :worldgen:build build
 ```
 
-The outputs include `build/libs/mushoku-magic-2.5.7.jar`, `weather/build/libs/mushoku-weather-1.1.3.jar`, and `worldgen/build/libs/mushoku-worldgen-0.1.6-beta.2.jar` (versions are configured in the root `gradle.properties`). Worldgen is optional; install it to select the Mushoku preset during new-world creation. Install the Weather jar for regional weather and both Weather and Magic jars to enable Magic. The Magic metadata enforces the Weather dependency.
+The outputs include `build/libs/mushoku-magic-2.5.8.jar`, `weather/build/libs/mushoku-weather-1.1.4.jar`, and `worldgen/build/libs/mushoku-worldgen-0.1.7-beta.1.jar` (versions are configured in the root `gradle.properties`). Worldgen is optional; install it to select the Mushoku preset during new-world creation. Install the Weather jar for regional weather and both Weather and Magic jars to enable Magic. The Magic metadata enforces the Weather dependency.
 
 The three supplied wand textures are alpha-trimmed but not resized, preserving their original pixel detail at 103×123, 242×604, and 117×85 pixels.
 
@@ -38,7 +38,7 @@ The existing Fabric 1.21.11 build is retained alongside native Forge and NeoForg
 ./gradlew -p ports :weather-forge:build :weather-neoforge:build :worldgen-forge:build :worldgen-neoforge:build :forge:build :neoforge:build
 ```
 
-For each loader, install both matching jars to use Magic: `mushoku-weather-<loader>-1.20.1-1.1.3.jar` and `mushoku-magic-<loader>-1.20.1-2.5.7.jar`. Weather works without the Magic jar. The optional standalone worldgen jars are `mushoku-worldgen-forge-1.20.1-0.1.6-beta.2.jar` and `mushoku-worldgen-neoforge-1.20.1-0.1.6-beta.2.jar`. Forge alone lists Embeddium and Luxium as optional client dependencies; neither is required. The weather mod does not patch Luxium's renderer. See [ports/README.md](ports/README.md) for build and loader details.
+For each loader, install both matching jars to use Magic: `mushoku-weather-<loader>-1.20.1-1.1.4.jar` and `mushoku-magic-<loader>-1.20.1-2.5.8.jar`. Weather works without the Magic jar. The optional standalone worldgen jars are `mushoku-worldgen-forge-1.20.1-0.1.7-beta.1.jar` and `mushoku-worldgen-neoforge-1.20.1-0.1.7-beta.1.jar`. Forge alone lists Embeddium and Luxium as optional client dependencies; neither is required. The weather mod does not patch Luxium's renderer. See [ports/README.md](ports/README.md) for build and loader details.
 
 ## Weather mod and magic integration
 

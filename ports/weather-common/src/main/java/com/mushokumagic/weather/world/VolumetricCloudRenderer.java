@@ -53,6 +53,9 @@ public final class VolumetricCloudRenderer {
     private static int intensityLocation;
     private static int phaseLocation;
     private static int timeLocation;
+    private static int daylightLocation;
+    private static int twilightLocation;
+    private static int lightningLocation;
     private static int viewProjectionLocation;
     private static boolean disabledAfterFailure;
     private static boolean configDisableReported;
@@ -98,6 +101,7 @@ public final class VolumetricCloudRenderer {
             double cameraY,
             double cameraZ,
             long worldTime,
+            long dayTime,
             float partialTick) {
         WeatherConfig config = WeatherConfig.get();
         if (dimension == null || disabledAfterFailure) {
@@ -122,7 +126,9 @@ public final class VolumetricCloudRenderer {
             return;
         }
 
-        double frameTime = worldTime + Math.max(0.0, Math.min(1.0, (double)partialTick));
+        double partial = Math.max(0.0, Math.min(1.0, (double)partialTick));
+        double frameTime = worldTime + partial;
+        double daylightTime = dayTime + partial;
         List<CloudVolume> volumes = VolumetricCloudRenderer.collectVolumes(
                 snapshots,
                 cameraX,
@@ -152,7 +158,7 @@ public final class VolumetricCloudRenderer {
             if (!VolumetricCloudRenderer.ensureProgram()) {
                 return;
             }
-            VolumetricCloudRenderer.draw(volumes, cameraX, cameraY, cameraZ, frameTime, quality);
+            VolumetricCloudRenderer.draw(volumes, cameraX, cameraY, cameraZ, frameTime, daylightTime, quality);
             if (!activeRenderReported) {
                 MushokuWeather.LOGGER.info(
                         "Volumetric weather rendering is active in {} with {} cloud volume(s) at quality {}.",
@@ -215,7 +221,8 @@ public final class VolumetricCloudRenderer {
             }
             VolumetricCloudRenderer.addIfVisible(
                     volumes, renderKind, x, centerY, z, halfX, halfY, halfZ,
-                    intensity, storm.travelX(), storm.travelZ(), storm.phase(), now,
+                    intensity, storm.kind() != SevereWeatherModel.Kind.SANDSTORM,
+                    storm.travelX(), storm.travelZ(), storm.phase(), now,
                     cameraX, cameraY, cameraZ, renderDistance);
         }
 
@@ -242,7 +249,7 @@ public final class VolumetricCloudRenderer {
             VolumetricCloudRenderer.addIfVisible(
                     volumes, 0, centerX, centerY, centerZ,
                     halfExtent * 1.08, 58.0, halfExtent * 1.08,
-                    intensity, 0.32, 0.72, (storm.minChunkX() * 31.0 + storm.minChunkZ()) * 0.017,
+                    intensity, true, 0.32, 0.72, (storm.minChunkX() * 31.0 + storm.minChunkZ()) * 0.017,
                     now, cameraX, cameraY, cameraZ, renderDistance);
         }
 
@@ -259,7 +266,7 @@ public final class VolumetricCloudRenderer {
             VolumetricCloudRenderer.addIfVisible(
                     volumes, 7, regional.x(), centerY, regional.z(),
                     halfExtent, 54.0, halfExtent,
-                    intensity, regional.windX(), regional.windZ(), now * 0.002,
+                    intensity, regional.thunderstorm(), regional.windX(), regional.windZ(), now * 0.002,
                     now, cameraX, cameraY, cameraZ, renderDistance);
 
             if (regional.thunderstorm() || regional.precipitationIntensity() >= 0.68) {
@@ -269,7 +276,8 @@ public final class VolumetricCloudRenderer {
                 VolumetricCloudRenderer.addIfVisible(
                         volumes, 0, regional.x(), stormY, regional.z(),
                         stormExtent, 82.0, stormExtent,
-                        convectiveIntensity, regional.windX(), regional.windZ(), now * 0.0013,
+                        convectiveIntensity, regional.thunderstorm(),
+                        regional.windX(), regional.windZ(), now * 0.0013,
                         now, cameraX, cameraY, cameraZ, renderDistance);
             }
         }
@@ -301,6 +309,7 @@ public final class VolumetricCloudRenderer {
             double halfY,
             double halfZ,
             double intensity,
+            boolean lightning,
             double windX,
             double windZ,
             double phase,
@@ -341,6 +350,7 @@ public final class VolumetricCloudRenderer {
                 (float)Math.max(8.0, halfY),
                 (float)Math.max(8.0, halfZ),
                 (float)clamp(visibleIntensity, 0.0, 1.35),
+                lightning ? 1.0f : 0.0f,
                 (float)windX,
                 (float)windZ,
                 (float)phase,
@@ -354,6 +364,7 @@ public final class VolumetricCloudRenderer {
             double cameraY,
             double cameraZ,
             double time,
+            double dayTime,
             int requestedQuality) {
         Matrix4f viewRotation = new Matrix4f(RenderSystem.getModelViewMatrix()).setTranslation(0.0f, 0.0f, 0.0f);
         Matrix4f viewProjection = new Matrix4f(RenderSystem.getProjectionMatrix()).mul(viewRotation);
@@ -378,6 +389,9 @@ public final class VolumetricCloudRenderer {
             GL13.glActiveTexture(CLOUD_TEXTURE_UNIT);
             GL11.glBindTexture(GL11.GL_TEXTURE_2D, cloudNoiseTexture);
             GL20.glUniform1i(cloudNoiseLocation, CLOUD_TEXTURE_UNIT - GL13.GL_TEXTURE0);
+            CloudLightingModel.Lighting lighting = CloudLightingModel.atTime(dayTime);
+            GL20.glUniform1f(daylightLocation, lighting.daylight());
+            GL20.glUniform1f(twilightLocation, lighting.twilight());
 
             int steps = requestedQuality <= 1 ? 20 : requestedQuality == 2 ? 32 : 48;
             GL20.glUniform1i(stepsLocation, steps);
@@ -387,6 +401,7 @@ public final class VolumetricCloudRenderer {
                 GL20.glUniform2f(windLocation, volume.windX, volume.windZ);
                 GL20.glUniform1i(kindLocation, volume.kind);
                 GL20.glUniform1f(intensityLocation, volume.intensity);
+                GL20.glUniform1f(lightningLocation, volume.lightning);
                 GL20.glUniform1f(phaseLocation, volume.phase);
                 GL20.glUniform1f(timeLocation, (float)(time % 100_000.0));
                 GL11.glDrawArrays(GL11.GL_TRIANGLES, 0, UNIT_CUBE.length / 3);
@@ -430,6 +445,9 @@ public final class VolumetricCloudRenderer {
             intensityLocation = uniform("uIntensity");
             phaseLocation = uniform("uPhase");
             timeLocation = uniform("uTime");
+            daylightLocation = uniform("uDaylight");
+            twilightLocation = uniform("uTwilight");
+            lightningLocation = uniform("uLightning");
             cloudNoiseLocation = uniform("uCloudNoise");
             cloudNoiseTexture = createCloudNoiseTexture();
             return true;
@@ -576,6 +594,7 @@ public final class VolumetricCloudRenderer {
         private final float halfY;
         private final float halfZ;
         private final float intensity;
+        private final float lightning;
         private final float windX;
         private final float windZ;
         private final float phase;
@@ -591,6 +610,7 @@ public final class VolumetricCloudRenderer {
                 float halfY,
                 float halfZ,
                 float intensity,
+                float lightning,
                 float windX,
                 float windZ,
                 float phase,
@@ -604,6 +624,7 @@ public final class VolumetricCloudRenderer {
             this.halfY = halfY;
             this.halfZ = halfZ;
             this.intensity = intensity;
+            this.lightning = lightning;
             this.windX = windX;
             this.windZ = windZ;
             this.phase = phase;

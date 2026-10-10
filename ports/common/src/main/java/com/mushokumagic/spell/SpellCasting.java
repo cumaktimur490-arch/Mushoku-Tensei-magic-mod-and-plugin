@@ -285,6 +285,8 @@ public final class SpellCasting {
         level.method_14199(SpellCasting.particleFor(element),
                 head.method_10216(), head.method_10214(), head.method_10215(),
                 1 + intensity / 6 + (largeVisuals ? 1 : 0), spread * 1.4, spread * 1.4, spread * 1.4, 0.025);
+        SpellCasting.drawHelicalAccent(level, head, direction, element, intensity, visualScale,
+                spread, progress, now, largeVisuals);
         if ("fire".equals(element) && power >= 15.0 && now % 2L == 0L) {
             level.method_14199(MagicPalette.surge(element, 0.65f, true),
                     tail.method_10216(), tail.method_10214(), tail.method_10215(),
@@ -294,6 +296,39 @@ public final class SpellCasting {
             level.method_14199((class_2394)class_2398.field_11207,
                     head.method_10216(), head.method_10214(), head.method_10215(),
                     1 + intensity / 6, spread * 1.5, spread * 1.5, spread * 1.5, 0.035);
+        }
+    }
+
+    /** Adds two or three restrained colored strands around a moving projectile core. */
+    private static void drawHelicalAccent(
+            class_3218 level,
+            class_243 anchor,
+            class_243 direction,
+            String element,
+            int intensity,
+            double visualScale,
+            double width,
+            double progress,
+            long now,
+            boolean largeVisuals) {
+        if ((now & 1L) != 0L) {
+            return;
+        }
+        double radius = Math.max(0.075, width * (largeVisuals ? 3.0 : 2.2));
+        double phase = now * 0.42 + progress * Math.PI * 3.0;
+        int strands = intensity >= 5 ? 3 : 2;
+        for (int strand = 0; strand < strands; strand++) {
+            double angle = phase + Math.PI * 2.0 * strand / strands;
+            class_243 offset = SpellVisualMotion.ribbonOffset(direction, angle, radius);
+            class_243 point = anchor.method_1019(offset);
+            class_2394 particle = strand == 0
+                    ? MagicPalette.edge(element,
+                            (float)Math.min(1.25, (0.38 + intensity * 0.025) * visualScale))
+                    : MagicPalette.body(element,
+                            (float)Math.min(1.25, (0.32 + intensity * 0.02) * visualScale));
+            level.method_14199(particle,
+                    point.method_10216(), point.method_10214(), point.method_10215(),
+                    1, 0.0, 0.0, 0.0, 0.0);
         }
     }
 
@@ -325,6 +360,15 @@ public final class SpellCasting {
                     (0.9f + intensity * 0.035f) * (float)visualScale * (largeVisuals ? 1.25f : 1.0f))),
                     sample.method_10216(), sample.method_10214(), sample.method_10215(),
                     1 + intensity / 6, spread, spread, spread, 0.018);
+            if (sampleIndex % 2 == 0) {
+                class_243 accent = sample.method_1019(SpellVisualMotion.ribbonOffset(
+                        segment.method_1029(), now * 0.32 + progress * Math.PI * 2.0 + sampleIndex,
+                        Math.max(0.07, spread * (largeVisuals ? 2.7 : 1.9))));
+                level.method_14199(MagicPalette.edge("water",
+                        (float)Math.min(1.25, (0.62 + intensity * 0.02) * visualScale)),
+                        accent.method_10216(), accent.method_10214(), accent.method_10215(),
+                        1, 0.0, 0.0, 0.0, 0.0);
+            }
             if (sampleIndex % 2 == 0) {
                 level.method_14199((class_2394)class_2398.field_11202,
                         sample.method_10216(), sample.method_10214(), sample.method_10215(),
