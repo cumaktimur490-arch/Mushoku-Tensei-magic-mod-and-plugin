@@ -15,7 +15,7 @@
       },
       "argument2": {
         "type": "minecraft:mul",
-        "argument1": 0.18,
+        "argument1": 0.1,
         "argument2": {
           "type": "minecraft:shifted_noise",
           "noise": "minecraft:continentalness",

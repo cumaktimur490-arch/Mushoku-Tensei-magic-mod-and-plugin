@@ -856,6 +856,17 @@ def density_noise(noise: str, xz_scale: float, y_scale: float) -> dict[str, Any]
     }
 
 
+def density_smoothstep(argument: Any, edge0: float, edge1: float) -> dict[str, Any]:
+    """Ease a density value between two thresholds with a cubic smoothstep."""
+    ramp = density_clamp(
+        density_mul(1.0 / (edge1 - edge0), density_add(argument, -edge0)), 0.0, 1.0
+    )
+    return density_mul(
+        density_mul(ramp, ramp),
+        density_add(3.0, density_mul(-2.0, ramp)),
+    )
+
+
 def density_shifted_noise(noise: str, xz_scale: float) -> dict[str, Any]:
     return {
         "type": "minecraft:shifted_noise",
@@ -869,10 +880,10 @@ def density_shifted_noise(noise: str, xz_scale: float) -> dict[str, Any]:
 
 
 def macro_continents_function() -> dict[str, Any]:
-    """Low-frequency landmass field, with a smaller coast-detail octave."""
+    """Low-frequency landmass field with subdued coastal micro-relief."""
     broad_noise = density_shifted_noise("minecraft:continentalness", 0.055)
     coast_detail = density_mul(
-        0.18, density_shifted_noise("minecraft:continentalness", 0.14)
+        0.10, density_shifted_noise("minecraft:continentalness", 0.14)
     )
     return {
         "type": "minecraft:flat_cache",
@@ -886,29 +897,30 @@ def macro_continents_function() -> dict[str, Any]:
 
 
 def tectonic_relief_function() -> dict[str, Any]:
-    """Add restrained inland uplifts and softly carved river corridors.
+    """Add eased, restrained inland uplift and shallow river corridors.
 
-    The vanilla erosion and ridge router fields keep this blended into
-    Minecraft's existing terrain instead of replacing its terrain model.
+    Cubic smoothstep masks remove abrupt slope changes at terrain thresholds;
+    reduced relief amplitudes soften peaks and cuts without changing the broad
+    continental layout or Minecraft's underlying terrain and cave routers.
     """
     continents = CUSTOM_DENSITY_FUNCTION_IDS[0]
-    inland = density_clamp(
-        density_mul(1.4, density_add(continents, -0.08)), 0.0, 1.0
-    )
+    inland = density_smoothstep(continents, -0.08, 0.64)
     erosion = "minecraft:overworld/erosion"
-    ruggedness = density_clamp(density_add(0.25, density_mul(-1.0, erosion)), 0.0, 1.0)
+    ruggedness = density_smoothstep(
+        density_mul(-1.0, erosion), -0.25, 0.75
+    )
     ridge_signal = density_abs("minecraft:overworld/ridges")
-    ridge_uplift = density_clamp(density_add(ridge_signal, -0.45), 0.0, 0.55)
+    ridge_uplift = density_smoothstep(ridge_signal, 0.45, 1.0)
 
     highland_mask = density_mul(inland, ruggedness)
     highland_uplift = density_mul(
-        highland_mask, density_add(0.08, density_mul(0.22, ridge_uplift))
+        highland_mask, density_add(0.04, density_mul(0.08, ridge_uplift))
     )
-    river_corridor = density_clamp(
-        density_add(0.08, density_mul(-1.0, ridge_signal)), 0.0, 0.08
+    river_corridor = density_smoothstep(
+        density_mul(-1.0, ridge_signal), -0.08, 0.0
     )
-    river_carving = density_mul(-2.0, river_corridor)
-    broad_erosion = density_mul(0.04, erosion)
+    river_carving = density_mul(-0.055, river_corridor)
+    broad_erosion = density_mul(0.02, erosion)
 
     return {
         "type": "minecraft:flat_cache",
@@ -1607,6 +1619,35 @@ def contains_value(value: Any, expected: Any) -> bool:
     return False
 
 
+def count_density_smoothsteps(value: Any) -> int:
+    """Count cubic t²(3−2t) easing nodes in a serialized density tree."""
+    count = 0
+    if isinstance(value, dict):
+        if value.get("type") == "minecraft:mul":
+            square = value.get("argument1")
+            easing = value.get("argument2")
+            if (
+                isinstance(square, dict)
+                and square.get("type") == "minecraft:mul"
+                and square.get("argument1") == square.get("argument2")
+                and isinstance(easing, dict)
+                and easing.get("type") == "minecraft:add"
+                and easing.get("argument1") == 3.0
+            ):
+                falloff = easing.get("argument2")
+                if (
+                    isinstance(falloff, dict)
+                    and falloff.get("type") == "minecraft:mul"
+                    and falloff.get("argument1") == -2.0
+                    and falloff.get("argument2") == square.get("argument1")
+                ):
+                    count += 1
+        count += sum(count_density_smoothsteps(child) for child in value.values())
+    elif isinstance(value, list):
+        count += sum(count_density_smoothsteps(child) for child in value)
+    return count
+
+
 def check_wheat_field_resources(resource_root: Path) -> None:
     feature_root = resource_root / "data/mushoku_worldgen/worldgen"
     paths = {
@@ -1867,6 +1908,13 @@ def check_world_preset(preset: dict[str, Any], resource_root: Path) -> None:
         for field in ("minecraft:overworld/erosion", "minecraft:overworld/ridges")
     ):
         raise ValueError("Mushoku terrain relief is missing its erosion/ridge shaping fields")
+    if count_density_smoothsteps(relief) < 4 or not all(
+        contains_value(relief, coefficient)
+        for coefficient in (0.04, 0.08, -0.055, 0.02)
+    ):
+        raise ValueError("Mushoku terrain relief does not use the softened, eased coefficients")
+    if not contains_value(density_documents[CUSTOM_DENSITY_FUNCTION_IDS[0]], 0.10):
+        raise ValueError("Mushoku macro-continent coast detail is not softened")
     source = overworld.get("biome_source", {})
     if source.get("type") != "minecraft:multi_noise":
         raise ValueError("The custom preset must use the multi-noise biome source")

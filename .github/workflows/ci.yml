@@ -565,7 +565,7 @@ jobs:
 
           - Adds standalone Mushoku Tensei: Worldgen with a selectable **Mushoku: Vast Lands** preset; the vanilla `minecraft:normal` world and its Overworld generation remain unchanged.
           - Adds five custom surface biomes—Golden Steppe, Riverside Meadow, Whispering Forest, Emerald Highlands, and Skyreach Mountains—while retaining vanilla oceans, beaches, rivers, cave biomes, and structure compatibility.
-          - Blends Tectonic/TerraForged-inspired landforms into the existing large continents: gentle inland plateau uplift, erosion-aware mountain ridges, and softly carved river corridors. Vanilla `sloped_cheese`, aquifers, and 3D caves remain the terrain foundation; the coefficients are experimental.
+          - Softens the selected Mushoku terrain preset with cubic smoothstep easing, a quieter coast-detail octave, lower ridge uplift, and shallower river carving. The existing large continents, vanilla `sloped_cheese`, aquifers, and 3D caves remain the foundation; the standard Overworld is untouched and the coefficients are experimental.
           - Adds abundant fully grown wheat fields to the Golden Steppe, placed as broad irregular farmland patches that follow the existing terrain while preserving flower and tree breaks. Other Mushoku biomes retain their distinct scenery.
           - Enriches the Whispering Forest and Emerald Highlands floor with twice as many grass, tall-grass, and fern patch attempts plus slightly more bloom patches; appends legacy/current `c:` biome-tag aliases and native Forge climate, density, slope, and terrain tags for modpack selectors. Only Mushoku preset biomes change.
           - Weather is now a standalone mod and can run without Magic. Magic requires Weather; install both matching jars to use weather-interacting spells.
@@ -589,13 +589,13 @@ jobs:
 
           ## Verification
 
-          - GitHub Actions passed for all nine Fabric, Forge, and NeoForge Magic, Weather, and Worldgen mod builds; Magic and Weather test suites include spell-ribbon geometry and cloud day/night lighting checks, while Worldgen resource-generation, preset, biome-stage, vegetation, wheat-field configuration, compatibility-tag, metadata, and packaged-resource checks passed.
+          - GitHub Actions passed for all nine Fabric, Forge, and NeoForge Magic, Weather, and Worldgen mod builds; Magic and Weather test suites include spell-ribbon geometry and cloud day/night lighting checks, while Worldgen resource-generation, isolated-preset, softened-relief/easing coefficients, biome-stage, vegetation, wheat-field configuration, compatibility-tag, metadata, and packaged-resource checks passed.
           - CI regenerated the expected cloud-noise pixels from a deterministic script, verified both PNG copies are identical, compiled and linked the GLSL vertex/fragment shader pair, verified all rendering and pack metadata resources are packaged in every Weather jar, and checked loader metadata, dependency direction, Forge-only optional Luxium metadata, package uniqueness, staff hand transforms, and optional AAA Particles asset packaging/license metadata.
           - The AAA Particles bridge is additive and optional: automated validation checks the Effekseer resources, metadata, client-side optional dependency declarations, and packaged MIT notice, but cannot validate rendered appearance, driver behavior, or GPU cost in-game.
           EOF
           if [[ "${BETA_RELEASE}" == "true" ]]; then
             cat > "$RUNNER_TEMP/beta-warning.md" <<'EOF'
-          > **Beta notice:** CI builds, tests, shader compilation, native metadata, and worldgen data checks passed. No in-game visual or performance QA has been performed. Weather-cloud appearance, rendering order, and performance remain unverified. The Worldgen preset, biome distribution, relief blend, and wheat-field density have not been explored in a fresh world; their layout is experimental, not a visually confirmed map-generation result.
+          > **Beta notice:** CI builds, tests, shader compilation, native metadata, and worldgen data checks passed. No in-game visual or performance QA has been performed. Weather-cloud appearance, rendering order, and performance remain unverified. The Worldgen preset, biome distribution, newly softened relief blend, and wheat-field density have not been explored in a fresh world; their layout is experimental, not a visually confirmed map-generation result.
           >
           > **AAA Particles beta notice:** the optional effect bridge is available only in the Forge/NeoForge 1.20.1 Magic jars. Its rendered size, timing, and GPU cost have not been visually or performance-tested in-game. Fabric 1.21.11 is not claimed compatible because AAA Particles has no published matching build.
           >

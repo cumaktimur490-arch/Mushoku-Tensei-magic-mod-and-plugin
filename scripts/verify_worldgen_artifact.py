@@ -236,6 +236,35 @@ def contains_value(value: object, expected: object) -> bool:
     return False
 
 
+def count_density_smoothsteps(value: object) -> int:
+    """Count cubic t²(3−2t) easing nodes in a serialized density tree."""
+    count = 0
+    if isinstance(value, dict):
+        if value.get("type") == "minecraft:mul":
+            square = value.get("argument1")
+            easing = value.get("argument2")
+            if (
+                isinstance(square, dict)
+                and square.get("type") == "minecraft:mul"
+                and square.get("argument1") == square.get("argument2")
+                and isinstance(easing, dict)
+                and easing.get("type") == "minecraft:add"
+                and easing.get("argument1") == 3.0
+            ):
+                falloff = easing.get("argument2")
+                if (
+                    isinstance(falloff, dict)
+                    and falloff.get("type") == "minecraft:mul"
+                    and falloff.get("argument1") == -2.0
+                    and falloff.get("argument2") == square.get("argument1")
+                ):
+                    count += 1
+        count += sum(count_density_smoothsteps(child) for child in value.values())
+    elif isinstance(value, list):
+        count += sum(count_density_smoothsteps(child) for child in value)
+    return count
+
+
 def verify(jar_path: Path, loader: str) -> None:
     if not jar_path.is_file():
         raise ValueError(f"Worldgen artifact does not exist: {jar_path}")
@@ -390,6 +419,13 @@ def verify(jar_path: Path, loader: str) -> None:
                 for field in ("minecraft:overworld/erosion", "minecraft:overworld/ridges")
             ):
                 raise ValueError(f"{jar_path} terrain relief omits erosion/ridge shaping")
+            if count_density_smoothsteps(relief) < 4 or not all(
+                contains_value(relief, coefficient)
+                for coefficient in (0.04, 0.08, -0.055, 0.02)
+            ):
+                raise ValueError(f"{jar_path} does not contain the softened, eased terrain relief")
+            if not contains_value(density_documents["macro_continents"], 0.10):
+                raise ValueError(f"{jar_path} macro-continent coast detail is not softened")
 
             wheat = {
                 name: load_json(jar, resource)
