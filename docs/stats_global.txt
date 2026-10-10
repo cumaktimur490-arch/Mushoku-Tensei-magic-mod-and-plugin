@@ -1,0 +1,31 @@
+# global field  900x600 px  4 blocks/px  63988 ms  540000 column calls
+land 52.2%  water 47.8%  elevation -1101 m .. 1856 m  mean aridity 0.63  arid 51.5%
+painted badlands 1.45%  fans 0.00%  dunes 1.63%  playas 0.68%  riparian 2.42%
+lava 0.01%  karst 6.92%  channels 7.48%  glacier 0.00%  biomes 27
+  Deep lukewarm ocean         30.12%
+  Tropical rainforest         25.45%
+  River                        7.78%
+  Lukewarm ocean               6.45%
+  Warm ocean                   5.53%
+  Monsoon forest               4.93%
+  Windswept gravel             4.87%
+  Floodplain                   4.30%
+  Coastal desert               3.05%
+  Desert                       1.24%
+  Savanna plateau              1.20%
+  Seasonal tropical woodland   1.10%
+  Beach                        0.97%
+  Savanna                      0.68%
+  Wetland                      0.62%
+  Badlands                     0.55%
+  Eroded badlands              0.53%
+  Stony shore                  0.33%
+  Wooded badlands              0.10%
+  Windswept forest             0.08%
+  Tidal flat                   0.07%
+  Fen                          0.04%
+  Temperate deciduous forest   0.01%
+  Volcanic summit              0.01%
+  Volcanic flank               0.00%
+  Flowering meadow             0.00%
+  Estuary                      0.00%

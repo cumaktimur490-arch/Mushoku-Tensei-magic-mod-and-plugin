@@ -1,0 +1,7 @@
+{
+  "terra_realis.command.here": "Column diagnosis at your position",
+  "terra_realis.command.profile": "Material profile below your position",
+  "terra_realis.command.stats": "Kernel and tile-cache statistics",
+  "terra_realis.command.reload": "Reload config/terra_realis.json",
+  "generator.terra_realis.realis": "Terra Realis"
+}

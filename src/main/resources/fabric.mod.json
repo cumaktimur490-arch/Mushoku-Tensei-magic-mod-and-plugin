@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "id": "terra_realis",
+  "version": "2.0.0",
+  "name": "Terra Realis",
+  "description": "Ultra-realistic world generation: plate tectonics, orographic climate, hydrological erosion, glaciation, volcanism, karst and desert geomorphology, expressed entirely in vanilla blocks and biomes.",
+  "authors": [
+    "Terra Realis contributors"
+  ],
+  "contact": {
+    "homepage": "https://github.com/cumaktimur490-arch/Mushoku-Tensei-magic-mod-and-plugin",
+    "sources": "https://github.com/cumaktimur490-arch/Mushoku-Tensei-magic-mod-and-plugin"
+  },
+  "license": "MIT",
+  "icon": "assets/terra_realis/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "dev.terrarealis.fabric.TerraRealisMod"
+    ]
+  },
+  "mixins": [],
+  "depends": {
+    "fabricloader": ">=0.19.0",
+    "minecraft": "~1.21.11",
+    "java": ">=21",
+    "fabric-api": "*"
+  },
+  "suggests": {
+    "mushoku-magic": "*"
+  },
+  "custom": {
+    "terra_realis": {
+      "note": "The generator overrides the vanilla Default world preset via data/minecraft/worldgen/world_preset/normal.json. Delete that one file to restore vanilla terrain.",
+      "public_api": "dev.terrarealis.fabric.LeyLines",
+      "biome_policy": "vanilla biomes only; no mushroom_fields, lush_caves, deep_dark or dark_forest, therefore no giant mushrooms are ever generated"
+    }
+  }
+}
