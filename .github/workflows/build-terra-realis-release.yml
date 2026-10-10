@@ -63,7 +63,7 @@ jobs:
         run: |
           log_file="$RUNNER_TEMP/terra-realis-gradle.log"
           [[ -f "$log_file" ]] || exit 0
-          grep -E 'FAILURE:|What went wrong:|Exception is:|Execution failed for task|Could not find|Could not resolve|No matching variant|error:|cannot find symbol|Caused by:' "$log_file" | tail -n 15 > "$RUNNER_TEMP/terra-realis-gradle-errors.log" || true
+          grep -A2 -E ':[0-9]+: error:|FAILURE:|What went wrong:|Exception is:|Execution failed for task|Could not find|Could not resolve|No matching variant|Caused by:' "$log_file" | tail -n 45 > "$RUNNER_TEMP/terra-realis-gradle-errors.log" || true
           if [[ ! -s "$RUNNER_TEMP/terra-realis-gradle-errors.log" ]]; then
             tail -n 15 "$log_file" > "$RUNNER_TEMP/terra-realis-gradle-errors.log"
           fi
