@@ -8,6 +8,10 @@ Weather is now an independent mod: **Mushoku Tensei: Weather** (`mushoku_weather
 
 The repository builds Fabric 1.21.11 mods at the root and native Forge/NeoForge 1.20.1 mods under `ports/`. For each game/loader combination, the Weather and Magic jars are separate and must match that same loader. **Mushoku Tensei: Worldgen** (`mushoku_worldgen`) is a third, standalone mod that adds the selectable **Mushoku: Vast Lands** preset with broad continents, a restrained Tectonic/TerraForged-inspired relief blend, Golden Steppe wheat fields, denser forest/highland understory, and append-only vanilla, common `c:`, Forge, and MVS biome tags for compatible structures and tree integrations. The ordinary vanilla Overworld and other dimensions remain unchanged. It has no dependency on Magic or Weather. See [worldgen.md](docs/worldgen.md) for the biome palette, vegetation, tag mapping, terrain blend, and beta QA caveat, and [the Forge 1.20.1 modpack notes](docs/forge-1.20.1-modpack-compatibility.md) for the static compatibility review.
 
+### Terra Realis 3.0.0 replacement
+
+The full [`terra-realis-3.0.0.jar`](https://github.com/cumaktimur490-arch/Mushoku-Tensei-magic-mod-and-plugin/releases/tag/v3.0.0) is published for Fabric 1.21.11 and replaces the previous Worldgen jar on that target. Remove the old `mushoku-worldgen` jar before installing Terra Realis; do not install both together. Terra Realis includes a `minecraft:normal` preset resource, so new worlds created with **Default** use Terra Realis generation; remove the Terra Realis jar to restore vanilla Overworld generation. This replacement is Fabric-only: Forge/NeoForge 1.20.1 should continue using their matching Worldgen jars.
+
 ## Staff power
 
 | Staff tier | Power multiplier |

@@ -1,0 +1,106 @@
+name: Build Terra Realis v3.0.0 Fabric mod jar
+
+on:
+  push:
+    branches:
+      - arena/01a0df4b-mushoku-tensei-magic-mod-and-p
+    paths:
+      - .github/workflows/build-terra-realis-release.yml
+      - scripts/verify_terra_realis_artifact.py
+  workflow_dispatch:
+    inputs:
+      publish_release:
+        description: Upload the verified jar to the existing v3.0.0 release
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build-terra-realis:
+    name: Build and verify Terra Realis (Fabric 1.21.11)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the build workflow branch
+        uses: actions/checkout@v7
+
+      - name: Check out Terra Realis v3.0.0 source
+        uses: actions/checkout@v7
+        with:
+          ref: v3.0.0
+          path: terra-realis-source
+          fetch-depth: 1
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle 8.14
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '8.14'
+
+      - name: Build the full Fabric mod jar
+        working-directory: terra-realis-source
+        shell: bash
+        run: gradle --no-daemon clean build --stacktrace
+
+      - name: Run the deterministic terrain-kernel suite
+        shell: bash
+        run: bash terra-realis-source/tools/build-offline.sh test
+
+      - name: Verify the complete mod jar
+        shell: bash
+        run: python3 scripts/verify_terra_realis_artifact.py terra-realis-source/build/libs/terra-realis-3.0.0.jar
+
+      - name: Upload the verified jar as a workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: terra-realis-3.0.0-fabric-1.21.11
+          path: terra-realis-source/build/libs/terra-realis-3.0.0.jar
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Add the mod jar to the existing v3.0.0 release
+        if: ${{ github.event_name == 'push' || inputs.publish_release }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          jar="terra-realis-source/build/libs/terra-realis-3.0.0.jar"
+          gh release view v3.0.0 --repo "$GITHUB_REPOSITORY" >/dev/null
+          gh release upload v3.0.0 "$jar" --repo "$GITHUB_REPOSITORY" --clobber
+
+          gh release view v3.0.0 --repo "$GITHUB_REPOSITORY" --json body --jq .body > "$RUNNER_TEMP/terra-realis-release-notes.md"
+          python3 - "$RUNNER_TEMP/terra-realis-release-notes.md" <<'PY'
+          import sys
+          from pathlib import Path
+
+          notes_path = Path(sys.argv[1])
+          notes = notes_path.read_text(encoding="utf-8")
+          obsolete_sections = (
+              "Полный jar мода для Fabric собирается",
+              "## Полный Fabric-модовый JAR",
+          )
+          starts = [index for marker in obsolete_sections if (index := notes.find(marker)) >= 0]
+          if starts:
+              notes = notes[:min(starts)].rstrip()
+          notes += """
+
+          ## Полный Fabric-модовый JAR
+
+          - `terra-realis-3.0.0.jar` — полный мод для Minecraft 1.21.11 (Fabric Loader 0.19.0+, Java 21+), собран GitHub Actions из исходников тега `v3.0.0`. Сборка Gradle и 24 детерминированные проверки ядра прошли.
+          - Для Fabric 1.21.11 этот JAR заменяет прежний `mushoku-worldgen` при генерации. Удалите старый Worldgen JAR перед установкой Terra Realis; не устанавливайте оба мода вместе.
+          - Terra Realis включает собственный ресурс `data/minecraft/worldgen/world_preset/normal.json`: тип мира **Default** использует его генератор для Overworld. Nether и End остаются ванильными. Чтобы вернуть стандартный Overworld, удалите Terra Realis JAR.
+          - Этот релизный JAR предназначен только для Fabric 1.21.11. Сборок Terra Realis для Forge/NeoForge 1.20.1 в этом релизе нет.
+          """
+          notes_path.write_text(notes, encoding="utf-8")
+          PY
+          gh release edit v3.0.0 --repo "$GITHUB_REPOSITORY" --notes-file "$RUNNER_TEMP/terra-realis-release-notes.md"
+
+          gh release view v3.0.0 --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' | grep -Fx 'terra-realis-3.0.0.jar'
