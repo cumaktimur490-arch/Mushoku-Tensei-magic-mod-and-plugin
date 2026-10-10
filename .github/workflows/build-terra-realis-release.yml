@@ -105,6 +105,21 @@ jobs:
 
           notes_path = Path(sys.argv[1])
           notes = notes_path.read_text(encoding="utf-8")
+          old_intro = """Релиз новой генерации, которая **заменила старый мод** (`mushoku-magic-1.0.0`,
+          см. `legacy/DEPRECATED.md`). Ультрареалистичный worldgen для Minecraft 1.21.11 (Fabric, Java 21,
+          Mojang mappings, без миксинов, только ванильные блоки и биомы). Тип мира **Default** использует
+          этот генератор; откат на ваниль — удалить один файл
+          `data/minecraft/worldgen/world_preset/normal.json`."""
+          new_intro = """Terra Realis — ультрареалистичная генерация для Minecraft 1.21.11 (Fabric, Java 21+, Mojang mappings,
+          без миксинов, только ванильные блоки и биомы), доступная как отдельный пресет **Terra Realis**.
+          Ванильный пресет **Default** и стандартная генерация Overworld не изменяются. Полный JAR ниже
+          собран из исходников `v3.0.0` с исправлениями совместимости для Minecraft 1.21.11. На Fabric
+          1.21.11 он заменяет старый `mushoku-worldgen`; Forge/NeoForge 1.20.1 продолжают использовать
+          собственные JAR Worldgen."""
+          if old_intro in notes:
+              notes = notes.replace(old_intro, new_intro, 1)
+          elif new_intro not in notes:
+              raise SystemExit("Could not find the expected Terra Realis release-note introduction")
           obsolete_sections = (
               "Полный jar мода для Fabric собирается",
               "## Полный Fabric-модовый JAR",

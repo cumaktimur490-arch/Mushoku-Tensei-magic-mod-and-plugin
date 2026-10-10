@@ -10,7 +10,7 @@ The repository builds Fabric 1.21.11 mods at the root and native Forge/NeoForge 
 
 ### Terra Realis 3.0.0 replacement
 
-The Terra Realis `v3.0.0` source targets Fabric 1.21.11 only. Its full JAR is still being built and verified; it will be attached to the existing [v3.0.0 release](https://github.com/cumaktimur490-arch/Mushoku-Tensei-magic-mod-and-plugin/releases/tag/v3.0.0) only after the build and checks pass. The build adapts the tag's source to the current Minecraft API and removes its `minecraft:normal` override, preserving vanilla **Default** world generation. Terra Realis remains available as a separate **Terra Realis** world preset. Once the JAR is published, remove the old `mushoku-worldgen` JAR before installing it; do not install both together. This replacement is Fabric-only: Forge/NeoForge 1.20.1 should continue using their matching Worldgen JARs.
+The complete [`terra-realis-3.0.0.jar`](https://github.com/cumaktimur490-arch/Mushoku-Tensei-magic-mod-and-plugin/releases/download/v3.0.0/terra-realis-3.0.0.jar) is published in the [v3.0.0 release](https://github.com/cumaktimur490-arch/Mushoku-Tensei-magic-mod-and-plugin/releases/tag/v3.0.0) for Fabric 1.21.11 only. GitHub Actions built it from the `v3.0.0` source with the Minecraft 1.21.11 API compatibility fixes; the full Gradle build, deterministic terrain-kernel checks, and JAR verification passed. The build omits the tag's `minecraft:normal` override so vanilla **Default** and the standard Overworld remain unchanged; Terra Realis is available as a separate **Terra Realis** world preset. Remove the old `mushoku-worldgen` JAR before installing Terra Realis; do not install both together. Forge/NeoForge 1.20.1 should continue using their matching Worldgen JARs.
 
 ## Staff power
 
