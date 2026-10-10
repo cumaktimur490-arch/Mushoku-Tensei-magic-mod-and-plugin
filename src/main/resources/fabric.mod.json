@@ -32,7 +32,8 @@
   "custom": {
     "terra_realis": {
       "note": "The generator overrides the vanilla Default world preset via data/minecraft/worldgen/world_preset/normal.json. Delete that one file to restore vanilla terrain.",
-      "public_api": "dev.terrarealis.fabric.LeyLines"
+      "public_api": "dev.terrarealis.fabric.LeyLines",
+      "biome_policy": "vanilla biomes only; no mushroom_fields, lush_caves, deep_dark or dark_forest, therefore no giant mushrooms are ever generated"
     }
   }
 }

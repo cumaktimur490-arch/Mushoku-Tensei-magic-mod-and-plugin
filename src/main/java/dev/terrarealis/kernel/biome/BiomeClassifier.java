@@ -130,9 +130,8 @@ public final class BiomeClassifier {
                     && Interp.smoothstep(0.5, 1.0, e.saturation) > 0.4) {
                 return BiomeKind.MANGROVE;
             }
-            if (mixture(e, 7771, 4096) < 0.012 && e.oceanDistanceBlocks > 20.0) {
-                return BiomeKind.MUSHROOM_BANK;
-            }
+            // No mushroom fields: they are a fantasy biome and the single biggest source of
+            // giant mushrooms in vanilla decoration. Real coastlines get beaches, flats and marshes.
             return BiomeKind.BEACH;
         }
 
@@ -311,7 +310,9 @@ public final class BiomeClassifier {
             return temperateForest(e);
         }
         if (t > 6.0) {
-            return p > 1250.0 ? BiomeKind.DARK_CONIFEROUS : temperateForest(e);
+            // Dark forest is deliberately never emitted: vanilla decorates it with huge mushrooms.
+            // The humid cool-temperate slot goes to old-growth spruce instead - giant trees, no fungi.
+            return p > 1250.0 ? BiomeKind.BOREAL_OLD_GROWTH : temperateForest(e);
         }
         if (t > 1.0) {
             return borealForest(e);
@@ -346,7 +347,7 @@ public final class BiomeClassifier {
             return BiomeKind.TEMPERATE_DECIDUOUS;
         }
         if (m < 0.86 && e.precipMm > 900.0) {
-            return BiomeKind.DARK_CONIFEROUS;
+            return BiomeKind.BOREAL_FOREST;
         }
         return BiomeKind.FLOWERING_MEADOW;
     }
@@ -390,15 +391,9 @@ public final class BiomeClassifier {
         if (depth < 12) {
             return null; // too shallow: the surface biome is still the right answer
         }
-        if (y < -28 && depth > 60) {
-            return BiomeKind.DEEP_DARK;
-        }
-        if (e.karst > 0.35) {
-            return BiomeKind.CAVERN;
-        }
-        if (e.tempC > 8.0 && e.precipMm > 850.0 && y > -20 && depth < 70) {
-            return BiomeKind.LUSH_CAVE;
-        }
+        // Only the plain cavern biome (vanilla dripstone caves) is emitted underground. Lush caves
+        // and the deep dark are fantasy flora and sculk: neither has a counterpart in the real karst
+        // and phreatic systems this kernel simulates, and neither is wanted here.
         return BiomeKind.CAVERN;
     }
 }

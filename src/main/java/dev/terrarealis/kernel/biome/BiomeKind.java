@@ -63,7 +63,6 @@ public enum BiomeKind {
     TEMPERATE_MIXED("flower_forest", "Temperate mixed forest", 0x5C9B4E, Zone.LOWLAND),
     BIRCHWOOD("birch_forest", "Birchwood", 0x77A85E, Zone.LOWLAND),
     OLD_GROWTH_BIRCH("old_growth_birch_forest", "Old-growth birch", 0x6A9C55, Zone.LOWLAND),
-    DARK_CONIFEROUS("dark_forest", "Dark coniferous forest", 0x3A6B33, Zone.LOWLAND),
     MEDITERRANEAN("flower_forest", "Mediterranean woodland", 0x7FA85A, Zone.LOWLAND),
     CHERRY_GROVE("cherry_grove", "Cherry grove", 0xE0A8C0, Zone.LOWLAND),
 
@@ -71,7 +70,6 @@ public enum BiomeKind {
     PEAT_BOG("swamp", "Peat bog", 0x4A5F45, Zone.LOWLAND),
     FLOODPLAIN("swamp", "Floodplain", 0x6A8055, Zone.RIVERINE),
     FEN("swamp", "Fen", 0x607A52, Zone.LOWLAND),
-    MUSHROOM_BANK("mushroom_fields", "Mushroom bank", 0xA878B0, Zone.COASTAL),
 
     // ------------------------------------------------------------------ boreal
     BOREAL_FOREST("taiga", "Boreal forest", 0x4A7A5C, Zone.BOREAL),
@@ -100,9 +98,7 @@ public enum BiomeKind {
     VOLCANIC_SUMMIT("stony_peaks", "Volcanic summit", 0x5A5258, Zone.ALPINE),
 
     // ------------------------------------------------------------------ subterranean
-    CAVERN("dripstone_caves", "Cavern", 0x6A5A4A, Zone.SUBTERRANEAN),
-    LUSH_CAVE("lush_caves", "Lush cave", 0x4A7A3A, Zone.SUBTERRANEAN),
-    DEEP_DARK("deep_dark", "Deep dark", 0x141C22, Zone.SUBTERRANEAN);
+    CAVERN("dripstone_caves", "Cavern", 0x6A5A4A, Zone.SUBTERRANEAN);
 
     /** Coarse zone used for map legends and for ordering altitudinal belts. */
     public enum Zone { ABYSSAL, SHELF, COASTAL, RIVERINE, LOWLAND, BOREAL, POLAR, MONTANE, ALPINE, SUBTERRANEAN }

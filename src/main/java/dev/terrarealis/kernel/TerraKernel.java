@@ -326,7 +326,10 @@ public final class TerraKernel implements RegionTile.Source {
             out.waterY = declaredWater;
             out.waterDepth = ts.waterLevel - surface;
             out.marine = out.continentalness < 0.02 && ts.oceanDistance > 24;
-            out.river = !out.marine && ts.channel > 0.18;
+            // A "river" as a *place* (vanilla's river biome) is a mid-sized perennial stream and up.
+            // Every first-order rill has a channel and even a trickle of water, but calling all of
+            // them rivers turns a humid continent into 40% river biome.
+            out.river = !out.marine && ts.channel > 0.18 && ts.acc > 5400.0;
             out.lake = !out.marine && !out.river;
         } else if (out.surfaceY < p.seaLevel
                 && ts.oceanDistance * p.erosionCellSize < 240.0) {
@@ -366,7 +369,17 @@ public final class TerraKernel implements RegionTile.Source {
         out.permafrost = tempC < -3.5 && glacialPotential < 0.6;
 
         // ------------------------------------------------------- riparian
-        out.riparian = Arid.riparian(aridity, ts.channel, out.saturation, ts.slope, p);
+        out.riparian = out.marine ? 0.0
+                : Arid.riparian(aridity, ts.channel, out.saturation, ts.slope, p);
+        if (out.waterY == Column.NO_WATER && out.saturation < 0.80) {
+            // No water at or near the surface: no green corridor, however close the dry trench is.
+            out.riparian *= 0.25;
+        }
+        if (aridity < 0.45 && ts.acc < 3000.0) {
+            // In humid country the green bank belongs to sizable streams only; otherwise every ditch
+            // in the rainforest grows a ribbon of river grass.
+            out.riparian *= 0.25;
+        }
         out.pavement = Arid.pavement(aridity, out.soilThickness, ts.slope);
         out.boulders = Arid.boulderiness(x, z, ts.slope, aridity, out.site.rock.primary.hardness);
 
