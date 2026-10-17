@@ -42,7 +42,7 @@ The existing Fabric 1.21.11 build is retained alongside native Forge and NeoForg
 ./gradlew -p ports :weather-forge:build :weather-neoforge:build :worldgen-forge:build :worldgen-neoforge:build :forge:build :neoforge:build
 ```
 
-For each loader, install both matching jars to use Magic: `mushoku-weather-<loader>-1.20.1-1.1.5.jar` and `mushoku-magic-<loader>-1.20.1-2.5.9.jar`. Weather works without the Magic jar. The optional standalone worldgen jars are `mushoku-worldgen-forge-1.20.1-0.1.8-beta.1.jar` and `mushoku-worldgen-neoforge-1.20.1-0.1.8-beta.1.jar`. Forge alone lists Embeddium and Luxium as optional client dependencies; neither is required. The weather mod does not patch Luxium's renderer. See [ports/README.md](ports/README.md) for build and loader details.
+For each loader, install both matching jars to use Magic: `mushoku-weather-<loader>-1.20.1-1.1.5.jar` and `mushoku-magic-<loader>-1.20.1-2.5.9.jar`. Weather works without the Magic jar. The optional standalone worldgen jars are `mushoku-worldgen-forge-1.20.1-0.1.8-beta.1.jar` and `mushoku-worldgen-neoforge-1.20.1-0.1.8-beta.1.jar`. Release pages also provide three loader-specific ZIP bundles for Fabric 1.21.11, Forge 1.20.1, and NeoForge 1.20.1; each contains only a `mods/` folder with the matching Magic, Weather, and Worldgen jars. Extract the ZIP that matches the instance's loader and Minecraft version. Forge alone lists Embeddium and Luxium as optional client dependencies; neither is required. The weather mod does not patch Luxium's renderer. See [ports/README.md](ports/README.md) for build and loader details.
 
 ## Weather mod and magic integration
 

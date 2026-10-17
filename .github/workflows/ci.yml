@@ -10,6 +10,11 @@ on:
         type: boolean
         required: false
         default: false
+      bundle_release_tag:
+        description: Add loader-specific mods/ ZIP bundles to an existing release without creating a new one
+        type: string
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -585,6 +590,7 @@ jobs:
           - Adds restrained rotating colored strands around spell projectile cores and the water beam, using the existing element palette and visual scale; the existing `big` visual keyword enlarges the accents and gameplay multipliers are unchanged.
           - Adds optional client-side AAA Particles spell-burst effects to Forge/NeoForge 1.20.1 Magic for fire, water/ice, and earth; the server does not require AAA Particles and vanilla spell particles remain the fallback. Fabric 1.21.11 does not advertise AAA compatibility because no matching AAA Particles Fabric build is published.
           - Includes separate Fabric 1.21.11 and native Forge/NeoForge 1.20.1 Weather and Magic jars, plus standalone Worldgen jars for all three supported loader targets. Install only the matching loader/version pair.
+          - Attaches three ready-to-copy ZIP bundles, one per loader and Minecraft version; each archive contains only a `mods/` folder with that matching Magic, Weather, and Worldgen jars.
           - Fixes the native Forge/NeoForge split-package conflict that stopped startup when Magic and Weather were installed together; CI now verifies that both jars in each native pair expose disjoint Java packages.
           - The Forge Magic jar declares Luxium and Embeddium as optional client-side dependencies. No Luxium-specific renderer patch is claimed.
 
@@ -608,9 +614,88 @@ jobs:
             cp "$RUNNER_TEMP/release-notes.md" "$RUNNER_TEMP/final-release-notes.md"
           fi
           mapfile -t assets < "$RUNNER_TEMP/release-assets.txt"
+          python3 scripts/package_release_mod_bundles.py \
+            --assets-dir release-assets \
+            --output-dir release-assets \
+            --tag "$tag"
+          mapfile -t bundles < <(find release-assets -maxdepth 1 -type f -name '*.zip' | sort)
+          if [[ "${#bundles[@]}" -ne 3 ]]; then
+            echo "Expected three loader-specific mods/ ZIP bundles, found ${#bundles[@]}: ${bundles[*]}" >&2
+            exit 1
+          fi
+          assets+=("${bundles[@]}")
           gh release create "$tag" "${assets[@]}" \
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
             --title "$title" \
             --notes-file "$RUNNER_TEMP/final-release-notes.md" \
             "${release_flags[@]}"
+
+  attach-release-bundles:
+    name: Add loader-specific mods ZIPs to an existing release
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.bundle_release_tag != '') ||
+      (github.event_name == 'push' && contains(github.event.head_commit.message, '[attach-bundles:'))
+    needs:
+      - build
+      - loader-ports
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out release source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Download Fabric Magic jar
+        uses: actions/download-artifact@v4
+        with:
+          name: mushoku-magic-fabric-${{ github.sha }}
+          path: release-assets
+
+      - name: Download Fabric Weather jar
+        uses: actions/download-artifact@v4
+        with:
+          name: mushoku-weather-fabric-${{ github.sha }}
+          path: release-assets
+
+      - name: Download Fabric Worldgen jar
+        uses: actions/download-artifact@v4
+        with:
+          name: mushoku-worldgen-fabric-${{ github.sha }}
+          path: release-assets
+
+      - name: Download native Forge and NeoForge jars
+        uses: actions/download-artifact@v4
+        with:
+          name: mushoku-native-mods-${{ github.sha }}
+          path: release-assets
+
+      - name: Package and attach three loader-specific mods ZIPs
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.bundle_release_tag }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$RELEASE_TAG" ]]; then
+            RELEASE_TAG="$(git log -1 --format=%s | sed -n 's/.*\[attach-bundles:\([^]]*\)\].*/\1/p')"
+          fi
+          if [[ -z "$RELEASE_TAG" ]]; then
+            echo "No release tag was supplied or found in the push commit title." >&2
+            exit 1
+          fi
+          gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json tagName --jq '.tagName' | grep -Fx "$RELEASE_TAG"
+          python3 scripts/package_release_mod_bundles.py \
+            --assets-dir release-assets \
+            --output-dir release-bundles \
+            --tag "$RELEASE_TAG"
+          mapfile -t bundles < <(find release-bundles -maxdepth 1 -type f -name '*.zip' | sort)
+          if [[ "${#bundles[@]}" -ne 3 ]]; then
+            echo "Expected three loader-specific mods/ ZIP bundles, found ${#bundles[@]}: ${bundles[*]}" >&2
+            exit 1
+          fi
+          gh release upload "$RELEASE_TAG" "${bundles[@]}" \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber

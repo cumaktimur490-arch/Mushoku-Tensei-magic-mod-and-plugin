@@ -83,11 +83,12 @@ jobs:
             --pair Forge 'ports/forge/build/libs/mushoku-magic-forge-1.20.1-*.jar' 'ports/weather-forge/build/libs/mushoku-weather-forge-1.20.1-*.jar' \
             --pair NeoForge 'ports/neoforge/build/libs/mushoku-magic-neoforge-1.20.1-*.jar' 'ports/weather-neoforge/build/libs/mushoku-weather-neoforge-1.20.1-*.jar'
 
-      - name: Attach all nine platform jars to the release
+      - name: Attach nine platform jars and three loader-specific mods bundles
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -euo pipefail
           magic_version="$(sed -n 's/^mod_version=//p' gradle.properties)"
           weather_version="$(sed -n 's/^weather_version=//p' gradle.properties)"
           port_magic_version="$(sed -n 's/^port_version=//p' ports/gradle.properties)"
@@ -106,11 +107,29 @@ jobs:
           fabric_worldgen="worldgen/build/libs/mushoku-worldgen-${worldgen_version}.jar"
           forge_worldgen="ports/worldgen-forge/build/libs/mushoku-worldgen-forge-1.20.1-${port_worldgen_version}.jar"
           neoforge_worldgen="ports/worldgen-neoforge/build/libs/mushoku-worldgen-neoforge-1.20.1-${port_worldgen_version}.jar"
-          for jar in "$fabric_magic" "$fabric_weather" "$fabric_worldgen" "$forge_magic" "$forge_weather" "$forge_worldgen" "$neoforge_magic" "$neoforge_weather" "$neoforge_worldgen"; do
+          jars=(
+            "$fabric_magic" "$fabric_weather" "$fabric_worldgen"
+            "$forge_magic" "$forge_weather" "$forge_worldgen"
+            "$neoforge_magic" "$neoforge_weather" "$neoforge_worldgen"
+          )
+          for jar in "${jars[@]}"; do
             test -f "$jar"
           done
-          gh release upload "$GITHUB_REF_NAME" \
-            "$fabric_magic" "$fabric_weather" "$fabric_worldgen" \
-            "$forge_magic" "$forge_weather" "$forge_worldgen" \
-            "$neoforge_magic" "$neoforge_weather" "$neoforge_worldgen" \
-            --clobber
+          if [[ "$GITHUB_REF_NAME" == "v${magic_version}" || "$GITHUB_REF_NAME" == "v${magic_version}-"* ]]; then
+            bundle_root="$RUNNER_TEMP/mushoku-release-bundles"
+            mkdir -p "$bundle_root/jars"
+            cp "${jars[@]}" "$bundle_root/jars/"
+            python3 scripts/package_release_mod_bundles.py \
+              --assets-dir "$bundle_root/jars" \
+              --output-dir "$bundle_root" \
+              --tag "$GITHUB_REF_NAME"
+            mapfile -t bundles < <(find "$bundle_root" -maxdepth 1 -type f -name '*.zip' | sort)
+            if [[ "${#bundles[@]}" -ne 3 ]]; then
+              echo "Expected three loader-specific mods/ ZIP bundles, found ${#bundles[@]}: ${bundles[*]}" >&2
+              exit 1
+            fi
+            gh release upload "$GITHUB_REF_NAME" "${jars[@]}" "${bundles[@]}" --clobber
+          else
+            echo "Release tag $GITHUB_REF_NAME does not match Magic source version ${magic_version}; attaching jars only."
+            gh release upload "$GITHUB_REF_NAME" "${jars[@]}" --clobber
+          fi
