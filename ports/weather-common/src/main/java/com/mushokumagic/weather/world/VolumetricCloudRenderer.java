@@ -52,7 +52,9 @@ public final class VolumetricCloudRenderer {
     private static int kindLocation;
     private static int intensityLocation;
     private static int phaseLocation;
-    private static int timeLocation;
+    private static int flowPhaseLocation;
+    private static int noiseOriginLocation;
+    private static int sunDirectionLocation;
     private static int daylightLocation;
     private static int twilightLocation;
     private static int lightningLocation;
@@ -222,7 +224,7 @@ public final class VolumetricCloudRenderer {
             VolumetricCloudRenderer.addIfVisible(
                     volumes, renderKind, x, centerY, z, halfX, halfY, halfZ,
                     intensity, storm.kind() != SevereWeatherModel.Kind.SANDSTORM,
-                    storm.travelX(), storm.travelZ(), storm.phase(), now,
+                    storm.travelX(), storm.travelZ(), storm.phase(),
                     cameraX, cameraY, cameraZ, renderDistance);
         }
 
@@ -250,7 +252,7 @@ public final class VolumetricCloudRenderer {
                     volumes, 0, centerX, centerY, centerZ,
                     halfExtent * 1.08, 58.0, halfExtent * 1.08,
                     intensity, true, 0.32, 0.72, (storm.minChunkX() * 31.0 + storm.minChunkZ()) * 0.017,
-                    now, cameraX, cameraY, cameraZ, renderDistance);
+                    cameraX, cameraY, cameraZ, renderDistance);
         }
 
         RegionalWeatherManager.RegionalSnapshot regional = snapshots.regional;
@@ -261,13 +263,21 @@ public final class VolumetricCloudRenderer {
             if (regional.thunderstorm()) {
                 intensity = Math.max(intensity, 0.88);
             }
-            double centerY = Math.max(110.0, Math.min(248.0, regional.y() + 84.0));
-            double halfExtent = 235.0 + regional.cloudCover() * 140.0;
+            double centerY = Math.max(132.0, Math.min(278.0, regional.y() + 108.0));
+            double halfExtent = Math.max(640.0, Math.min(2_560.0, renderDistance * 1.20));
+            int regionalKind = regional.thunderstorm()
+                            || regional.precipitationIntensity() >= 0.46
+                            || regional.cloudCover() >= 0.72
+                    ? 7
+                    : 8;
+            double halfY = regionalKind == 8
+                    ? 72.0
+                    : regional.precipitationIntensity() >= 0.68 ? 96.0 : 78.0;
             VolumetricCloudRenderer.addIfVisible(
-                    volumes, 7, regional.x(), centerY, regional.z(),
-                    halfExtent, 54.0, halfExtent,
-                    intensity, regional.thunderstorm(), regional.windX(), regional.windZ(), now * 0.002,
-                    now, cameraX, cameraY, cameraZ, renderDistance);
+                    volumes, regionalKind, regional.x(), centerY, regional.z(),
+                    halfExtent, halfY, halfExtent,
+                    intensity, regional.thunderstorm(), regional.windX(), regional.windZ(), 0.0,
+                    cameraX, cameraY, cameraZ, renderDistance);
 
             if (regional.thunderstorm() || regional.precipitationIntensity() >= 0.68) {
                 double convectiveIntensity = Math.max(0.68, intensity * 0.92);
@@ -277,8 +287,8 @@ public final class VolumetricCloudRenderer {
                         volumes, 0, regional.x(), stormY, regional.z(),
                         stormExtent, 82.0, stormExtent,
                         convectiveIntensity, regional.thunderstorm(),
-                        regional.windX(), regional.windZ(), now * 0.0013,
-                        now, cameraX, cameraY, cameraZ, renderDistance);
+                        regional.windX(), regional.windZ(), 0.0,
+                        cameraX, cameraY, cameraZ, renderDistance);
             }
         }
         return volumes;
@@ -313,7 +323,6 @@ public final class VolumetricCloudRenderer {
             double windX,
             double windZ,
             double phase,
-            double time,
             double cameraX,
             double cameraY,
             double cameraZ,
@@ -341,6 +350,10 @@ public final class VolumetricCloudRenderer {
             windX /= windLength;
             windZ /= windLength;
         }
+        double noiseFrequency = VolumetricCloudRenderer.noiseFrequency(kind);
+        float noiseOriginX = (float)VolumetricCloudRenderer.fraction(x * noiseFrequency);
+        float noiseOriginY = (float)VolumetricCloudRenderer.fraction(y * noiseFrequency * 1.72);
+        float noiseOriginZ = (float)VolumetricCloudRenderer.fraction(z * noiseFrequency);
         output.add(new CloudVolume(
                 kind,
                 (float)dx,
@@ -354,7 +367,9 @@ public final class VolumetricCloudRenderer {
                 (float)windX,
                 (float)windZ,
                 (float)phase,
-                (float)time,
+                noiseOriginX,
+                noiseOriginY,
+                noiseOriginZ,
                 distanceSquared));
     }
 
@@ -392,8 +407,9 @@ public final class VolumetricCloudRenderer {
             CloudLightingModel.Lighting lighting = CloudLightingModel.atTime(dayTime);
             GL20.glUniform1f(daylightLocation, lighting.daylight());
             GL20.glUniform1f(twilightLocation, lighting.twilight());
+            GL20.glUniform3f(sunDirectionLocation, lighting.sunX(), lighting.sunY(), lighting.sunZ());
 
-            int steps = requestedQuality <= 1 ? 20 : requestedQuality == 2 ? 32 : 48;
+            int steps = requestedQuality <= 1 ? 24 : requestedQuality == 2 ? 40 : 56;
             GL20.glUniform1i(stepsLocation, steps);
             for (CloudVolume volume : volumes) {
                 GL20.glUniform3f(centerLocation, volume.centerX, volume.centerY, volume.centerZ);
@@ -402,8 +418,13 @@ public final class VolumetricCloudRenderer {
                 GL20.glUniform1i(kindLocation, volume.kind);
                 GL20.glUniform1f(intensityLocation, volume.intensity);
                 GL20.glUniform1f(lightningLocation, volume.lightning);
-                GL20.glUniform1f(phaseLocation, volume.phase);
-                GL20.glUniform1f(timeLocation, (float)(time % 100_000.0));
+                GL20.glUniform1f(phaseLocation, (float)VolumetricCloudRenderer.wrapAngle(
+                        volume.phase + time * VolumetricCloudRenderer.phaseRate(volume.kind)));
+                GL20.glUniform1f(flowPhaseLocation, (float)VolumetricCloudRenderer.fraction(
+                        time * VolumetricCloudRenderer.flowRate(volume.kind)
+                                * VolumetricCloudRenderer.noiseFrequency(volume.kind)));
+                GL20.glUniform3f(noiseOriginLocation,
+                        volume.noiseOriginX, volume.noiseOriginY, volume.noiseOriginZ);
                 GL11.glDrawArrays(GL11.GL_TRIANGLES, 0, UNIT_CUBE.length / 3);
             }
         } finally {
@@ -444,7 +465,9 @@ public final class VolumetricCloudRenderer {
             stepsLocation = uniform("uSteps");
             intensityLocation = uniform("uIntensity");
             phaseLocation = uniform("uPhase");
-            timeLocation = uniform("uTime");
+            flowPhaseLocation = uniform("uFlowPhase");
+            noiseOriginLocation = uniform("uNoiseOrigin");
+            sunDirectionLocation = uniform("uSunDirection");
             daylightLocation = uniform("uDaylight");
             twilightLocation = uniform("uTwilight");
             lightningLocation = uniform("uLightning");
@@ -495,18 +518,22 @@ public final class VolumetricCloudRenderer {
             }
             image = ImageIO.read(stream);
         }
-        if (image == null || image.getWidth() < 64 || image.getHeight() < 64) {
-            throw new IOException("Invalid cloud-noise texture " + CLOUD_NOISE_RESOURCE);
+        if (image == null
+                || !image.getColorModel().hasAlpha()
+                || image.getWidth() < 64
+                || image.getHeight() < 64) {
+            throw new IOException("Invalid RGBA cloud-noise texture " + CLOUD_NOISE_RESOURCE);
         }
         int width = image.getWidth();
         int height = image.getHeight();
-        ByteBuffer pixels = BufferUtils.createByteBuffer(width * height * 3);
+        ByteBuffer pixels = BufferUtils.createByteBuffer(width * height * 4);
         for (int y = 0; y < height; ++y) {
             for (int x = 0; x < width; ++x) {
                 int argb = image.getRGB(x, y);
                 pixels.put((byte)(argb >> 16));
                 pixels.put((byte)(argb >> 8));
                 pixels.put((byte)argb);
+                pixels.put((byte)(argb >>> 24));
             }
         }
         pixels.flip();
@@ -519,13 +546,14 @@ public final class VolumetricCloudRenderer {
         int texture = GL11.glGenTextures();
         try {
             GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture);
-            GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR);
+            GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR_MIPMAP_LINEAR);
             GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_LINEAR);
             GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL11.GL_REPEAT);
             GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL11.GL_REPEAT);
             GL11.glPixelStorei(GL11.GL_UNPACK_ALIGNMENT, 1);
-            GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_RGB8, width, height, 0,
-                    GL11.GL_RGB, GL11.GL_UNSIGNED_BYTE, pixels);
+            GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_RGBA8, width, height, 0,
+                    GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, pixels);
+            GL30.glGenerateMipmap(GL11.GL_TEXTURE_2D);
         } catch (RuntimeException exception) {
             GL11.glDeleteTextures(texture);
             throw exception;
@@ -566,6 +594,43 @@ public final class VolumetricCloudRenderer {
         };
     }
 
+    private static double noiseFrequency(int kind) {
+        return switch (kind) {
+            case 5 -> 0.0048;
+            case 6 -> 0.0025;
+            case 7, 8 -> 0.00055;
+            default -> 0.00145;
+        };
+    }
+
+    private static double phaseRate(int kind) {
+        return switch (kind) {
+            case 5 -> 0.035;
+            case 7 -> 0.00012;
+            case 8 -> 0.00020;
+            default -> 0.00045;
+        };
+    }
+
+    private static double flowRate(int kind) {
+        return switch (kind) {
+            case 2 -> 0.026;
+            case 5 -> 0.050;
+            case 6 -> 0.022;
+            case 7, 8 -> 0.018;
+            default -> 0.021;
+        };
+    }
+
+    private static double fraction(double value) {
+        return Double.isFinite(value) ? value - Math.floor(value) : 0.0;
+    }
+
+    private static double wrapAngle(double value) {
+        double wrapped = value % (Math.PI * 2.0);
+        return wrapped < 0.0 ? wrapped + Math.PI * 2.0 : wrapped;
+    }
+
     private static double smoothStep(double edge0, double edge1, double value) {
         double amount = clamp((value - edge0) / (edge1 - edge0), 0.0, 1.0);
         return amount * amount * (3.0 - 2.0 * amount);
@@ -598,7 +663,9 @@ public final class VolumetricCloudRenderer {
         private final float windX;
         private final float windZ;
         private final float phase;
-        private final float time;
+        private final float noiseOriginX;
+        private final float noiseOriginY;
+        private final float noiseOriginZ;
         private final double distanceSquared;
 
         private CloudVolume(
@@ -614,7 +681,9 @@ public final class VolumetricCloudRenderer {
                 float windX,
                 float windZ,
                 float phase,
-                float time,
+                float noiseOriginX,
+                float noiseOriginY,
+                float noiseOriginZ,
                 double distanceSquared) {
             this.kind = kind;
             this.centerX = centerX;
@@ -628,7 +697,9 @@ public final class VolumetricCloudRenderer {
             this.windX = windX;
             this.windZ = windZ;
             this.phase = phase;
-            this.time = time;
+            this.noiseOriginX = noiseOriginX;
+            this.noiseOriginY = noiseOriginY;
+            this.noiseOriginZ = noiseOriginZ;
             this.distanceSquared = distanceSquared;
         }
     }

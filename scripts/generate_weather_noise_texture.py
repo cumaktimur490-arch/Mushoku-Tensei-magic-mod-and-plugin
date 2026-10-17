@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Generate the original seamless RGB noise texture sampled by Weather's volume shader."""
+"""Generate the seamless multi-scale RGBA noise field used by Weather's volume shader."""
 
 from __future__ import annotations
 
 import argparse
+import math
 import struct
 import sys
 import zlib
@@ -11,12 +12,21 @@ from pathlib import Path
 
 SIZE = 512
 GRIDS = (4, 8, 16, 32, 64)
+CELLULAR_GRIDS = (4, 8, 16, 32)
 MASK64 = (1 << 64) - 1
 FIXED_SCALE = 1 << 24
 OUTPUTS = (
     Path("weather/src/main/resources/assets/mushoku_weather/textures/cloud_noise.png"),
     Path("ports/weather-common/src/main/resources/assets/mushoku_weather/textures/cloud_noise.png"),
 )
+
+
+def splitmix_next(state: int) -> tuple[int, int]:
+    state = (state + 0x9E3779B97F4A7C15) & MASK64
+    value = state
+    value = ((value ^ (value >> 30)) * 0xBF58476D1CE4E5B9) & MASK64
+    value = ((value ^ (value >> 27)) * 0x94D049BB133111EB) & MASK64
+    return state, value ^ (value >> 31)
 
 
 def smooth(value: int) -> int:
@@ -33,11 +43,7 @@ def value_noise(size: int, grid: int, seed: int) -> bytearray:
     state = seed & MASK64
     lattice = []
     for _ in range(grid * grid):
-        state = (state + 0x9E3779B97F4A7C15) & MASK64
-        value = state
-        value = ((value ^ (value >> 30)) * 0xBF58476D1CE4E5B9) & MASK64
-        value = ((value ^ (value >> 27)) * 0x94D049BB133111EB) & MASK64
-        value ^= value >> 31
+        state, value = splitmix_next(state)
         lattice.append((value >> 56) * FIXED_SCALE)
     pixels = bytearray(size * size)
 
@@ -58,6 +64,38 @@ def value_noise(size: int, grid: int, seed: int) -> bytearray:
     return pixels
 
 
+def cellular_noise(size: int, grid: int, seed: int) -> bytearray:
+    """Periodic Worley F1 distance, bright at cell centers for rounded cloud puffs."""
+    state = seed & MASK64
+    points = []
+    for _ in range(grid * grid):
+        state, x_value = splitmix_next(state)
+        state, y_value = splitmix_next(state)
+        points.append((x_value >> 40, y_value >> 40))
+
+    pixels = bytearray(size * size)
+    for y in range(size):
+        grid_y, local_y = divmod(y * grid * FIXED_SCALE // size, FIXED_SCALE)
+        row = y * size
+        for x in range(size):
+            grid_x, local_x = divmod(x * grid * FIXED_SCALE // size, FIXED_SCALE)
+            nearest_squared = 2 * FIXED_SCALE * FIXED_SCALE
+            for offset_y in (-1, 0, 1):
+                neighbor_y = (grid_y + offset_y) % grid
+                for offset_x in (-1, 0, 1):
+                    neighbor_x = (grid_x + offset_x) % grid
+                    point_x, point_y = points[neighbor_y * grid + neighbor_x]
+                    feature_x = point_x * FIXED_SCALE // (1 << 24)
+                    feature_y = point_y * FIXED_SCALE // (1 << 24)
+                    dx = offset_x * FIXED_SCALE + feature_x - local_x
+                    dy = offset_y * FIXED_SCALE + feature_y - local_y
+                    nearest_squared = min(nearest_squared, dx * dx + dy * dy)
+            nearest = math.isqrt(nearest_squared)
+            value = max(0, min(FIXED_SCALE, FIXED_SCALE - nearest))
+            pixels[row + x] = (value * 255 + FIXED_SCALE // 2) // FIXED_SCALE
+    return pixels
+
+
 def blend(layers: tuple[bytearray, ...], weights: tuple[int, ...]) -> bytearray:
     return bytearray(
         max(0, min(255, (sum(layer[index] * weight for layer, weight in zip(layers, weights)) + 50) // 100))
@@ -65,19 +103,22 @@ def blend(layers: tuple[bytearray, ...], weights: tuple[int, ...]) -> bytearray:
     )
 
 
-def generate_rgb() -> bytes:
+def generate_rgba() -> bytes:
     layers = tuple(value_noise(SIZE, grid, 0x4D5457 + grid * 97) for grid in GRIDS)
+    cellular_layers = tuple(cellular_noise(SIZE, grid, 0xA73E5C + grid * 131) for grid in CELLULAR_GRIDS)
     channels = (
         blend(layers[:3], (68, 25, 7)),
         blend(layers[:4], (12, 48, 30, 10)),
         blend(layers[1:], (6, 25, 42, 27)),
+        blend(cellular_layers, (9, 21, 40, 30)),
     )
-    output = bytearray(SIZE * SIZE * 3)
+    output = bytearray(SIZE * SIZE * 4)
     for index in range(SIZE * SIZE):
-        offset = index * 3
+        offset = index * 4
         output[offset] = channels[0][index]
         output[offset + 1] = channels[1][index]
         output[offset + 2] = channels[2][index]
+        output[offset + 3] = channels[3][index]
     return bytes(output)
 
 
@@ -85,9 +126,10 @@ def png_chunk(kind: bytes, data: bytes) -> bytes:
     return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF)
 
 
-def encode_png(rgb: bytes) -> bytes:
-    rows = b"".join(b"\x00" + rgb[y * SIZE * 3 : (y + 1) * SIZE * 3] for y in range(SIZE))
-    header = struct.pack(">IIBBBBB", SIZE, SIZE, 8, 2, 0, 0, 0)
+def encode_png(rgba: bytes) -> bytes:
+    stride = SIZE * 4
+    rows = b"".join(b"\x00" + rgba[y * stride : (y + 1) * stride] for y in range(SIZE))
+    header = struct.pack(">IIBBBBB", SIZE, SIZE, 8, 6, 0, 0, 0)
     return (
         b"\x89PNG\r\n\x1a\n"
         + png_chunk(b"IHDR", header)
@@ -116,10 +158,10 @@ def decode_png(path: Path) -> tuple[int, int, bytes]:
             compressed.extend(chunk)
         elif kind == b"IEND":
             break
-    if (width, height, bit_depth, color_type) != (SIZE, SIZE, 8, 2):
+    if (width, height, bit_depth, color_type) != (SIZE, SIZE, 8, 6):
         raise ValueError(f"{path} has unexpected image format or dimensions")
     raw = zlib.decompress(compressed)
-    stride = SIZE * 3
+    stride = SIZE * 4
     pixels = bytearray(SIZE * stride)
     source_offset = 0
     for y in range(SIZE):
@@ -136,7 +178,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true", help="verify the checked-in copies match the generated pixels")
     args = parser.parse_args()
-    expected = generate_rgb()
+    expected = generate_rgba()
 
     if args.check:
         for path in OUTPUTS:
@@ -148,7 +190,7 @@ def main() -> int:
                 raise SystemExit(str(error)) from error
             if (width, height) != (SIZE, SIZE) or pixels != expected:
                 raise SystemExit(f"{path} does not match the reproducible cloud-noise texture")
-            print(f"Verified original {SIZE}x{SIZE} cloud-noise texture: {path}")
+            print(f"Verified seamless {SIZE}x{SIZE} cellular cloud-noise texture: {path}")
         return 0
 
     image = encode_png(expected)
